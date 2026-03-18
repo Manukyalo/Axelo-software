@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { SeedInitializer } from './utils/SeedInitializer';
@@ -78,7 +78,7 @@ function App() {
         {/* Public Routes */}
         <Route path="/" element={<Navigate to="/admin/login" />} />
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/reservations/login" element={<ResLogin />} />
+        <Route path="/reservations/login" element={<ReservationsLogin />} />
 
         {/* Admin Routes */}
         <Route path="/admin" element={
