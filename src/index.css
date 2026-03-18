@@ -1,0 +1,70 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+:root {
+  --safari-gold: #C9A84C;
+  --transition-speed: 0.3s;
+}
+
+body {
+  @apply bg-safari-bg text-safari-primary font-dm-sans transition-all duration-300;
+}
+
+.dark body {
+  @apply bg-dark-bg text-dark-text;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-playfair;
+}
+
+.stat-number {
+  @apply font-jetbrains;
+}
+
+/* Custom transitions and animations */
+.fade-in {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-safari-gold/20 rounded-full hover:bg-safari-gold/40 transition-colors;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-safari-gold/10 hover:bg-safari-gold/30;
+}
+
+/* Glassmorphism utility */
+.glass {
+  @apply bg-white/70 backdrop-blur-md border border-white/20;
+}
+
+.dark .glass {
+  @apply bg-dark-surface/70 backdrop-blur-md border border-dark-border;
+}
