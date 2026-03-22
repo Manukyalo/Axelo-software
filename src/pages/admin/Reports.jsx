@@ -9,24 +9,32 @@ import { Button } from '../../components/ui/Button';
 import { Download, Filter, TrendingUp } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { parseISO } from 'date-fns';
 
 export const Reports = () => {
   const { state } = useData();
   const { isDarkMode } = useTheme();
 
-  const revenueData = [
-    { name: 'Jan', revenue: 450000 },
-    { name: 'Feb', revenue: 520000 },
-    { name: 'Mar', revenue: 480000 },
-    { name: 'Apr', revenue: 610000 },
-    { name: 'May', revenue: 750000 },
-    { name: 'Jun', revenue: 820000 },
-  ];
+  const revenueData = (() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const data = months.map(m => ({ name: m, revenue: 0 }));
+    
+    state.bookings.forEach(b => {
+      if (!b.date || b.status === 'Cancelled') return;
+      const mIdx = parseISO(b.date).getMonth();
+      data[mIdx].revenue += (b.paidAmount || 0);
+    });
+    return data;
+  })();
 
-  const packagesData = state.packages.map(p => ({
-    name: p.name.split(' ')[0],
+  let packagesData = state.packages.map(p => ({
+    name: p.name.split(' ').slice(0, 3).join(' ') + '...',
     value: state.bookings.filter(b => b.packageId === p.id).length
-  }));
+  })).filter(p => p.value > 0);
+
+  if (packagesData.length === 0) {
+    packagesData = [{ name: 'Awaiting Records', value: 1, isEmpty: true }];
+  }
 
   const COLORS = ['#C9A84C', '#1A1A2E', '#8B5E3C', '#2D6A4F'];
 
@@ -83,7 +91,7 @@ export const Reports = () => {
                   dataKey="value"
                 >
                   {packagesData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={entry.isEmpty ? (isDarkMode ? '#1e1e35' : '#f9fafb') : COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
