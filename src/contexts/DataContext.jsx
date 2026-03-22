@@ -1,108 +1,106 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import { initialData } from '../utils/seedData';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { useAuth } from './AuthContext';
 import { checkRateLimit } from '../utils/rateLimit';
 import { logger } from '../utils/logger';
+import toast from 'react-hot-toast';
 
 const DataContext = createContext();
 
-const dataReducer = (state, action) => {
-  switch (action.type) {
-    case 'SET_DATA':
-      return action.payload;
-    case 'ADD_BOOKING':
-      return { ...state, bookings: [action.payload, ...state.bookings] };
-    case 'UPDATE_BOOKING':
-      return {
-        ...state,
-        bookings: state.bookings.map(b => b.id === action.payload.id ? action.payload : b)
-      };
-    case 'DELETE_BOOKING':
-      return {
-        ...state,
-        bookings: state.bookings.filter(b => b.id !== action.payload)
-      };
-    case 'ADD_VEHICLE':
-      return { ...state, vehicles: [action.payload, ...state.vehicles] };
-    case 'UPDATE_VEHICLE':
-      return {
-        ...state,
-        vehicles: state.vehicles.map(v => v.id === action.payload.id ? action.payload : v)
-      };
-    case 'ADD_DRIVER':
-      return { ...state, drivers: [action.payload, ...state.drivers] };
-    case 'UPDATE_DRIVER':
-      return {
-        ...state,
-        drivers: state.drivers.map(d => d.id === action.payload.id ? action.payload : d)
-      };
-    case 'ADD_NOTIFICATION':
-      return { ...state, notifications: [action.payload, ...state.notifications] };
-    case 'MARK_NOTIFICATION_READ':
-      return {
-        ...state,
-        notifications: state.notifications.map(n => n.id === action.payload ? { ...n, read: true } : n)
-      };
-    default:
-      return state;
-  }
-};
-
-const STORAGE_KEY = 'tours_db_prod';
-
 export const DataProvider = ({ children }) => {
   const { user } = useAuth();
-  const [state, dispatch] = useReducer(dataReducer, null, () => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : initialData;
+  
+  // Real-time Database Snapshot Cache
+  const [state, setState] = useState({
+    bookings: [],
+    vehicles: [],
+    drivers: [],
+    packages: [],
+    notifications: []
   });
 
-  const secureDispatch = (action) => {
-    // 🥶 GLOBAL SCRAPING DEFENSE: Throttle any state modification (ADD/UPDATE/DELETE)
-    // Ensures a malicious web scraper or loop cannot perform more than 80 operations per minute
+  // Attach asynchronous remote Firestore synchronizers dynamically
+  useEffect(() => {
+    if (!user) return; // Disconnect polling if unauthenticated
+
+    const unsubs = [];
+    const collections = ['bookings', 'vehicles', 'drivers', 'packages', 'notifications'];
+
+    collections.forEach(col => {
+      const q = collection(db, col);
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs.map(document => ({ id: document.id, ...document.data() }));
+        setState(prev => ({ ...prev, [col]: data }));
+      }, (err) => {
+         logger.error(`Firestore Network Sync Exception on [${col}]`, { message: err.message });
+      });
+      unsubs.push(unsubscribe);
+    });
+
+    // Cleanup active tunnel connections on unmount
+    return () => unsubs.forEach(unsub => unsub());
+  }, [user]);
+
+  // Redux-Translator: Converts local component dispatched events into physical cloud writes
+  const dispatch = async (action) => {
+    // 🥶 Throttler Proxy Overlay
     if (action.type !== 'SET_DATA') {
         checkRateLimit('database_mutations', 80, 60 * 1000);
     }
 
-    if (user && user.role !== 'admin') {
-      const isDelete = action.type.startsWith('DELETE_');
-      const isUpdate = action.type.startsWith('UPDATE_');
-      
-      if (isDelete || isUpdate) {
-         let collectionName = '';
-         if (action.type.includes('BOOKING')) collectionName = 'bookings';
-         else if (action.type.includes('VEHICLE')) collectionName = 'vehicles';
-         else if (action.type.includes('DRIVER')) collectionName = 'drivers';
-         else if (action.type.includes('PACKAGE')) collectionName = 'packages';
+    try {
+      const type = action.type;
+      const isAdd = type.startsWith('ADD_');
+      const isUpdate = type.startsWith('UPDATE_');
+      const isDelete = type.startsWith('DELETE_');
 
-         if (collectionName && state[collectionName]) {
-            const idToMatch = isDelete ? action.payload : action.payload.id;
-            const item = state[collectionName].find(i => i.id === idToMatch);
-            
-            if (item && item.createdById !== user.role) {
-                logger.security(`IDOR SECURITY EXCEPTION: Cross-tenant mutation blocked on ${collectionName} ID: ${idToMatch}`, { collectionName, idToMatch, actingUser: user.role, owner: item.createdById });
-                throw new Error("SECURITY EXCEPTION: You do not have permission to modify or delete this resource.");
-            }
+      let col = '';
+      if (type.includes('BOOKING')) col = 'bookings';
+      else if (type.includes('VEHICLE')) col = 'vehicles';
+      else if (type.includes('DRIVER')) col = 'drivers';
+      else if (type.includes('PACKAGE')) col = 'packages';
+      else if (type.includes('NOTIFICATION')) col = 'notifications';
+
+      if (!col) return;
+
+      // ---- 🛡️ IDOR Cloud Access Control ----
+      if ((isUpdate || isDelete) && user.role !== 'admin') {
+         const targetId = isDelete ? action.payload : action.payload.id;
+         const item = state[col].find(i => i.id === targetId);
+         if (item && item.createdById !== user.role) {
+             logger.security(`IDOR EXCEPTION: Intercepted cross-tenant boundary mutation on ${col}`, { targetId, actingUser: user.role });
+             throw new Error("SECURITY EXCEPTION: You do not have absolute permission to modify or delete this resource.");
          }
       }
 
-      if (action.type.startsWith('ADD_') && action.payload && !action.payload.createdById) {
-        action.payload.createdById = user.role;
+      // ---- Cloud Execution Engine ----
+      if (isAdd) {
+         const payload = { ...action.payload };
+         if (!payload.createdById) payload.createdById = user.role;
+         delete payload.id; // Allow Google Firestore to strictly auto-generate UUIDs natively
+         
+         await addDoc(collection(db, col), payload);
+         logger.info(`Firestore Document Synthesized in [${col}]`);
+      } 
+      else if (isUpdate) {
+         const { id, ...payload } = action.payload;
+         await updateDoc(doc(db, col, id), payload);
+         logger.info(`Firestore Document Mutated in [${col}]`, { id });
+      } 
+      else if (isDelete) {
+         const id = action.payload;
+         await deleteDoc(doc(db, col, id));
+         logger.info(`Firestore Document Severed from [${col}]`, { id });
       }
+    } catch (err) {
+       logger.error('Firestore Dispatch Kernel Exception', { error: err.message });
+       toast.error(err.message);
     }
-
-    dispatch(action);
   };
 
-  useEffect(() => {
-    if (state) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }
-  }, [state]);
-
   return (
-    <DataContext.Provider value={{ state, dispatch: secureDispatch }}>
+    <DataContext.Provider value={{ state, dispatch }}>
       {children}
     </DataContext.Provider>
   );
@@ -110,6 +108,6 @@ export const DataProvider = ({ children }) => {
 
 export const useData = () => {
   const context = useContext(DataContext);
-  if (!context) throw new Error('useData must be used within DataProvider');
+  if (!context) throw new Error('useData must be consumed within a DataProvider Context Layer');
   return context;
 };

@@ -1,34 +1,39 @@
 import { useEffect } from 'react';
-import { hashPassword } from './auth';
-
-const ADMIN_CRED_KEY = 'auth_cred_v5_a';
-const RES_CRED_KEY = 'auth_cred_v5_r';
+import { auth } from '../config/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 export const SeedInitializer = () => {
   useEffect(() => {
-    const init = async () => {
-      // Email Verification flags are forcibly embedded here
-      if (!localStorage.getItem(ADMIN_CRED_KEY)) {
-        const adminHash = await hashPassword(import.meta.env.VITE_ADMIN_DEFAULT_PWD || 'AdminFallback123');
-        localStorage.setItem(ADMIN_CRED_KEY, JSON.stringify({
-          username: import.meta.env.VITE_ADMIN_EMAIL || 'admin@easternvacations.com',
-          password: adminHash,
-          name: 'System Admin',
-          emailVerified: true
-        }));
+    const initFirebaseUsers = async () => {
+      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@easternvacations.com';
+      const adminPass = import.meta.env.VITE_ADMIN_DEFAULT_PWD || 'AdminFallback123';
+      
+      const resEmail = import.meta.env.VITE_RES_EMAIL || 'reservations@easternvacations.com';
+      const resPass = import.meta.env.VITE_RES_DEFAULT_PWD || 'ResFallback123';
+
+      try {
+        // Blind Create Attempt: Will dynamically spawn the official corporate credentials into Firebase Auto-Auth Registry
+        await createUserWithEmailAndPassword(auth, adminEmail, adminPass);
+        console.log("Admin account freshly initialized on remote Firebase servers!");
+      } catch (err) {
+        // Swallow exception if already exists, else log structural fault
+        if (err.code !== 'auth/email-already-in-use') {
+            console.error("Admin Seed Exception: ", err.message);
+        }
       }
 
-      if (!localStorage.getItem(RES_CRED_KEY)) {
-        const resHash = await hashPassword(import.meta.env.VITE_RES_DEFAULT_PWD || 'ResFallback123');
-        localStorage.setItem(RES_CRED_KEY, JSON.stringify({
-          username: import.meta.env.VITE_RES_EMAIL || 'reservations@easternvacations.com',
-          password: resHash,
-          name: 'Reservations Agent',
-          emailVerified: true
-        }));
+      try {
+        // Formulate Sub-Agent identity
+        await createUserWithEmailAndPassword(auth, resEmail, resPass);
+        console.log("Reservations account freshly initialized on remote Firebase servers!");
+      } catch (err) {
+        if (err.code !== 'auth/email-already-in-use') {
+             console.error("Res Seed Exception: ", err.message);
+        }
       }
     };
-    init();
+
+    initFirebaseUsers();
   }, []);
 
   return null;

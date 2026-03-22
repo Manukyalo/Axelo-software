@@ -1,108 +1,80 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { validateToken, comparePassword, generateToken } from '../utils/auth';
+import { auth } from '../config/firebase';
+import { signInWithEmailAndPassword, signOut as fbSignOut, onAuthStateChanged } from 'firebase/auth';
 import { checkRateLimit } from '../utils/rateLimit';
 import { logger } from '../utils/logger';
-import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
-
-const ADMIN_CRED_KEY = 'auth_cred_v5_a';
-const RES_CRED_KEY = 'auth_cred_v5_r';
-const BRUTE_FORCE_KEY = 'login_attempts_v5';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkSession = () => {
-      const token = sessionStorage.getItem('token');
-      if (token) {
-        const validated = validateToken(token);
-        if (validated) {
-          setUser(validated);
-        } else {
-          // Token artificially expired or invalid mid-session -> Eject
-          sessionStorage.removeItem('token');
-          setUser(null);
-        }
+    // 🔗 Permanent Server Synchronization Webhook
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@easternvacations.com';
+        
+        // Strict mapping attribution since firestore roles aren't deployed yet
+        const role = firebaseUser.email === adminEmail ? 'admin' : 'res_agent';
+
+        setUser({
+          id: firebaseUser.uid,
+          username: firebaseUser.email,
+          role: role,
+          emailVerified: firebaseUser.emailVerified
+        });
+      } else {
+        setUser(null);
       }
       setLoading(false);
-    };
-
-    checkSession();
+    });
     
-    // Active session polling (check every 60s for expiry timeout)
-    const interval = setInterval(checkSession, 60000);
-    return () => clearInterval(interval);
+    return unsubscribe;
   }, []);
 
   const login = async (username, password, role) => {
-    // 🥶 GLOBAL API RATE LIMIT: Map 10 failed or successful global logins per 15 mins 
-    // Acts as an impenetrable brute-force prevention screen
+    // 🥶 LOCAL OVERLAY: Prevent excessive API calls to Google Identity servers
     checkRateLimit('login_attempt', 10, 15 * 60 * 1000);
 
-    // Continue to standard business logic
-    const key = role === 'admin' ? ADMIN_CRED_KEY : RES_CRED_KEY;
-    const stored = JSON.parse(localStorage.getItem(key));
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@easternvacations.com';
+    const resEmail = import.meta.env.VITE_RES_EMAIL || 'reservations@easternvacations.com';
 
-    // Brute force check
-    const lockoutKey = `lockout_${role}_${username}`;
-    const lockout = JSON.parse(localStorage.getItem(lockoutKey) || '{"failedAttempts": 0, "lockUntil": 0}');
-
-    if (lockout.lockUntil && Date.now() < lockout.lockUntil) {
-      const minutesRemaining = Math.ceil((lockout.lockUntil - Date.now()) / 60000);
-      logger.security('Login anomaly blocked. Attempt on account currently under brute-force lockout.', { username, role });
-      throw new Error(`Account locked due to multiple failed attempts. Try again in ${minutesRemaining} minutes.`);
+    // UI Tab Restrictors
+    if (role === 'admin' && username !== adminEmail) {
+       logger.warn('UI Traversal Blocked', { username, targetRole: role });
+       throw new Error('Please log in via the Agent Reservations portal.');
+    }
+    if (role === 'res_agent' && username !== resEmail && username !== 'reservations@toursco') {
+       logger.warn('UI Traversal Blocked', { username, targetRole: role });
+       throw new Error('Please log in via the Administrative portal.');
     }
 
-    if (!stored || stored.username !== username || !(await comparePassword(password, stored.password))) {
-      lockout.failedAttempts += 1;
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, username, password);
+      logger.info('Firebase Authentication Signature Issued', { username, uid: userCredential.user.uid });
+      return userCredential.user;
+    } catch (error) {
+      logger.security('Firebase Auth Rejection', { username, code: error.code });
       
-      if (lockout.failedAttempts >= 5) {
-        lockout.lockUntil = Date.now() + 15 * 60 * 1000;
-        localStorage.setItem(lockoutKey, JSON.stringify(lockout));
-        logger.security('Account mathematically isolated. Excessive brute-force failure threshold reached.', { username, role, failedAttempts: lockout.failedAttempts });
-        throw new Error('Account locked due to multiple failed attempts. Try again in 15 minutes.');
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        throw new Error('Invalid username or password');
       }
-      
-      localStorage.setItem(lockoutKey, JSON.stringify(lockout));
-      logger.warn('Failed authentication parameters detected against directory.', { username, role, failedAttempts: lockout.failedAttempts });
-      throw new Error('Invalid username or password');
+      if (error.code === 'auth/too-many-requests') {
+        throw new Error('Account temporarily locked by Google for security. Please try again later.');
+      }
+      throw new Error(error.message);
     }
-
-    // Mock Email Verification Check
-    if (!stored.emailVerified) {
-       logger.warn('Authentication dropped due to unverified external email state.', { username, role });
-       throw new Error('Email must be verified before logging in. Please check your inbox.');
-    }
-
-    // Reset lockout
-    localStorage.removeItem(lockoutKey);
-    logger.info('Authentication layer passed. Generating session ticket.', { username, role });
-
-    const token = generateToken(role);
-    sessionStorage.setItem('token', token);
-    const validated = validateToken(token);
-    setUser(validated);
-
-    // Audit log
-    const auditLog = JSON.parse(localStorage.getItem('security_audit') || '[]');
-    auditLog.push({
-      timestamp: new Date().toISOString(),
-      role,
-      username,
-      ip: '192.168.' + Math.floor(Math.random() * 255) + '.' + Math.floor(Math.random() * 255),
-      action: 'LOGIN_SUCCESS'
-    });
-    localStorage.setItem('security_audit', JSON.stringify(auditLog.slice(-100)));
-
-    return validated;
   };
 
-  const logout = () => {
-    sessionStorage.removeItem('token');
-    setUser(null);
+  const logout = async () => {
+    try {
+       await fbSignOut(auth);
+       logger.info('Firebase Session Safely Terminated');
+    } catch (err) {
+       logger.error('Logout Exception', { message: err.message });
+    }
   };
 
   return (
