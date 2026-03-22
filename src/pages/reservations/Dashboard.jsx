@@ -27,7 +27,6 @@ export const ReservationsDashboard = () => {
 
   const total = myBookings.length;
   const conversionRate = total === 0 ? 0 : Math.round((confirmedBookings.length / total) * 100);
-  const pendingRate = total === 0 ? 0 : Math.round((pendingBookings.length / total) * 100);
 
   return (
     <PageWrapper 
@@ -102,31 +101,7 @@ export const ReservationsDashboard = () => {
               </CardContent>
            </Card>
 
-           <Card>
-             <CardHeader>
-               <h3 className="font-bold text-safari-primary dark:text-dark-text">Booking Funnel</h3>
-             </CardHeader>
-             <CardContent className="space-y-4">
-                <div className="space-y-2">
-                   <div className="flex justify-between text-xs font-bold">
-                     <span>PENDING</span>
-                     <span>{pendingRate}%</span>
-                   </div>
-                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                     <div className="h-full bg-safari-gold" style={{ width: `${pendingRate}%` }} />
-                   </div>
-                </div>
-                <div className="space-y-2">
-                   <div className="flex justify-between text-xs font-bold">
-                     <span>CONFIRMED</span>
-                     <span>{conversionRate}%</span>
-                   </div>
-                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                     <div className="h-full bg-safari-success" style={{ width: `${conversionRate}%` }} />
-                   </div>
-                </div>
-             </CardContent>
-           </Card>
+
         </div>
       </div>
     </PageWrapper>
