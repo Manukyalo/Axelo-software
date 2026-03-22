@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password, role) => {
     // 🥶 LOCAL OVERLAY: Prevent excessive API calls to Google Identity servers
-    checkRateLimit('login_attempt', 10, 15 * 60 * 1000);
+    checkRateLimit('login_attempt', 50, 5 * 60 * 1000);
 
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@easternvacations.com';
     const resEmail = import.meta.env.VITE_RES_EMAIL || 'reservations@easternvacations.com';
