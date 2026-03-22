@@ -20,9 +20,14 @@ export const ReservationsDashboard = () => {
   const { state } = useData();
   const navigate = useNavigate();
 
-  // My bookings (simulated for the res_agent ID)
+  // My bookings
   const myBookings = state.bookings.filter(b => b.createdById === 'res_agent');
   const pendingBookings = myBookings.filter(b => b.status === 'Pending');
+  const confirmedBookings = myBookings.filter(b => ['Confirmed', 'On Trip', 'Completed'].includes(b.status));
+
+  const total = myBookings.length;
+  const conversionRate = total === 0 ? 0 : Math.round((confirmedBookings.length / total) * 100);
+  const pendingRate = total === 0 ? 0 : Math.round((pendingBookings.length / total) * 100);
 
   return (
     <PageWrapper 
@@ -47,7 +52,7 @@ export const ReservationsDashboard = () => {
         />
         <StatCard 
           title="Conversion Rate" 
-          value={88} 
+          value={conversionRate} 
           unit="%" 
           icon={TrendingUp} 
         />
@@ -105,19 +110,19 @@ export const ReservationsDashboard = () => {
                 <div className="space-y-2">
                    <div className="flex justify-between text-xs font-bold">
                      <span>PENDING</span>
-                     <span>32%</span>
+                     <span>{pendingRate}%</span>
                    </div>
                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                     <div className="h-full bg-safari-gold" style={{ width: '32%' }} />
+                     <div className="h-full bg-safari-gold" style={{ width: `${pendingRate}%` }} />
                    </div>
                 </div>
                 <div className="space-y-2">
                    <div className="flex justify-between text-xs font-bold">
                      <span>CONFIRMED</span>
-                     <span>58%</span>
+                     <span>{conversionRate}%</span>
                    </div>
                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                     <div className="h-full bg-safari-success" style={{ width: '58%' }} />
+                     <div className="h-full bg-safari-success" style={{ width: `${conversionRate}%` }} />
                    </div>
                 </div>
              </CardContent>

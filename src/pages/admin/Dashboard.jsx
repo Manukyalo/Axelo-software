@@ -43,6 +43,13 @@ export const AdminDashboard = () => {
     return daysLeft < 30;
   });
 
+  // Maintenance Alerts
+  const maintenanceAlerts = state.vehicles.filter(v => v.status === 'In Maintenance');
+
+  // Today's Bookings
+  const todayOnly = new Date().toISOString().split('T')[0];
+  const todaysBookings = state.bookings.filter(b => b.date && b.date.startsWith(todayOnly));
+
   // Chart Data
   const bookingTrend = (() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -133,13 +140,23 @@ export const AdminDashboard = () => {
             <h3 className="font-bold text-safari-primary dark:text-dark-text flex items-center gap-2">
               <Clock size={18} className="text-safari-gold" /> Maintenance Due
             </h3>
-            <Badge variant="gold">2</Badge>
+            <Badge variant="gold">{maintenanceAlerts.length}</Badge>
           </CardHeader>
           <CardContent>
-             <p className="text-sm text-gray-500 mb-4">No vehicles urgently due for service today.</p>
-             <div className="p-3 bg-safari-gold/5 rounded-xl border border-safari-gold/10">
-                <p className="text-xs font-dm-sans text-safari-earthy">Next scheduled: <span className="font-bold">KDJ 456X</span> (In 4 days)</p>
-             </div>
+            {maintenanceAlerts.length === 0 ? (
+               <p className="text-sm text-gray-500 mb-4">No vehicles urgently due for service today.</p>
+            ) : (
+               <div className="space-y-3">
+                 {maintenanceAlerts.slice(0, 2).map(v => (
+                   <div key={v.id} className="p-3 bg-safari-gold/5 rounded-xl border border-safari-gold/10">
+                      <p className="text-xs text-safari-earthy">In Maintenance: <span className="font-bold">{v.plate}</span></p>
+                   </div>
+                 ))}
+               </div>
+            )}
+            <Button variant="ghost" size="sm" className="w-full mt-4 text-xs uppercase tracking-widest font-bold" onClick={() => navigate('/admin/vehicles')}>
+                View Fleet
+            </Button>
           </CardContent>
         </Card>
 
@@ -148,20 +165,26 @@ export const AdminDashboard = () => {
             <h3 className="font-bold text-safari-primary dark:text-dark-text flex items-center gap-2">
               <CalendarDays size={18} className="text-safari-success" /> Today's Bookings
             </h3>
-            <Badge variant="success">5</Badge>
+            <Badge variant="success">{todaysBookings.length}</Badge>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-safari-success/10 text-safari-success rounded-full flex items-center justify-center font-bold">
-                  JS
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-safari-primary dark:text-dark-text">John Smith</p>
-                  <p className="text-xs text-gray-500">Maasai Mara Safari • 08:30 AM</p>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm" className="w-full text-xs uppercase tracking-widest font-bold" onClick={() => navigate('/admin/bookings')}>
+              {todaysBookings.length === 0 ? (
+                 <p className="text-sm text-gray-500 py-2">No safaris scheduled for today.</p>
+              ) : (
+                 todaysBookings.slice(0, 2).map(b => (
+                   <div key={b.id} className="flex items-center gap-3">
+                     <div className="w-10 h-10 bg-safari-success/10 text-safari-success rounded-full flex items-center justify-center font-bold uppercase">
+                       {b.clientName.split(' ').map(n=>n[0]).join('').substring(0,2)}
+                     </div>
+                     <div>
+                       <p className="text-sm font-bold text-safari-primary dark:text-dark-text">{b.clientName}</p>
+                       <p className="text-xs text-gray-500">{state.packages.find(p=>p.id === b.packageId)?.name}</p>
+                     </div>
+                   </div>
+                 ))
+              )}
+              <Button variant="ghost" size="sm" className="w-full mt-2 text-xs uppercase tracking-widest font-bold" onClick={() => navigate('/admin/bookings')}>
                 View Full Schedule
               </Button>
             </div>
