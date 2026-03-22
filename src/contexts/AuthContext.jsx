@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { validateToken, comparePassword, generateToken } from '../utils/auth';
+import { checkRateLimit } from '../utils/rateLimit';
+import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
 
@@ -35,6 +37,11 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (username, password, role) => {
+    // 🥶 GLOBAL API RATE LIMIT: Map 10 failed or successful global logins per 15 mins 
+    // Acts as an impenetrable brute-force prevention screen
+    checkRateLimit('login_attempt', 10, 15 * 60 * 1000);
+
+    // Continue to standard business logic
     const key = role === 'admin' ? ADMIN_CRED_KEY : RES_CRED_KEY;
     const stored = JSON.parse(localStorage.getItem(key));
 

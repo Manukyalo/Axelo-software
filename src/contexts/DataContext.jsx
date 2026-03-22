@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { initialData } from '../utils/seedData';
 import { useAuth } from './AuthContext';
+import { checkRateLimit } from '../utils/rateLimit';
 
 const DataContext = createContext();
 
@@ -57,6 +58,12 @@ export const DataProvider = ({ children }) => {
   });
 
   const secureDispatch = (action) => {
+    // 🥶 GLOBAL SCRAPING DEFENSE: Throttle any state modification (ADD/UPDATE/DELETE)
+    // Ensures a malicious web scraper or loop cannot perform more than 80 operations per minute
+    if (action.type !== 'SET_DATA') {
+        checkRateLimit('database_mutations', 80, 60 * 1000);
+    }
+
     if (user && user.role !== 'admin') {
       const isDelete = action.type.startsWith('DELETE_');
       const isUpdate = action.type.startsWith('UPDATE_');
