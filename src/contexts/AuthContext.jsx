@@ -12,12 +12,26 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = sessionStorage.getItem('token');
-    const validated = validateToken(token);
-    if (validated) {
-      setUser(validated);
-    }
-    setLoading(false);
+    const checkSession = () => {
+      const token = sessionStorage.getItem('token');
+      if (token) {
+        const validated = validateToken(token);
+        if (validated) {
+          setUser(validated);
+        } else {
+          // Token artificially expired or invalid mid-session -> Eject
+          sessionStorage.removeItem('token');
+          setUser(null);
+        }
+      }
+      setLoading(false);
+    };
+
+    checkSession();
+    
+    // Active session polling (check every 60s for expiry timeout)
+    const interval = setInterval(checkSession, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const login = async (username, password, role) => {
@@ -40,6 +54,10 @@ export const AuthProvider = ({ children }) => {
       let errorMsg = 'Invalid credentials.';
       if (newCount >= 3) errorMsg += ` Warning: ${5 - newCount} attempts remaining before lockout.`;
       throw new Error(errorMsg);
+    }
+
+    if (!stored.emailVerified) {
+      throw new Error('Access Denied: Email address is not verified.');
     }
 
     // Success
