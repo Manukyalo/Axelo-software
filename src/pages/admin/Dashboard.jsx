@@ -44,20 +44,22 @@ export const AdminDashboard = () => {
   });
 
   // Chart Data
-  const bookingTrend = [
-    { month: 'Jan', safari: 45, cityTour: 15 },
-    { month: 'Feb', safari: 52, cityTour: 18 },
-    { month: 'Mar', safari: 48, cityTour: 22 },
-    { month: 'Apr', safari: 61, cityTour: 25 },
-    { month: 'May', safari: 75, cityTour: 30 },
-    { month: 'Jun', safari: 82, cityTour: 45 },
-    { month: 'Jul', safari: 95, cityTour: 50 },
-    { month: 'Aug', safari: 110, cityTour: 60 },
-    { month: 'Sep', safari: 88, cityTour: 40 },
-    { month: 'Oct', safari: 72, cityTour: 35 },
-    { month: 'Nov', safari: 65, cityTour: 28 },
-    { month: 'Dec', safari: 98, cityTour: 50 },
-  ];
+  const bookingTrend = (() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const trend = months.map(m => ({ month: m, safari: 0, cityTour: 0 }));
+    
+    state.bookings.forEach(b => {
+      if (!b.date) return;
+      const monthIdx = parseISO(b.date).getMonth();
+      const type = b.type || 'Safari';
+      if (type === 'Safari') {
+         trend[monthIdx].safari += 1;
+      } else {
+         trend[monthIdx].cityTour += 1; 
+      }
+    });
+    return trend;
+  })();
 
   const vehicleStatusData = [
     { name: 'Active', value: state.vehicles.filter(v => v.status === 'Active').length, color: '#2D6A4F' },

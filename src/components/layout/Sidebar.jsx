@@ -18,8 +18,26 @@ import {
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import toast from 'react-hot-toast';
 
-const NavItem = ({ to, icon: Icon, label, collapsed }) => {
+const NavItem = ({ to, icon: Icon, label, collapsed, disabled }) => {
+  if (disabled) {
+    return (
+      <div
+        onClick={() => toast('Under construction. Coming soon!', { icon: '🚧' })}
+        className={`flex items-center gap-3 px-4 py-3 transition-all duration-300 cursor-pointer text-gray-400 hover:text-safari-gold hover:bg-safari-gold/5 border-l-4 border-transparent`}
+      >
+        <Icon size={22} className="shrink-0" />
+        {!collapsed && 
+          <span className="font-dm-sans font-medium whitespace-nowrap flex items-center justify-between w-full">
+            {label}
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-safari-gold/20 text-safari-gold px-1.5 py-0.5 rounded ml-2">Soon</span>
+          </span>
+        }
+      </div>
+    );
+  }
+
   return (
     <NavLink
       to={to}
@@ -53,7 +71,7 @@ export const Sidebar = ({ role }) => {
     { to: '/admin/bookings', icon: CalendarDays, label: 'Bookings' },
     { to: '/admin/vehicles', icon: Car, label: 'Vehicles' },
     { to: '/admin/drivers', icon: Users, label: 'Drivers' },
-    { to: '/admin/packages', icon: Package, label: 'Tour Packages' },
+    { to: '/admin/packages', icon: Package, label: 'Tour Packages', disabled: true },
     { to: '/admin/reports', icon: BarChart3, label: 'Reports' },
     { to: '/admin/settings', icon: Settings, label: 'Settings' },
   ];
@@ -99,7 +117,8 @@ export const Sidebar = ({ role }) => {
             to={item.to} 
             icon={item.icon} 
             label={item.label} 
-            collapsed={collapsed} 
+            collapsed={collapsed}
+            disabled={item.disabled}
           />
         ))}
       </nav>
