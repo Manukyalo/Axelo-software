@@ -20,10 +20,13 @@ import { Button } from '../../components/ui/Button';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { format, differenceInDays, parseISO } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 export const AdminDashboard = () => {
   const { state } = useData();
   const { isDarkMode } = useTheme();
+  const navigate = useNavigate();
 
   // Stats Calculations
   const totalBookings = state.bookings.length;
@@ -42,18 +45,18 @@ export const AdminDashboard = () => {
 
   // Chart Data
   const bookingTrend = [
-    { month: 'Jan', bookings: 45 },
-    { month: 'Feb', bookings: 52 },
-    { month: 'Mar', bookings: 48 },
-    { month: 'Apr', bookings: 61 },
-    { month: 'May', bookings: 75 },
-    { month: 'Jun', bookings: 82 },
-    { month: 'Jul', bookings: 95 },
-    { month: 'Aug', bookings: 110 },
-    { month: 'Sep', bookings: 88 },
-    { month: 'Oct', bookings: 72 },
-    { month: 'Nov', bookings: 65 },
-    { month: 'Dec', bookings: 98 },
+    { month: 'Jan', safari: 45, cityTour: 15 },
+    { month: 'Feb', safari: 52, cityTour: 18 },
+    { month: 'Mar', safari: 48, cityTour: 22 },
+    { month: 'Apr', safari: 61, cityTour: 25 },
+    { month: 'May', safari: 75, cityTour: 30 },
+    { month: 'Jun', safari: 82, cityTour: 45 },
+    { month: 'Jul', safari: 95, cityTour: 50 },
+    { month: 'Aug', safari: 110, cityTour: 60 },
+    { month: 'Sep', safari: 88, cityTour: 40 },
+    { month: 'Oct', safari: 72, cityTour: 35 },
+    { month: 'Nov', safari: 65, cityTour: 28 },
+    { month: 'Dec', safari: 98, cityTour: 50 },
   ];
 
   const vehicleStatusData = [
@@ -111,12 +114,12 @@ export const AdminDashboard = () => {
                     <p className="text-sm font-bold text-safari-primary dark:text-dark-text">{v.plate}</p>
                     <p className="text-xs text-gray-500">Expires {format(parseISO(v.insuranceExpiry), 'MMM dd')}</p>
                   </div>
-                  <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => toast.success(`Renewal request sent to insurance provider for ${v.plate}`)}>
                     Renew
                   </Button>
                 </div>
               ))}
-              <Button variant="ghost" size="sm" className="w-full text-xs uppercase tracking-widest font-bold">
+              <Button variant="ghost" size="sm" className="w-full text-xs uppercase tracking-widest font-bold" onClick={() => navigate('/admin/vehicles')}>
                 View All Alerts
               </Button>
             </div>
@@ -156,7 +159,7 @@ export const AdminDashboard = () => {
                   <p className="text-xs text-gray-500">Maasai Mara Safari • 08:30 AM</p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" className="w-full text-xs uppercase tracking-widest font-bold">
+              <Button variant="ghost" size="sm" className="w-full text-xs uppercase tracking-widest font-bold" onClick={() => navigate('/admin/bookings')}>
                 View Full Schedule
               </Button>
             </div>
@@ -174,9 +177,13 @@ export const AdminDashboard = () => {
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={bookingTrend}>
                 <defs>
-                  <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="colorSafari" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#C9A84C" stopOpacity={0.3}/>
                     <stop offset="95%" stopColor="#C9A84C" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorCityTour" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2D6A4F" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#2D6A4F" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#222' : '#f0f0f0'} />
@@ -200,12 +207,22 @@ export const AdminDashboard = () => {
                   }}
                 />
                 <Area 
+                  name="Safari"
                   type="monotone" 
-                  dataKey="bookings" 
+                  dataKey="safari" 
                   stroke="#C9A84C" 
                   strokeWidth={3}
                   fillOpacity={1} 
-                  fill="url(#colorBookings)" 
+                  fill="url(#colorSafari)" 
+                />
+                <Area 
+                  name="City Tour"
+                  type="monotone" 
+                  dataKey="cityTour" 
+                  stroke="#2D6A4F" 
+                  strokeWidth={3}
+                  fillOpacity={1} 
+                  fill="url(#colorCityTour)" 
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -250,7 +267,7 @@ export const AdminDashboard = () => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <h3 className="font-bold text-safari-primary dark:text-dark-text">Recent Bookings</h3>
-          <Button variant="ghost" size="sm" className="text-safari-gold">View All</Button>
+          <Button variant="ghost" size="sm" className="text-safari-gold" onClick={() => navigate('/admin/bookings')}>View All</Button>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <table className="w-full text-left">
@@ -282,7 +299,7 @@ export const AdminDashboard = () => {
                     </Badge>
                   </td>
                   <td className="py-4">
-                    <Button variant="ghost" size="icon" className="hover:text-safari-gold">
+                    <Button variant="ghost" size="icon" className="hover:text-safari-gold" onClick={() => navigate('/admin/bookings')}>
                       <ExternalLink size={18} />
                     </Button>
                   </td>

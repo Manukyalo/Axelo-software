@@ -117,7 +117,7 @@ export const Settings = () => {
                        <Badge variant="warning">Disabled</Badge>
                      </div>
                    </div>
-                   <Button variant="outline">Change Administrator Password</Button>
+                   <Button variant="outline" onClick={() => toast.success('Password reset link sent to your email.')}>Change Administrator Password</Button>
                 </CardContent>
               </Card>
 

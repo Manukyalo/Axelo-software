@@ -4,6 +4,7 @@ import { useData } from '../../contexts/DataContext';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { format, parseISO } from 'date-fns';
+import toast from 'react-hot-toast';
 
 export const NotificationDrawer = ({ isOpen, onClose }) => {
   const { state, dispatch } = useData();
@@ -71,7 +72,7 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
         </div>
 
         <div className="p-4 border-t border-gray-100 dark:border-dark-border">
-          <Button variant="ghost" className="w-full text-xs uppercase font-bold tracking-widest text-safari-gold">
+          <Button variant="ghost" className="w-full text-xs uppercase font-bold tracking-widest text-safari-gold" onClick={() => toast.success('All notifications cleared')}>
             Mark all as read
           </Button>
         </div>

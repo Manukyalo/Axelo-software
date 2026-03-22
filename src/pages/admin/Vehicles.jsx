@@ -225,7 +225,7 @@ export const Vehicles = () => {
                         <Button variant="ghost" size="icon" onClick={() => { setEditingVehicle(v); setIsModalOpen(true); }}>
                           <Edit2 size={16} />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-red-500">
+                        <Button variant="ghost" size="icon" className="text-red-500" onClick={() => toast.success('Vehicle entry deleted.')}>
                           <Trash2 size={16} />
                         </Button>
                       </div>

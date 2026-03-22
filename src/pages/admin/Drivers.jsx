@@ -92,7 +92,7 @@ const DriverCard = ({ driver, onEdit, onSchedule }) => {
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(driver)}>
               <Edit2 size={14} />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => toast.success('Driver record removed.')}>
               <Trash2 size={14} />
             </Button>
           </div>

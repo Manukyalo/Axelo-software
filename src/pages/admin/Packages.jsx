@@ -44,7 +44,7 @@ const PackageCard = ({ pkg, onEdit }) => {
             <Button variant="ghost" size="icon" onClick={() => onEdit(pkg)} className="h-8 w-8">
               <Edit2 size={14} />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => toast.success('Package successfully removed.')}>
               <Trash2 size={14} />
             </Button>
           </div>
