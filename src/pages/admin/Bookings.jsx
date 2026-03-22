@@ -286,6 +286,13 @@ export const Bookings = () => {
              <Input label="Date" name="date" type="date" required />
           </div>
           
+          {formBookingType === 'Safari' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+               <Input label="Destinations (Parks/Reserves)" name="destinations" placeholder="e.g. Masai Mara, Amboseli" />
+               <Input label="Duration (Days/Nights)" name="durationText" placeholder="e.g. 7 Days, 6 Nights" />
+            </div>
+          )}
+
           {formBookingType !== 'Safari' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                <Input label="Time of Pickup" name="timeOfPickup" type="time" required />
