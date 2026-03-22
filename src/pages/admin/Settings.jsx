@@ -181,6 +181,24 @@ export const Settings = () => {
             </Card>
           )}
 
+          {activeTab === 'Users' && (
+            <Card>
+              <CardContent className="pt-8 space-y-6">
+                <div className="flex items-center justify-between mb-4">
+                   <h3 className="font-bold text-safari-primary dark:text-dark-text flex items-center gap-2">
+                     <Users size={18} className="text-safari-gold" /> User Management
+                   </h3>
+                   <Button className="gap-2 text-sm px-4 py-2">Add New User</Button>
+                </div>
+                <div className="p-8 text-center border-2 border-dashed border-gray-100 dark:border-dark-border rounded-xl">
+                   <Users size={48} className="text-gray-300 dark:text-dark-border mx-auto mb-4" />
+                   <h4 className="font-bold text-safari-primary dark:text-dark-text mb-2">User Directory</h4>
+                   <p className="text-sm text-gray-500 max-w-sm mx-auto">The centralized user management module is currently being provisioned. This will allow you to assign roles and manage agent access.</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {activeTab === 'Data' && (
             <div className="space-y-6">
               <Card className="border-l-4 border-l-safari-gold">
