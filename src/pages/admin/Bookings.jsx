@@ -97,6 +97,7 @@ export const Bookings = () => {
       const timeOfPickup = validateString(bookingData.timeOfPickup || '', 20, 'Time of Pickup', false);
       
       const packageId = bookingData.packageId || null;
+      const packageName = validateString(bookingData.packageName || '', 150, 'Package Name', false);
       const driverId = bookingData.driverId || null;
       const vehicleId = bookingData.vehicleId || null;
 
@@ -110,7 +111,7 @@ export const Bookings = () => {
       const newBooking = {
         clientName, clientEmail, totalAmount, paidAmount,
         destinations, durationText, location, date, timeOfPickup,
-        packageId, driverId, vehicleId,
+        packageId, packageName, driverId, vehicleId,
         id: nextId,
         type: formBookingType,
         pax: { adults, children, infants: 0 },
@@ -220,7 +221,7 @@ export const Bookings = () => {
                   </td>
                   <td className="px-6 py-4">
                     { (!booking.type || booking.type === 'Safari') ? (
-                      <span className="text-sm">{state.packages.find(p => p.id === booking.packageId)?.name || 'Custom Package'}</span>
+                      <span className="text-sm">{booking.packageName || state.packages.find(p => p.id === booking.packageId)?.name || 'Custom Package'}</span>
                     ) : (
                       <div>
                          <p className="text-sm font-bold text-safari-primary dark:text-dark-text">{booking.location}</p>
@@ -294,14 +295,7 @@ export const Bookings = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              {formBookingType === 'Safari' ? (
-               <div className="space-y-1.5">
-                 <label className="block text-sm font-medium text-safari-primary dark:text-dark-text font-dm-sans">Tour Package</label>
-                 <select name="packageId" className="w-full px-4 py-2.5 bg-white dark:bg-dark-surface border-2 border-gray-100 dark:border-dark-border rounded-input outline-none focus:border-safari-gold focus:ring-4 focus:ring-safari-gold/5 transition-all text-sm" required>
-                   {state.packages.map(p => (
-                     <option key={p.id} value={p.id}>{p.name}</option>
-                   ))}
-                 </select>
-               </div>
+               <Input label="Tour Package" name="packageName" placeholder="e.g. 15 Days Kenya Safari" required />
              ) : (
                <Input label="Location / Destination" name="location" placeholder="e.g. JKIA to Hilton Hotel" required />
              )}
@@ -310,10 +304,23 @@ export const Bookings = () => {
           </div>
           
           {formBookingType === 'Safari' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-               <Input label="Destinations (Parks/Reserves)" name="destinations" placeholder="e.g. Masai Mara, Amboseli" />
-               <Input label="Duration (Days/Nights)" name="durationText" placeholder="e.g. 7 Days, 6 Nights" />
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                 <Input label="Destinations (Parks/Reserves)" name="destinations" placeholder="e.g. Masai Mara, Amboseli" />
+                 <Input label="Duration (Days/Nights)" name="durationText" placeholder="e.g. 7 Days, 6 Nights" />
+              </div>
+              <div className="grid grid-cols-1 gap-4 mt-4">
+                 <div className="space-y-1.5">
+                   <label className="block text-sm font-medium text-safari-primary dark:text-dark-text font-dm-sans">Allocate Driver</label>
+                   <select name="driverId" className="w-full px-4 py-2.5 bg-white dark:bg-dark-surface border-2 border-gray-100 dark:border-dark-border rounded-input outline-none focus:border-safari-gold focus:ring-4 focus:ring-safari-gold/5 transition-all text-sm">
+                     <option value="">Auto-Assign Later</option>
+                     {state.drivers.filter(d => d.status === 'Available').map(d => (
+                       <option key={d.id} value={d.id}>{d.name} ({d.trips} trips)</option>
+                     ))}
+                   </select>
+                 </div>
+              </div>
+            </>
           )}
 
           {formBookingType !== 'Safari' && (
