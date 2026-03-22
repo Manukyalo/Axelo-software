@@ -26,7 +26,6 @@ export const ReservationsDashboard = () => {
   const confirmedBookings = myBookings.filter(b => ['Confirmed', 'On Trip', 'Completed'].includes(b.status));
 
   const total = myBookings.length;
-  const conversionRate = total === 0 ? 0 : Math.round((confirmedBookings.length / total) * 100);
 
   return (
     <PageWrapper 
@@ -38,7 +37,7 @@ export const ReservationsDashboard = () => {
         </Button>
       }
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <StatCard 
           title="My Total Bookings" 
           value={myBookings.length} 
@@ -48,12 +47,6 @@ export const ReservationsDashboard = () => {
           title="Pending My Action" 
           value={pendingBookings.length} 
           icon={Clock} 
-        />
-        <StatCard 
-          title="Conversion Rate" 
-          value={conversionRate} 
-          unit="%" 
-          icon={TrendingUp} 
         />
       </div>
 
