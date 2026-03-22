@@ -22,7 +22,7 @@ import { format, parseISO, differenceInDays } from 'date-fns';
 import { validateString, validateEmail } from '../../utils/validation';
 import toast from 'react-hot-toast';
 
-const DriverCard = ({ driver, onEdit, onSchedule }) => {
+const DriverCard = ({ driver, onEdit, onSchedule, onDelete }) => {
   const licenseExpiry = differenceInDays(parseISO(driver.licenseExpiry), new Date());
   const isExpired = licenseExpiry < 0;
   const isExpiringSoon = licenseExpiry >= 0 && licenseExpiry < 30;
@@ -93,7 +93,7 @@ const DriverCard = ({ driver, onEdit, onSchedule }) => {
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(driver)}>
               <Edit2 size={14} />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => toast.success('Driver record removed.')}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => onDelete(driver)}>
               <Trash2 size={14} />
             </Button>
           </div>
@@ -117,6 +117,13 @@ export const Drivers = () => {
   const [schedulingDriver, setSchedulingDriver] = useState(null);
   const [search, setSearch] = useState('');
   const [driverTypeFilter, setDriverTypeFilter] = useState('All');
+
+  const handleDelete = (driver) => {
+    if (window.confirm(`Are you sure you want to delete driver ${driver.name}?`)) {
+      dispatch({ type: 'DELETE_DRIVER', payload: driver.id });
+      toast.success(`${driver.name} has been removed.`);
+    }
+  };
 
   const handleAddEdit = (e) => {
     e.preventDefault();
@@ -199,6 +206,7 @@ export const Drivers = () => {
             driver={d} 
             onEdit={(d) => { setEditingDriver(d); setIsModalOpen(true); }} 
             onSchedule={(d) => { setSchedulingDriver(d); setIsScheduleModalOpen(true); }}
+            onDelete={handleDelete}
           />
         ))}
       </div>

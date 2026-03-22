@@ -29,7 +29,7 @@ import { format, parseISO, differenceInDays, isAfter } from 'date-fns';
 import { validateString, validateNumber } from '../../utils/validation';
 import toast from 'react-hot-toast';
 
-const VehicleCard = ({ vehicle, onEdit, onView }) => {
+const VehicleCard = ({ vehicle, onEdit, onView, onDelete }) => {
   const daysToExpiry = differenceInDays(parseISO(vehicle.insuranceExpiry), new Date());
   const isExpired = daysToExpiry < 0;
   const isExpiringSoon = daysToExpiry >= 0 && daysToExpiry < 30;
@@ -75,6 +75,9 @@ const VehicleCard = ({ vehicle, onEdit, onView }) => {
             <Button variant="ghost" size="icon" onClick={() => onView(vehicle)} className="h-8 w-8 hover:text-safari-gold">
               <Eye size={14} />
             </Button>
+            <Button variant="ghost" size="icon" onClick={() => onDelete(vehicle)} className="h-8 w-8 text-red-500 hover:bg-red-50">
+              <Trash2 size={14} />
+            </Button>
           </div>
         </div>
         
@@ -116,6 +119,13 @@ export const Vehicles = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [search, setSearch] = useState('');
+
+  const handleDelete = (vehicle) => {
+    if (window.confirm(`Are you sure you want to delete ${vehicle.name}?`)) {
+      dispatch({ type: 'DELETE_VEHICLE', payload: vehicle.id });
+      toast.success(`${vehicle.name} has been deleted.`);
+    }
+  };
 
   const handleAddEdit = (e) => {
     e.preventDefault();
@@ -200,6 +210,7 @@ export const Vehicles = () => {
               vehicle={v} 
               onEdit={(v) => { setEditingVehicle(v); setIsModalOpen(true); }}
               onView={(v) => { toast('Vehicle details expanding soon!', { icon: '🚧' }); }} 
+              onDelete={handleDelete}
             />
           ))}
         </div>
@@ -241,7 +252,7 @@ export const Vehicles = () => {
                         <Button variant="ghost" size="icon" onClick={() => { setEditingVehicle(v); setIsModalOpen(true); }}>
                           <Edit2 size={16} />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-red-500" onClick={() => toast.success('Vehicle entry deleted.')}>
+                        <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(v)}>
                           <Trash2 size={16} />
                         </Button>
                       </div>
