@@ -15,7 +15,7 @@ import {
   Download
 } from 'lucide-react';
 import { PageWrapper } from '../../components/layout/PageWrapper';
-import { Card, CardContent } from '../../components/ui/Card';
+import { Card, CardContent, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
