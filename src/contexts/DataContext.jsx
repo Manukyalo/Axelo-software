@@ -46,7 +46,7 @@ const dataReducer = (state, action) => {
   }
 };
 
-const STORAGE_KEY = 'toursdb_v1';
+const STORAGE_KEY = 'tours_db_prod';
 
 export const DataProvider = ({ children }) => {
   const [state, dispatch] = useReducer(dataReducer, null, () => {

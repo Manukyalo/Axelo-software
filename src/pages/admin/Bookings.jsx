@@ -321,10 +321,12 @@ export const Bookings = () => {
              </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-100 dark:border-dark-border pt-4">
-             <Input label={`Total Amount (${formBookingType === 'Safari' ? 'USD' : 'KES'})`} name="totalAmount" type="number" min="0" placeholder="e.g. 150000" required />
-             <Input label={`Initial Amount Paid (${formBookingType === 'Safari' ? 'USD' : 'KES'})`} name="paidAmount" type="number" min="0" defaultValue="0" required />
-          </div>
+          {isAdmin && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-100 dark:border-dark-border pt-4">
+               <Input label={`Total Amount (${formBookingType === 'Safari' ? 'USD' : 'KES'})`} name="totalAmount" type="number" min="0" placeholder="e.g. 150000" required />
+               <Input label={`Initial Amount Paid (${formBookingType === 'Safari' ? 'USD' : 'KES'})`} name="paidAmount" type="number" min="0" defaultValue="0" required />
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-dark-border">
             <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>Cancel</Button>
