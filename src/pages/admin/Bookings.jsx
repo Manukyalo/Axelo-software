@@ -102,14 +102,21 @@ export const Bookings = () => {
       title="Bookings Engine" 
       subtitle={`Manage and track all tour reservations (${state.bookings.length})`}
       actions={
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-4 md:mb-0">
           {isAdmin && (
             <Button variant="outline" className="gap-2">
               <Download size={18} /> Export CSV
             </Button>
           )}
-          <Button onClick={() => setIsModalOpen(true)} className="gap-2">
-            <Plus size={18} /> New Booking
+          <Button 
+             onClick={() => {
+                setFormBookingType(bookingTypeFilter === 'All' ? 'Safari' : bookingTypeFilter);
+                setIsModalOpen(true);
+             }} 
+             className="gap-2 shadow-lg shadow-safari-gold/20"
+          >
+            <Plus size={18} /> 
+            {bookingTypeFilter === 'All' ? 'New Reservation' : `New ${bookingTypeFilter}`}
           </Button>
         </div>
       }

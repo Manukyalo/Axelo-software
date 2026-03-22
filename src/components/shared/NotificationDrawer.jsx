@@ -54,7 +54,10 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
                       <span className="text-[10px] text-gray-400 font-medium">12m ago</span>
                     </div>
                     <p className="text-xs text-gray-500 leading-relaxed mb-2">{n.message}</p>
-                    {!n.read && <Badge variant="gold" className="text-[8px] px-1.5 py-0">NEW</Badge>}
+                    <div className="flex items-center gap-2 mt-2">
+                       {!n.read && <Badge variant="gold" className="text-[8px] px-1.5 py-0 uppercase font-black">New</Badge>}
+                       <Badge variant={n.type === 'CRITICAL' ? 'danger' : n.type === 'WARNING' ? 'warning' : 'info'} className="text-[10px] px-1.5 py-0 uppercase font-black tracking-widest bg-opacity-10 border-none px-2">{n.type}</Badge>
+                    </div>
                   </div>
                 </div>
               </div>

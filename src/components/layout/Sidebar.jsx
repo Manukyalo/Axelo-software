@@ -78,15 +78,15 @@ export const Sidebar = ({ role }) => {
       <div className="flex items-center justify-between px-5 py-6 mb-4">
         {!collapsed && (
           <div className="flex items-center gap-2 overflow-hidden">
-            <div className="w-8 h-8 bg-safari-gold rounded-lg flex items-center justify-center shrink-0">
-              <span className="font-playfair font-bold text-white text-sm">TP</span>
+            <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shrink-0 p-1">
+              <img src="/logo.png" alt="EV Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="font-playfair font-bold text-white text-xl">ToursPro</span>
+            <span className="font-playfair font-bold text-white text-[15px] leading-tight mt-1">Eastern Vacations</span>
           </div>
         )}
         {collapsed && (
-          <div className="w-8 h-8 bg-safari-gold rounded-lg flex items-center justify-center mx-auto">
-            <span className="font-playfair font-bold text-white text-sm">TP</span>
+          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mx-auto p-1">
+            <img src="/logo.png" alt="EV Logo" className="w-full h-full object-contain" />
           </div>
         )}
       </div>

@@ -11,7 +11,8 @@ import {
   Trash2,
   RefreshCw,
   Eye,
-  EyeOff
+  EyeOff,
+  Download
 } from 'lucide-react';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Card, CardContent } from '../../components/ui/Card';

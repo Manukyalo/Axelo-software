@@ -125,7 +125,8 @@ export const Vehicles = () => {
       dispatch({ type: 'UPDATE_VEHICLE', payload: { ...editingVehicle, ...vehicleData } });
       toast.success('Vehicle updated successfully');
     } else {
-      dispatch({ type: 'ADD_VEHICLE', payload: { id: `v${Date.now()}`, ...vehicleData, status: 'Active' } });
+      if (!vehicleData.status) vehicleData.status = 'Active';
+      dispatch({ type: 'ADD_VEHICLE', payload: { id: `v${Date.now()}`, ...vehicleData } });
       toast.success('Vehicle added successfully');
     }
     setIsModalOpen(false);
@@ -291,19 +292,52 @@ export const Vehicles = () => {
               required 
             />
           </div>
-          <Input 
-            label="Insurance Expiry Date" 
-            name="insuranceExpiry" 
-            type="date" 
-            defaultValue={editingVehicle?.insuranceExpiry} 
-            required 
-          />
-          <Input 
-            label="Vehicle Image URL" 
-            name="image" 
-            defaultValue={editingVehicle?.image} 
-            placeholder="https://..." 
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <Input 
+              label="Insurance Expiry Date" 
+              name="insuranceExpiry" 
+              type="date" 
+              defaultValue={editingVehicle?.insuranceExpiry} 
+              required 
+            />
+            <div className="space-y-1.5">
+               <label className="block text-sm font-medium text-safari-primary dark:text-dark-text font-dm-sans">Status</label>
+               <select name="status" defaultValue={editingVehicle?.status || 'Active'} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-dark-surface border-none rounded-button outline-none text-sm focus:ring-2 focus:ring-safari-gold/20 transition-all cursor-pointer">
+                 <option value="Active">🟢 Active</option>
+                 <option value="In Maintenance">🟡 In Maintenance</option>
+                 <option value="Retired">🔴 Retired</option>
+               </select>
+            </div>
+          </div>
+          
+          <div className="space-y-1.5">
+             <label className="block text-sm font-medium text-safari-primary dark:text-dark-text font-dm-sans">Vehicle Image</label>
+             <input 
+               type="file" 
+               accept="image/*"
+               onChange={(e) => {
+                 const file = e.target.files[0];
+                 if (file) {
+                   const reader = new FileReader();
+                   reader.onloadend = () => {
+                     document.getElementById('hidden-image-input').value = reader.result;
+                     const preview = document.getElementById('image-preview');
+                     preview.src = reader.result;
+                     preview.classList.remove('hidden');
+                   };
+                   reader.readAsDataURL(file);
+                 }
+               }}
+               className="w-full px-4 py-2 bg-gray-50 dark:bg-dark-surface border-none rounded-button outline-none focus:ring-2 focus:ring-safari-gold transition-all text-sm cursor-pointer file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-safari-gold/10 file:text-safari-gold hover:file:bg-safari-gold/20"
+             />
+             <input type="hidden" name="image" id="hidden-image-input" defaultValue={editingVehicle?.image} />
+             
+             {editingVehicle?.image ? (
+                <img id="image-preview" src={editingVehicle.image} alt="Preview" className="w-24 h-24 rounded-lg object-cover mt-2 shadow-sm border border-gray-100" />
+             ) : (
+                <img id="image-preview" src="" alt="Preview" className="w-24 h-24 rounded-lg object-cover mt-2 shadow-sm border border-gray-100 hidden" />
+             )}
+          </div>
           
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-dark-border">
             <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>Cancel</Button>
