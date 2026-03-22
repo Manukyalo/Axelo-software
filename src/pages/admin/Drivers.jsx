@@ -19,6 +19,7 @@ import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { useData } from '../../contexts/DataContext';
 import { format, parseISO, differenceInDays } from 'date-fns';
+import { validateString, validateEmail } from '../../utils/validation';
 import toast from 'react-hot-toast';
 
 const DriverCard = ({ driver, onEdit, onSchedule }) => {
@@ -119,17 +120,30 @@ export const Drivers = () => {
 
   const handleAddEdit = (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    const driverData = Object.fromEntries(formData);
-    
-    if (editingDriver) {
-      dispatch({ type: 'UPDATE_DRIVER', payload: { ...editingDriver, ...driverData } });
-      toast.success('Driver updated successfully');
-    } else {
-      dispatch({ type: 'ADD_DRIVER', payload: { id: `d${Date.now()}`, ...driverData, status: 'Available', trips: 0, rating: 5.0 } });
-      toast.success('Driver added successfully');
+    try {
+      const formData = new FormData(e.target);
+      const driverData = Object.fromEntries(formData);
+      
+      const name = validateString(driverData.name, 100, 'Full Name');
+      const phone = validateString(driverData.phone, 30, 'Phone Number');
+      const email = validateEmail(driverData.email);
+      const type = validateString(driverData.type, 50, 'Driver Type');
+      const license = validateString(driverData.license, 50, 'License Number');
+      const licenseExpiry = validateString(driverData.licenseExpiry, 20, 'License Expiry');
+
+      const cleanDriverData = { name, phone, email, type, license, licenseExpiry };
+
+      if (editingDriver) {
+        dispatch({ type: 'UPDATE_DRIVER', payload: { ...editingDriver, ...cleanDriverData } });
+        toast.success('Driver updated successfully');
+      } else {
+        dispatch({ type: 'ADD_DRIVER', payload: { id: `d${Date.now()}`, ...cleanDriverData, status: 'Available', trips: 0, rating: 5.0 } });
+        toast.success('Driver added successfully');
+      }
+      setIsModalOpen(false);
+    } catch(err) {
+      toast.error(err.message);
     }
-    setIsModalOpen(false);
   };
 
   const filteredDrivers = state.drivers.filter(d => {

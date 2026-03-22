@@ -16,6 +16,7 @@ import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { useData } from '../../contexts/DataContext';
 import toast from 'react-hot-toast';
+import { validateString, validateNumber } from '../../utils/validation';
 
 const PackageCard = ({ pkg, onEdit }) => {
   return (
@@ -82,27 +83,36 @@ export const Packages = () => {
 
   const handleAddEdit = (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    const pkgData = Object.fromEntries(formData);
-    
-    // Process arrays (simplified for now)
-    const processedPkg = {
-      ...pkgData,
-      duration: parseInt(pkgData.duration),
-      priceAdult: parseInt(pkgData.priceAdult),
-      priceChild: parseInt(pkgData.priceChild),
-      destinations: pkgData.destinations.split(',').map(d => d.trim()),
-      included: pkgData.included.split(',').map(i => i.trim()),
-    };
+    try {
+      const formData = new FormData(e.target);
+      const pkgData = Object.fromEntries(formData);
+      
+      const name = validateString(pkgData.name, 150, 'Package Name');
+      const duration = validateNumber(pkgData.duration, 1, 'Duration');
+      const priceAdult = validateNumber(pkgData.priceAdult, 0, 'Price Adult');
+      const priceChild = validateNumber(pkgData.priceChild, 0, 'Price Child');
+      const destinations = validateString(pkgData.destinations || '', 1000, 'Destinations').split(',').map(d => validateString(d.trim(), 150, 'Destination Item', false));
+      const included = validateString(pkgData.included || '', 2000, 'Included Services').split(',').map(i => validateString(i.trim(), 150, 'Included Item', false));
+      const description = validateString(pkgData.description, 2000, 'Description');
+      const image = validateString(pkgData.image, 1000, 'Image URL');
 
-    if (editingPkg) {
-      dispatch({ type: 'UPDATE_PACKAGE', payload: { ...editingPkg, ...processedPkg } });
-      toast.success('Package updated');
-    } else {
-      dispatch({ type: 'ADD_PACKAGE', payload: { id: `p${Date.now()}`, ...processedPkg } });
-      toast.success('Package added');
+      const processedPkg = {
+        name, image, description, duration, priceAdult, priceChild,
+        destinations,
+        included,
+      };
+
+      if (editingPkg) {
+        dispatch({ type: 'UPDATE_PACKAGE', payload: { ...editingPkg, ...processedPkg } });
+        toast.success('Package updated');
+      } else {
+        dispatch({ type: 'ADD_PACKAGE', payload: { id: `p${Date.now()}`, ...processedPkg } });
+        toast.success('Package added');
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      toast.error(err.message);
     }
-    setIsModalOpen(false);
   };
 
   return (

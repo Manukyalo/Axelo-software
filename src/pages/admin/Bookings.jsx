@@ -23,6 +23,7 @@ import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { validateString, validateEmail, validateNumber } from '../../utils/validation';
 import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -73,36 +74,58 @@ export const Bookings = () => {
 
   const handleCreateBooking = (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    const bookingData = Object.fromEntries(formData);
-    
-    // Auto-generate ID: TRP-2025-XXXX
-    const nextId = `TRP-2025-${(state.bookings.length + 1).toString().padStart(4, '0')}`;
-    
-    const totalAmount = parseFloat(bookingData.totalAmount) || 0;
-    const paidAmount = parseFloat(bookingData.paidAmount) || 0;
-    
-    let paymentStatus = 'Unpaid';
-    if (paidAmount >= totalAmount && totalAmount > 0) paymentStatus = 'Fully Paid';
-    else if (paidAmount > 0) paymentStatus = 'Partially Paid';
-    else if (paidAmount >= totalAmount && totalAmount === 0) paymentStatus = 'Fully Paid'; // Edge case
+    try {
+      const formData = new FormData(e.target);
+      const bookingData = Object.fromEntries(formData);
+      
+      const clientName = validateString(bookingData.clientName, 150, 'Client Full Name');
+      const clientEmail = validateEmail(bookingData.clientEmail);
+      
+      const totalAmountRaw = bookingData.totalAmount || 0;
+      const paidAmountRaw = bookingData.paidAmount || 0;
+      
+      const totalAmount = validateNumber(totalAmountRaw, 0, 'Total Amount', false);
+      const paidAmount = validateNumber(paidAmountRaw, 0, 'Initial Amount Paid', false);
+      
+      const adults = validateNumber(bookingData.adults, 1, 'Adults');
+      const children = validateNumber(bookingData.children || 0, 0, 'Children', false);
 
-    const newBooking = {
-      ...bookingData,
-      id: nextId,
-      type: formBookingType,
-      pax: { adults: parseInt(bookingData.adults), children: parseInt(bookingData.children || 0), infants: 0 },
-      status: 'Pending',
-      paymentStatus,
-      paidAmount,
-      totalAmount,
-      createdById: user.role
-    };
+      const destinations = validateString(bookingData.destinations || '', 500, 'Destinations', false);
+      const durationText = validateString(bookingData.durationText || '', 100, 'Duration', false);
+      const location = validateString(bookingData.location || '', 300, 'Location/Destination', false);
+      const date = validateString(bookingData.date, 30, 'Date');
+      const timeOfPickup = validateString(bookingData.timeOfPickup || '', 20, 'Time of Pickup', false);
+      
+      const packageId = bookingData.packageId || null;
+      const driverId = bookingData.driverId || null;
+      const vehicleId = bookingData.vehicleId || null;
 
-    dispatch({ type: 'ADD_BOOKING', payload: newBooking });
-    toast.success(`Booking ${nextId} created!`);
-    setIsModalOpen(false);
-    setFormBookingType('Safari'); // Reset
+      const nextId = `TRP-2025-${(state.bookings.length + 1).toString().padStart(4, '0')}`;
+      
+      let paymentStatus = 'Unpaid';
+      if (paidAmount >= totalAmount && totalAmount > 0) paymentStatus = 'Fully Paid';
+      else if (paidAmount > 0) paymentStatus = 'Partially Paid';
+      else if (paidAmount >= totalAmount && totalAmount === 0) paymentStatus = 'Fully Paid';
+
+      const newBooking = {
+        clientName, clientEmail, totalAmount, paidAmount,
+        destinations, durationText, location, date, timeOfPickup,
+        packageId, driverId, vehicleId,
+        id: nextId,
+        type: formBookingType,
+        pax: { adults, children, infants: 0 },
+        status: 'Pending',
+        paymentStatus,
+        createdById: user.role
+      };
+
+      dispatch({ type: 'ADD_BOOKING', payload: newBooking });
+      toast.success(`Booking ${nextId} created!`);
+      setIsModalOpen(false);
+      setFormBookingType('Safari');
+    } catch(err) {
+      toast.error(err.message);
+    }
   };
 
   return (

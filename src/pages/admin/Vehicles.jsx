@@ -26,6 +26,7 @@ import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { useData } from '../../contexts/DataContext';
 import { format, parseISO, differenceInDays, isAfter } from 'date-fns';
+import { validateString, validateNumber } from '../../utils/validation';
 import toast from 'react-hot-toast';
 
 const VehicleCard = ({ vehicle, onEdit, onView }) => {
@@ -118,18 +119,33 @@ export const Vehicles = () => {
 
   const handleAddEdit = (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    const vehicleData = Object.fromEntries(formData);
-    
-    if (editingVehicle) {
-      dispatch({ type: 'UPDATE_VEHICLE', payload: { ...editingVehicle, ...vehicleData } });
-      toast.success('Vehicle updated successfully');
-    } else {
-      if (!vehicleData.status) vehicleData.status = 'Active';
-      dispatch({ type: 'ADD_VEHICLE', payload: { id: `v${Date.now()}`, ...vehicleData } });
-      toast.success('Vehicle added successfully');
+    try {
+      const formData = new FormData(e.target);
+      const vehicleData = Object.fromEntries(formData);
+      
+      const name = validateString(vehicleData.name, 150, 'Vehicle Name');
+      const plate = validateString(vehicleData.plate, 20, 'Plate Number');
+      const model = validateString(vehicleData.model, 100, 'Model');
+      const year = validateNumber(vehicleData.year, 1990, 'Year');
+      const capacity = validateNumber(vehicleData.capacity, 1, 'Capacity');
+      const insuranceProvider = validateString(vehicleData.insuranceProvider, 150, 'Insurance Provider');
+      const insuranceExpiry = validateString(vehicleData.insuranceExpiry, 20, 'Insurance Expiry');
+      const status = validateString(vehicleData.status || 'Active', 50, 'Status', false);
+      const image = vehicleData.image; // Raw Base64 string from input type=hidden
+
+      const cleanVehicleData = { name, plate, model, year, capacity, insuranceProvider, insuranceExpiry, status, image };
+
+      if (editingVehicle) {
+        dispatch({ type: 'UPDATE_VEHICLE', payload: { ...editingVehicle, ...cleanVehicleData } });
+        toast.success('Vehicle updated successfully');
+      } else {
+        dispatch({ type: 'ADD_VEHICLE', payload: { id: `v${Date.now()}`, ...cleanVehicleData } });
+        toast.success('Vehicle added successfully');
+      }
+      setIsModalOpen(false);
+    } catch(err) {
+      toast.error(err.message);
     }
-    setIsModalOpen(false);
   };
 
   const filteredVehicles = state.vehicles.filter(v => 

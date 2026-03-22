@@ -6,6 +6,7 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { validateString } from '../../utils/validation';
 
 const UnifiedLogin = ({ initialRole }) => {
   const [role, setRole] = React.useState(initialRole || 'admin');
@@ -24,7 +25,8 @@ const UnifiedLogin = ({ initialRole }) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await login(username, password, role);
+      const cleanUsername = validateString(username, 150, 'Username');
+      await login(cleanUsername, password, role);
       toast.success('Welcome back!');
       navigate(role === 'admin' ? '/admin' : '/reservations');
     } catch (err) {
