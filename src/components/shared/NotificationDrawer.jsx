@@ -3,13 +3,17 @@ import { X, Bell, AlertCircle, Info, CheckCircle, ShieldAlert } from 'lucide-rea
 import { useData } from '../../contexts/DataContext';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import { useAuth } from '../../contexts/AuthContext';
 import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
 
 export const NotificationDrawer = ({ isOpen, onClose }) => {
   const { state, dispatch } = useData();
+  const { user } = useAuth();
 
   if (!isOpen) return null;
+
+  const myNotifications = state.notifications.filter(n => !n.targetRole || n.targetRole === user?.role);
 
   const markRead = (id) => {
     dispatch({ type: 'MARK_NOTIFICATION_READ', payload: id });
@@ -32,7 +36,7 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
           <div className="flex items-center gap-2">
             <Bell size={20} className="text-safari-gold" />
             <h2 className="text-xl font-playfair font-bold text-safari-primary dark:text-dark-text">Notifications</h2>
-            <Badge variant="gold">{state.notifications.filter(n => !n.read).length}</Badge>
+            <Badge variant="gold">{myNotifications.filter(n => !n.read).length}</Badge>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-dark-card rounded-full text-gray-400 transition-colors">
             <X size={20} />
@@ -40,8 +44,8 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {state.notifications.length > 0 ? (
-            state.notifications.map((n) => (
+          {myNotifications.length > 0 ? (
+            myNotifications.map((n) => (
               <div 
                 key={n.id} 
                 className={`p-4 rounded-xl border transition-all cursor-pointer ${n.read ? 'bg-transparent border-gray-50 dark:border-dark-border opacity-60' : 'bg-safari-gold/5 border-safari-gold/20 shadow-sm'}`}

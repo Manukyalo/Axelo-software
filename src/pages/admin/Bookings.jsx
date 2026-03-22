@@ -121,6 +121,21 @@ export const Bookings = () => {
       };
 
       dispatch({ type: 'ADD_BOOKING', payload: newBooking });
+      
+      if (!isAdmin) {
+         dispatch({ 
+           type: 'ADD_NOTIFICATION', 
+           payload: {
+             title: "Booking Approval Required",
+             message: `Agent ${user.username} submitted a new booking [${nextId}] for ${clientName}.`,
+             date: new Date().toISOString(),
+             read: false,
+             type: 'WARNING',
+             targetRole: 'admin'
+           }
+         });
+      }
+
       toast.success(`Booking ${nextId} created!`);
       setIsModalOpen(false);
       setFormBookingType('Safari');

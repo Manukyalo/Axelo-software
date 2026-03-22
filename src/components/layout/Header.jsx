@@ -21,7 +21,8 @@ export const Header = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const unreadCount = state.notifications.filter(n => !n.read).length;
+  const myNotifications = state.notifications.filter(n => !n.targetRole || n.targetRole === user?.role);
+  const unreadCount = myNotifications.filter(n => !n.read).length;
 
   return (
     <header className="h-20 bg-white/80 dark:bg-dark-bg/80 backdrop-blur-md border-b border-gray-100 dark:border-dark-border px-8 flex items-center justify-between sticky top-0 z-30">
