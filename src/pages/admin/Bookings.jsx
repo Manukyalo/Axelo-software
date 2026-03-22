@@ -79,15 +79,23 @@ export const Bookings = () => {
     // Auto-generate ID: TRP-2025-XXXX
     const nextId = `TRP-2025-${(state.bookings.length + 1).toString().padStart(4, '0')}`;
     
+    const totalAmount = parseFloat(bookingData.totalAmount) || 0;
+    const paidAmount = parseFloat(bookingData.paidAmount) || 0;
+    
+    let paymentStatus = 'Unpaid';
+    if (paidAmount >= totalAmount && totalAmount > 0) paymentStatus = 'Fully Paid';
+    else if (paidAmount > 0) paymentStatus = 'Partially Paid';
+    else if (paidAmount >= totalAmount && totalAmount === 0) paymentStatus = 'Fully Paid'; // Edge case
+
     const newBooking = {
       ...bookingData,
       id: nextId,
       type: formBookingType,
       pax: { adults: parseInt(bookingData.adults), children: parseInt(bookingData.children || 0), infants: 0 },
       status: 'Pending',
-      paymentStatus: 'Unpaid',
-      paidAmount: 0,
-      totalAmount: 100000, // Dummy calculation for now
+      paymentStatus,
+      paidAmount,
+      totalAmount,
       createdById: user.role
     };
 
@@ -306,12 +314,9 @@ export const Bookings = () => {
              </div>
           </div>
           
-          <div className="p-4 bg-safari-gold/5 rounded-xl border border-safari-gold/10">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-bold text-safari-earthy">Estimated Total:</span>
-              <span className="text-xl font-jetbrains font-bold text-safari-gold">KES 0.00</span>
-            </div>
-            <p className="text-[10px] text-gray-500 mt-1">* Pricing will be finalized based on selected package and seasonal rates.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-100 dark:border-dark-border pt-4">
+             <Input label="Total Amount (KES)" name="totalAmount" type="number" min="0" placeholder="e.g. 150000" required />
+             <Input label="Initial Amount Paid (KES)" name="paidAmount" type="number" min="0" defaultValue="0" required />
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-dark-border">

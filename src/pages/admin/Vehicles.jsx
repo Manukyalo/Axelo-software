@@ -183,7 +183,7 @@ export const Vehicles = () => {
               key={v.id} 
               vehicle={v} 
               onEdit={(v) => { setEditingVehicle(v); setIsModalOpen(true); }}
-              onView={(v) => {/* TODO: Details View */}} 
+              onView={(v) => { toast('Vehicle details expanding soon!', { icon: '🚧' }); }} 
             />
           ))}
         </div>
