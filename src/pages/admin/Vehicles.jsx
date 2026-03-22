@@ -14,7 +14,9 @@ import {
   Edit2,
   Trash2,
   Eye,
-  Settings
+  Settings,
+  User,
+  Users
 } from 'lucide-react';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Button } from '../../components/ui/Button';

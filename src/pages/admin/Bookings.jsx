@@ -8,6 +8,7 @@ import {
   Trash2, 
   MoreVertical,
   Calendar,
+  Clock,
   User,
   MapPin,
   Banknote,
@@ -31,6 +32,8 @@ export const Bookings = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [bookingTypeFilter, setBookingTypeFilter] = useState('All');
+  const [formBookingType, setFormBookingType] = useState('Safari');
 
   const isAdmin = user?.role === 'admin';
 
@@ -64,7 +67,8 @@ export const Bookings = () => {
   const filteredBookings = state.bookings.filter(b => {
     const matchesSearch = b.clientName.toLowerCase().includes(search.toLowerCase()) || b.id.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'All' || b.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesType = bookingTypeFilter === 'All' || (b.type || 'Safari') === bookingTypeFilter;
+    return matchesSearch && matchesStatus && matchesType;
   });
 
   const handleCreateBooking = (e) => {
@@ -78,6 +82,7 @@ export const Bookings = () => {
     const newBooking = {
       ...bookingData,
       id: nextId,
+      type: formBookingType,
       pax: { adults: parseInt(bookingData.adults), children: parseInt(bookingData.children || 0), infants: 0 },
       status: 'Pending',
       paymentStatus: 'Unpaid',
@@ -89,6 +94,7 @@ export const Bookings = () => {
     dispatch({ type: 'ADD_BOOKING', payload: newBooking });
     toast.success(`Booking ${nextId} created!`);
     setIsModalOpen(false);
+    setFormBookingType('Safari'); // Reset
   };
 
   return (
@@ -108,8 +114,25 @@ export const Bookings = () => {
         </div>
       }
     >
+      {/* Tabs */}
+      <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar bg-white dark:bg-dark-card p-2 rounded-card border border-gray-100 dark:border-dark-border shadow-sm">
+        {['All', 'Safari', 'City Tour', 'Drop Off', 'Pick Up'].map(type => (
+          <button
+            key={type}
+            onClick={() => setBookingTypeFilter(type)}
+            className={`px-4 py-2 rounded-button text-sm font-bold transition-all whitespace-nowrap ${
+              bookingTypeFilter === type 
+                ? 'bg-safari-gold text-white shadow-md' 
+                : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-dark-surface'
+            }`}
+          >
+            {type}
+          </button>
+        ))}
+      </div>
+
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 mb-8 bg-white dark:bg-dark-card p-4 rounded-card shadow-sm border border-gray-100 dark:border-dark-border">
+      <div className="flex flex-col md:flex-row gap-4 mb-6 bg-white dark:bg-dark-card p-4 rounded-card shadow-sm border border-gray-100 dark:border-dark-border">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input 
@@ -141,9 +164,9 @@ export const Bookings = () => {
               <tr className="bg-gray-50 dark:bg-dark-bg border-b border-gray-100 dark:border-dark-border">
                 <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Booking ID</th>
                 <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Client Name</th>
-                <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Tour Package</th>
+                <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Details / Location</th>
                 <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Trip Date</th>
-                <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Pax</th>
+                <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Driver</th>
                 <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Status</th>
                 <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Payment</th>
                 <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Actions</th>
@@ -158,7 +181,14 @@ export const Bookings = () => {
                     <p className="text-[10px] text-gray-500 uppercase tracking-tighter">{booking.clientEmail}</p>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm">{state.packages.find(p => p.id === booking.packageId)?.name || 'Custom Package'}</span>
+                    { (!booking.type || booking.type === 'Safari') ? (
+                      <span className="text-sm">{state.packages.find(p => p.id === booking.packageId)?.name || 'Custom Package'}</span>
+                    ) : (
+                      <div>
+                         <p className="text-sm font-bold text-safari-primary dark:text-dark-text">{booking.location}</p>
+                         <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-1"><Clock size={10} /> Pickup: {booking.timeOfPickup}</p>
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 text-sm">
@@ -166,7 +196,13 @@ export const Bookings = () => {
                       {format(parseISO(booking.date), 'MMM dd, yyyy')}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm font-bold">{booking.pax.adults + booking.pax.children} Pax</td>
+                  <td className="px-6 py-4">
+                    {booking.driverId ? (
+                      <span className="text-sm font-medium">{state.drivers.find(d => d.id === booking.driverId)?.name}</span>
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">Unassigned</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4">{getStatusBadge(booking.status)}</td>
                   <td className="px-6 py-4">{getPaymentBadge(booking.paymentStatus)}</td>
                   <td className="px-6 py-4">
@@ -198,17 +234,57 @@ export const Bookings = () => {
              <Input label="Client Full Name" name="clientName" placeholder="e.g. Alice Johnson" required />
              <Input label="Client Email" name="clientEmail" type="email" placeholder="alice@example.com" required />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <div className="space-y-1.5">
-               <label className="block text-sm font-medium text-safari-primary dark:text-dark-text font-dm-sans">Tour Package</label>
-               <select name="packageId" className="w-full px-4 py-2.5 bg-white dark:bg-dark-surface border-2 border-gray-100 dark:border-dark-border rounded-input outline-none focus:border-safari-gold focus:ring-4 focus:ring-safari-gold/5 transition-all text-sm" required>
-                 {state.packages.map(p => (
-                   <option key={p.id} value={p.id}>{p.name}</option>
-                 ))}
-               </select>
-             </div>
-             <Input label="Departure Date" name="date" type="date" required />
+          
+          <div className="space-y-1.5 border-t border-b border-gray-100 dark:border-dark-border py-4">
+            <label className="block text-sm font-medium text-safari-primary dark:text-dark-text font-dm-sans mb-2">Service Type</label>
+            <div className="flex gap-4">
+              {['Safari', 'City Tour', 'Drop Off', 'Pick Up'].map(type => (
+                <label key={type} className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="type" 
+                    value={type} 
+                    checked={formBookingType === type}
+                    onChange={(e) => setFormBookingType(e.target.value)}
+                    className="text-safari-gold focus:ring-safari-gold"
+                  />
+                  <span className="text-sm">{type}</span>
+                </label>
+              ))}
+            </div>
           </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             {formBookingType === 'Safari' ? (
+               <div className="space-y-1.5">
+                 <label className="block text-sm font-medium text-safari-primary dark:text-dark-text font-dm-sans">Tour Package</label>
+                 <select name="packageId" className="w-full px-4 py-2.5 bg-white dark:bg-dark-surface border-2 border-gray-100 dark:border-dark-border rounded-input outline-none focus:border-safari-gold focus:ring-4 focus:ring-safari-gold/5 transition-all text-sm" required>
+                   {state.packages.map(p => (
+                     <option key={p.id} value={p.id}>{p.name}</option>
+                   ))}
+                 </select>
+               </div>
+             ) : (
+               <Input label="Location / Destination" name="location" placeholder="e.g. JKIA to Hilton Hotel" required />
+             )}
+             
+             <Input label="Date" name="date" type="date" required />
+          </div>
+          
+          {formBookingType !== 'Safari' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <Input label="Time of Pickup" name="timeOfPickup" type="time" required />
+               <div className="space-y-1.5">
+                 <label className="block text-sm font-medium text-safari-primary dark:text-dark-text font-dm-sans">Allocate Driver</label>
+                 <select name="driverId" className="w-full px-4 py-2.5 bg-white dark:bg-dark-surface border-2 border-gray-100 dark:border-dark-border rounded-input outline-none focus:border-safari-gold focus:ring-4 focus:ring-safari-gold/5 transition-all text-sm">
+                   <option value="">Auto-Assign Later</option>
+                   {state.drivers.filter(d => d.status === 'Available').map(d => (
+                     <option key={d.id} value={d.id}>{d.name} ({d.trips} trips)</option>
+                   ))}
+                 </select>
+               </div>
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-4">
              <Input label="Adults" name="adults" type="number" min="1" defaultValue="1" required />
              <Input label="Children" name="children" type="number" min="0" defaultValue="0" />

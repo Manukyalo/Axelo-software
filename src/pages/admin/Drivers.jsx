@@ -21,7 +21,7 @@ import { useData } from '../../contexts/DataContext';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import toast from 'react-hot-toast';
 
-const DriverCard = ({ driver, onEdit }) => {
+const DriverCard = ({ driver, onEdit, onSchedule }) => {
   const licenseExpiry = differenceInDays(parseISO(driver.licenseExpiry), new Date());
   const isExpired = licenseExpiry < 0;
   const isExpiringSoon = licenseExpiry >= 0 && licenseExpiry < 30;
@@ -68,6 +68,10 @@ const DriverCard = ({ driver, onEdit }) => {
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             <Briefcase size={14} className="text-gray-400" />
+            <span>Type: <span className="font-bold text-safari-primary dark:text-dark-text text-xs">{driver.type || 'Safari Guide'}</span></span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <Briefcase size={14} className="text-gray-400" />
             <span>License: <span className="font-jetbrains font-bold text-xs">{driver.license}</span></span>
           </div>
           <div className="flex items-center gap-2 text-sm">
@@ -93,6 +97,12 @@ const DriverCard = ({ driver, onEdit }) => {
             </Button>
           </div>
         </div>
+
+        {(!driver.type || driver.type === 'Safari Guide') && (
+           <Button variant="outline" size="sm" className="w-full mt-4 text-xs font-bold border-safari-gold text-safari-gold hover:bg-safari-gold hover:text-white" onClick={() => onSchedule(driver)}>
+             <Calendar size={12} className="mr-2" /> Schedule Upcoming Safari
+           </Button>
+        )}
       </CardContent>
     </Card>
   );
@@ -101,8 +111,11 @@ const DriverCard = ({ driver, onEdit }) => {
 export const Drivers = () => {
   const { state, dispatch } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
+  const [schedulingDriver, setSchedulingDriver] = useState(null);
   const [search, setSearch] = useState('');
+  const [driverTypeFilter, setDriverTypeFilter] = useState('All');
 
   const handleAddEdit = (e) => {
     e.preventDefault();
@@ -119,10 +132,11 @@ export const Drivers = () => {
     setIsModalOpen(false);
   };
 
-  const filteredDrivers = state.drivers.filter(d => 
-    d.name.toLowerCase().includes(search.toLowerCase()) || 
-    d.phone.includes(search)
-  );
+  const filteredDrivers = state.drivers.filter(d => {
+    const matchesSearch = d.name.toLowerCase().includes(search.toLowerCase()) || d.phone.includes(search);
+    const matchesType = driverTypeFilter === 'All' || (d.type || 'Safari Guide') === driverTypeFilter;
+    return matchesSearch && matchesType;
+  });
 
   return (
     <PageWrapper 
@@ -134,7 +148,24 @@ export const Drivers = () => {
         </Button>
       }
     >
-      <div className="mb-8 bg-white dark:bg-dark-card p-4 rounded-card shadow-sm border border-gray-100 dark:border-dark-border">
+      {/* Tabs */}
+      <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar bg-white dark:bg-dark-card p-2 rounded-card border border-gray-100 dark:border-dark-border shadow-sm">
+        {['All', 'Safari Guide', 'City Chauffeur', 'Transfer Driver'].map(type => (
+          <button
+            key={type}
+            onClick={() => setDriverTypeFilter(type)}
+            className={`px-4 py-2 rounded-button text-sm font-bold transition-all whitespace-nowrap ${
+              driverTypeFilter === type 
+                ? 'bg-safari-gold text-white shadow-md' 
+                : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-dark-surface'
+            }`}
+          >
+            {type}
+          </button>
+        ))}
+      </div>
+
+      <div className="mb-6 bg-white dark:bg-dark-card p-4 rounded-card shadow-sm border border-gray-100 dark:border-dark-border">
         <div className="relative w-full max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input 
@@ -149,7 +180,12 @@ export const Drivers = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredDrivers.map(d => (
-          <DriverCard key={d.id} driver={d} onEdit={(d) => { setEditingDriver(d); setIsModalOpen(true); }} />
+          <DriverCard 
+            key={d.id} 
+            driver={d} 
+            onEdit={(d) => { setEditingDriver(d); setIsModalOpen(true); }} 
+            onSchedule={(d) => { setSchedulingDriver(d); setIsScheduleModalOpen(true); }}
+          />
         ))}
       </div>
 
@@ -165,14 +201,55 @@ export const Drivers = () => {
           </div>
           <Input label="Email Address" name="email" type="email" defaultValue={editingDriver?.email} required />
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+               <label className="block text-sm font-medium text-safari-primary dark:text-dark-text font-dm-sans">Driver Type</label>
+               <select name="type" defaultValue={editingDriver?.type || 'Safari Guide'} className="w-full px-4 py-2.5 bg-white dark:bg-dark-surface border-2 border-gray-100 dark:border-dark-border rounded-input outline-none focus:border-safari-gold focus:ring-4 focus:ring-safari-gold/5 transition-all text-sm" required>
+                 <option value="Safari Guide">Safari Guide</option>
+                 <option value="City Chauffeur">City Chauffeur</option>
+                 <option value="Transfer Driver">Transfer Driver</option>
+               </select>
+            </div>
             <Input label="License Number" name="license" defaultValue={editingDriver?.license} required />
-            <Input label="License Expiry" name="licenseExpiry" type="date" defaultValue={editingDriver?.licenseExpiry} required />
           </div>
+          <Input label="License Expiry" name="licenseExpiry" type="date" defaultValue={editingDriver?.licenseExpiry} required />
           
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-dark-border">
             <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button type="submit">{editingDriver ? 'Update Driver' : 'Add Driver'}</Button>
           </div>
+        </form>
+      </Modal>
+
+      {/* Schedule Safari Modal */}
+      <Modal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        title={`Schedule Safari: ${schedulingDriver?.name}`}
+      >
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          toast.success(`${schedulingDriver?.name} successfully scheduled!`);
+          setIsScheduleModalOpen(false);
+        }} className="space-y-6">
+           <div className="space-y-1.5">
+             <label className="block text-sm font-medium text-safari-primary dark:text-dark-text font-dm-sans">Select Upcoming Safari / Trip</label>
+             <select required className="w-full px-4 py-2.5 bg-white dark:bg-dark-surface border-2 border-gray-100 dark:border-dark-border rounded-input outline-none focus:border-safari-gold focus:ring-4 focus:ring-safari-gold/5 transition-all text-sm">
+               {state.packages.map(p => (
+                 <option key={p.id} value={p.id}>{p.name}</option>
+               ))}
+               <option value="custom">Custom Safari Route</option>
+             </select>
+           </div>
+           
+           <div className="grid grid-cols-2 gap-4">
+             <Input label="Start Date" name="startDate" type="date" required />
+             <Input label="End Date" name="endDate" type="date" required />
+           </div>
+
+           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-dark-border">
+             <Button variant="ghost" type="button" onClick={() => setIsScheduleModalOpen(false)}>Cancel</Button>
+             <Button type="submit">Confirm Schedule</Button>
+           </div>
         </form>
       </Modal>
     </PageWrapper>
