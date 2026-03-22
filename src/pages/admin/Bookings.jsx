@@ -92,7 +92,16 @@ export const Bookings = () => {
 
       const destinations = validateString(bookingData.destinations || '', 500, 'Destinations', false);
       const durationText = validateString(bookingData.durationText || '', 100, 'Duration', false);
-      const location = validateString(bookingData.location || '', 300, 'Location/Destination', false);
+      
+      let location = '';
+      if (formBookingType === 'Safari') {
+        location = validateString(bookingData.location || '', 300, 'Location/Destination', false);
+      } else {
+        const fromLoc = validateString(bookingData.pickupLocation || '', 150, 'From Location', false);
+        const toLoc = validateString(bookingData.dropoffLocation || '', 150, 'To Destination', false);
+        location = `${fromLoc} to ${toLoc}`;
+      }
+      
       const date = validateString(bookingData.date, 30, 'Date');
       const timeOfPickup = validateString(bookingData.timeOfPickup || '', 20, 'Time of Pickup', false);
       
@@ -312,7 +321,10 @@ export const Bookings = () => {
              {formBookingType === 'Safari' ? (
                <Input label="Tour Package" name="packageName" placeholder="e.g. 15 Days Kenya Safari" required />
              ) : (
-               <Input label="Location / Destination" name="location" placeholder="e.g. JKIA to Hilton Hotel" required />
+               <div className="grid grid-cols-2 gap-2">
+                 <Input label="From (Pickup)" name="pickupLocation" placeholder="e.g. JKIA" required />
+                 <Input label="To (Dropoff)" name="dropoffLocation" placeholder="e.g. Hilton Hotel" required />
+               </div>
              )}
              
              <Input label="Date" name="date" type="date" required />
