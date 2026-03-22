@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { initialData } from '../utils/seedData';
+import { useAuth } from './AuthContext';
 
 const DataContext = createContext();
 
@@ -49,10 +50,42 @@ const dataReducer = (state, action) => {
 const STORAGE_KEY = 'tours_db_prod';
 
 export const DataProvider = ({ children }) => {
+  const { user } = useAuth();
   const [state, dispatch] = useReducer(dataReducer, null, () => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved) : initialData;
   });
+
+  const secureDispatch = (action) => {
+    if (user && user.role !== 'admin') {
+      const isDelete = action.type.startsWith('DELETE_');
+      const isUpdate = action.type.startsWith('UPDATE_');
+      
+      if (isDelete || isUpdate) {
+         let collectionName = '';
+         if (action.type.includes('BOOKING')) collectionName = 'bookings';
+         else if (action.type.includes('VEHICLE')) collectionName = 'vehicles';
+         else if (action.type.includes('DRIVER')) collectionName = 'drivers';
+         else if (action.type.includes('PACKAGE')) collectionName = 'packages';
+
+         if (collectionName && state[collectionName]) {
+            const idToMatch = isDelete ? action.payload : action.payload.id;
+            const item = state[collectionName].find(i => i.id === idToMatch);
+            
+            if (item && item.createdById !== user.role) {
+                console.error(`IDOR SECURITY EXCEPTION: Cross-tenant mutation blocked on ${collectionName} ID: ${idToMatch}`);
+                throw new Error("SECURITY EXCEPTION: You do not have permission to modify or delete this resource.");
+            }
+         }
+      }
+
+      if (action.type.startsWith('ADD_') && action.payload && !action.payload.createdById) {
+        action.payload.createdById = user.role;
+      }
+    }
+
+    dispatch(action);
+  };
 
   useEffect(() => {
     if (state) {
@@ -61,7 +94,7 @@ export const DataProvider = ({ children }) => {
   }, [state]);
 
   return (
-    <DataContext.Provider value={{ state, dispatch }}>
+    <DataContext.Provider value={{ state, dispatch: secureDispatch }}>
       {children}
     </DataContext.Provider>
   );
