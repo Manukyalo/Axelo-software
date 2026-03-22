@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
 import { validateToken, comparePassword, generateToken } from '../utils/auth';
 import { checkRateLimit } from '../utils/rateLimit';
+import { logger } from '../utils/logger';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
@@ -46,30 +46,39 @@ export const AuthProvider = ({ children }) => {
     const stored = JSON.parse(localStorage.getItem(key));
 
     // Brute force check
-    const attempts = JSON.parse(localStorage.getItem(BRUTE_FORCE_KEY) || '{}');
-    const roleAttempts = attempts[role] || { count: 0, lastAttempt: 0 };
+    const lockoutKey = `lockout_${role}_${username}`;
+    const lockout = JSON.parse(localStorage.getItem(lockoutKey) || '{"failedAttempts": 0, "lockUntil": 0}');
 
-    if (roleAttempts.count >= 5 && Date.now() - roleAttempts.lastAttempt < 15 * 60 * 1000) {
-      throw new Error('Account locked. Please try again in 15 minutes.');
+    if (lockout.lockUntil && Date.now() < lockout.lockUntil) {
+      const minutesRemaining = Math.ceil((lockout.lockUntil - Date.now()) / 60000);
+      logger.security('Login anomaly blocked. Attempt on account currently under brute-force lockout.', { username, role });
+      throw new Error(`Account locked due to multiple failed attempts. Try again in ${minutesRemaining} minutes.`);
     }
 
     if (!stored || stored.username !== username || !(await comparePassword(password, stored.password))) {
-      const newCount = (roleAttempts.count || 0) + 1;
-      attempts[role] = { count: newCount, lastAttempt: Date.now() };
-      localStorage.setItem(BRUTE_FORCE_KEY, JSON.stringify(attempts));
+      lockout.failedAttempts += 1;
       
-      let errorMsg = 'Invalid credentials.';
-      if (newCount >= 3) errorMsg += ` Warning: ${5 - newCount} attempts remaining before lockout.`;
-      throw new Error(errorMsg);
+      if (lockout.failedAttempts >= 5) {
+        lockout.lockUntil = Date.now() + 15 * 60 * 1000;
+        localStorage.setItem(lockoutKey, JSON.stringify(lockout));
+        logger.security('Account mathematically isolated. Excessive brute-force failure threshold reached.', { username, role, failedAttempts: lockout.failedAttempts });
+        throw new Error('Account locked due to multiple failed attempts. Try again in 15 minutes.');
+      }
+      
+      localStorage.setItem(lockoutKey, JSON.stringify(lockout));
+      logger.warn('Failed authentication parameters detected against directory.', { username, role, failedAttempts: lockout.failedAttempts });
+      throw new Error('Invalid username or password');
     }
 
+    // Mock Email Verification Check
     if (!stored.emailVerified) {
-      throw new Error('Access Denied: Email address is not verified.');
+       logger.warn('Authentication dropped due to unverified external email state.', { username, role });
+       throw new Error('Email must be verified before logging in. Please check your inbox.');
     }
 
-    // Success
-    attempts[role] = { count: 0, lastAttempt: 0 };
-    localStorage.setItem(BRUTE_FORCE_KEY, JSON.stringify(attempts));
+    // Reset lockout
+    localStorage.removeItem(lockoutKey);
+    logger.info('Authentication layer passed. Generating session ticket.', { username, role });
 
     const token = generateToken(role);
     sessionStorage.setItem('token', token);

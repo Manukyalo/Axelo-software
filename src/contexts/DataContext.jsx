@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { initialData } from '../utils/seedData';
 import { useAuth } from './AuthContext';
 import { checkRateLimit } from '../utils/rateLimit';
+import { logger } from '../utils/logger';
 
 const DataContext = createContext();
 
@@ -80,7 +81,7 @@ export const DataProvider = ({ children }) => {
             const item = state[collectionName].find(i => i.id === idToMatch);
             
             if (item && item.createdById !== user.role) {
-                console.error(`IDOR SECURITY EXCEPTION: Cross-tenant mutation blocked on ${collectionName} ID: ${idToMatch}`);
+                logger.security(`IDOR SECURITY EXCEPTION: Cross-tenant mutation blocked on ${collectionName} ID: ${idToMatch}`, { collectionName, idToMatch, actingUser: user.role, owner: item.createdById });
                 throw new Error("SECURITY EXCEPTION: You do not have permission to modify or delete this resource.");
             }
          }
