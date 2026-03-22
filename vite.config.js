@@ -9,6 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       manifest: {
+        id: '/',
+        start_url: '/',
+        scope: '/',
         name: 'Eastern Vacations System',
         short_name: 'EV System',
         description: 'Enterprise Management System for Eastern Vacations Safari & Tours',
