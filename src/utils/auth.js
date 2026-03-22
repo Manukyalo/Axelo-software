@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 
 // SEC_WARNING: In an enterprise production environment, JWT_SECRET and password hashing MUST exist 
 // purely on the backend server. They are isolated here exclusively for frontend-mocking demonstration.
-const MOCK_JWT_SECRET = 'sz_2026_x!zero_trust_mock_key_v1';
+const MOCK_JWT_SECRET = import.meta.env.VITE_JWT_SECRET || 'fallback_mock_key_v1';
 
 export const hashPassword = async (password) => {
   const salt = await bcrypt.genSalt(12);

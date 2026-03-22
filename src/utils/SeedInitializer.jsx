@@ -9,7 +9,7 @@ export const SeedInitializer = () => {
     const init = async () => {
       // Email Verification flags are forcibly embedded here
       if (!localStorage.getItem(ADMIN_CRED_KEY)) {
-        const adminHash = await hashPassword('Admin@2025#Secure');
+        const adminHash = await hashPassword(import.meta.env.VITE_ADMIN_DEFAULT_PWD || 'AdminFallback123');
         localStorage.setItem(ADMIN_CRED_KEY, JSON.stringify({
           username: 'admin@toursco',
           password: adminHash,
@@ -19,7 +19,7 @@ export const SeedInitializer = () => {
       }
 
       if (!localStorage.getItem(RES_CRED_KEY)) {
-        const resHash = await hashPassword('Res@2025#Secure');
+        const resHash = await hashPassword(import.meta.env.VITE_RES_DEFAULT_PWD || 'ResFallback123');
         localStorage.setItem(RES_CRED_KEY, JSON.stringify({
           username: 'reservations@toursco',
           password: resHash,
