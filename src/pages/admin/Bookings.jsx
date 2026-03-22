@@ -207,7 +207,7 @@ export const Bookings = () => {
                 <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Trip Date</th>
                 <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Driver</th>
                 <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Status</th>
-                <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Payment</th>
+                {isAdmin && <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Payment</th>}
                 <th className="px-6 py-4 font-playfair font-bold text-safari-primary dark:text-dark-text text-sm">Actions</th>
               </tr>
             </thead>
@@ -243,7 +243,7 @@ export const Bookings = () => {
                     )}
                   </td>
                   <td className="px-6 py-4">{getStatusBadge(booking.status)}</td>
-                  <td className="px-6 py-4">{getPaymentBadge(booking.paymentStatus)}</td>
+                  {isAdmin && <td className="px-6 py-4">{getPaymentBadge(booking.paymentStatus)}</td>}
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-safari-gold">
