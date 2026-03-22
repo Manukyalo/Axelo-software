@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { hashPassword } from './auth';
 
-const ADMIN_CRED_KEY = 'auth_cred_v4_a';
-const RES_CRED_KEY = 'auth_cred_v4_r';
+const ADMIN_CRED_KEY = 'auth_cred_v5_a';
+const RES_CRED_KEY = 'auth_cred_v5_r';
 
 export const SeedInitializer = () => {
   useEffect(() => {

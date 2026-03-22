@@ -6,9 +6,9 @@ import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
 
-const ADMIN_CRED_KEY = 'auth_cred_v4_a';
-const RES_CRED_KEY = 'auth_cred_v4_r';
-const BRUTE_FORCE_KEY = 'login_attempts_v4';
+const ADMIN_CRED_KEY = 'auth_cred_v5_a';
+const RES_CRED_KEY = 'auth_cred_v5_r';
+const BRUTE_FORCE_KEY = 'login_attempts_v5';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
