@@ -63,7 +63,8 @@ export const Sidebar = ({ role }) => {
     { to: '/reservations/new-booking', icon: PlusCircle, label: 'New Booking' },
     { to: '/reservations/my-bookings', icon: Briefcase, label: 'My Bookings' },
     { to: '/reservations/all-bookings', icon: CalendarDays, label: 'All Bookings' },
-    { to: '/reservations/packages', icon: Package, label: 'Tour Packages' },
+    { to: '/reservations/vehicles', icon: Car, label: 'Vehicles' },
+    { to: '/reservations/drivers', icon: Users, label: 'Drivers' },
     { to: '/reservations/profile', icon: User, label: 'Profile' },
   ];
 

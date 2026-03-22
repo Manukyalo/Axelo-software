@@ -43,7 +43,8 @@ const NewBooking = () => <BookingsView />; // Opens modal automatically in actua
 const MyBookings = () => <BookingsView />; 
 const AllBookings = () => <BookingsView />;
 const Profile = () => <div>Profile</div>;
-const ResPackages = Packages;
+const ResVehicles = Vehicles;
+const ResDrivers = Drivers;
 
 const ProtectedRoute = ({ children, allowedRole, title }) => {
   const { user, loading } = useAuth();
@@ -138,9 +139,14 @@ function App() {
             <Layout><AllBookings /></Layout>
           </ProtectedRoute>
         } />
-        <Route path="/reservations/packages" element={
-          <ProtectedRoute allowedRole="res_agent" title="Tour Packages">
-            <Layout><ResPackages /></Layout>
+        <Route path="/reservations/vehicles" element={
+          <ProtectedRoute allowedRole="res_agent" title="Vehicles">
+            <Layout><ResVehicles /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/reservations/drivers" element={
+          <ProtectedRoute allowedRole="res_agent" title="Drivers">
+            <Layout><ResDrivers /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/reservations/profile" element={
