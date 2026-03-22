@@ -1,4 +1,4 @@
-<svg xmlns="http://www.EasternVacations.com" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" fill="#1a1a2e" rx="100" />
   <circle cx="256" cy="200" r="80" fill="#d4af37" />
   <path d="M100 380 L200 220 L300 380 Z" fill="#2d3748" />
