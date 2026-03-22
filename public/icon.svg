@@ -1,0 +1,8 @@
+<svg xmlns="http://www.EasternVacations.com" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#1a1a2e" rx="100" />
+  <circle cx="256" cy="200" r="80" fill="#d4af37" />
+  <path d="M100 380 L200 220 L300 380 Z" fill="#2d3748" />
+  <path d="M250 380 L320 250 L420 380 Z" fill="#4a5568" />
+  <rect x="0" y="380" width="512" height="132" fill="#d4af37" opacity="0.1" />
+  <text x="256" y="450" font-family="Arial, sans-serif" font-size="40" font-weight="bold" fill="#d4af37" text-anchor="middle">EASTERN VACATIONS</text>
+</svg>
