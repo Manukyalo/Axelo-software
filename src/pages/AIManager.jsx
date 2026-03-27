@@ -63,8 +63,8 @@ export const AIManager = () => {
         return true;
       })
       .filter(a => 
-        a.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        a.message.toLowerCase().includes(searchQuery.toLowerCase())
+        (a.title?.toLowerCase().includes(searchQuery.toLowerCase()) || false) || 
+        (a.message?.toLowerCase().includes(searchQuery.toLowerCase()) || false)
       );
   }, [aiAlerts, filterType, searchQuery]);
 
