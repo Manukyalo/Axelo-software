@@ -25,6 +25,7 @@ import {
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useData } from '../../contexts/DataContext';
 import toast from 'react-hot-toast';
 
 const NavItem = ({ to, icon: Icon, label, collapsed, disabled, external }) => {
@@ -89,6 +90,7 @@ export const Sidebar = ({ role }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const { isDarkMode } = useTheme();
+  const { state } = useData();
 
   const handleLogout = () => {
     logout();

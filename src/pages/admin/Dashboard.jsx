@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { StatCard } from '../../components/shared/StatCard';
-import { Card, CardHeader, CardContent } from '../../components/ui/Card';
+import { Card, CardHeader, CardContent, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { useData } from '../../contexts/DataContext';
