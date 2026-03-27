@@ -12,17 +12,21 @@ import {
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
+import { useAI } from '../../contexts/AIManagerContext';
 import { NotificationDrawer } from '../shared/NotificationDrawer';
 
 export const Header = () => {
   const { isDarkMode, toggleDarkMode } = useTheme();
   const { user, logout } = useAuth();
   const { state } = useData();
+  const { criticalCount } = useAI();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
   const myNotifications = state.notifications.filter(n => !n.targetRole || n.targetRole === user?.role);
-  const unreadCount = myNotifications.filter(n => !n.read).length;
+  const internalUnread = myNotifications.filter(n => !n.read).length;
+  const totalUnread = internalUnread + (user?.role === 'admin' ? criticalCount : 0);
+  const hasCritical = user?.role === 'admin' && criticalCount > 0;
 
   return (
     <header className="h-20 bg-white/80 dark:bg-dark-bg/80 backdrop-blur-md border-b border-gray-100 dark:border-dark-border px-8 flex items-center justify-between sticky top-0 z-30">
@@ -51,9 +55,12 @@ export const Header = () => {
             className="p-2.5 hover:bg-gray-100 dark:hover:bg-dark-card rounded-button text-gray-500 transition-colors relative"
           >
             <Bell size={20} />
-            {unreadCount > 0 && (
-              <span className="absolute top-2.5 right-2.5 w-4 h-4 bg-safari-warning text-white text-[9px] font-bold rounded-full border-2 border-white dark:border-dark-bg flex items-center justify-center">
-                {unreadCount}
+            {totalUnread > 0 && (
+              <span className={`
+                absolute top-2.5 right-2.5 w-4 h-4 text-white text-[9px] font-bold rounded-full border-2 border-white dark:border-dark-bg flex items-center justify-center
+                ${hasCritical ? 'bg-red-500 animate-pulse' : 'bg-safari-warning'}
+              `}>
+                {totalUnread}
               </span>
             )}
           </button>

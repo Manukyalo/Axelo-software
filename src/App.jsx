@@ -31,6 +31,11 @@ import { Bookings } from './pages/admin/Bookings';
 import { Packages } from './pages/admin/Packages';
 import { Reports } from './pages/admin/Reports';
 import { Settings } from './pages/admin/Settings';
+import { UpcomingSafaris } from './pages/UpcomingSafaris';
+import { AIManager } from './pages/AIManager';
+import { AIActivityLog } from './pages/AIActivityLog';
+import { requestFirebaseToken, onMessageListener } from './utils/fcmUtils';
+
 
 import { ReservationsDashboard } from './pages/reservations/Dashboard';
 
@@ -72,6 +77,16 @@ const ProtectedRoute = ({ children, allowedRole, title }) => {
 };
 
 function App() {
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user && user.uid) {
+      // Initialize FCM
+      requestFirebaseToken(user.uid);
+      onMessageListener();
+    }
+  }, [user]);
+
   return (
     <BrowserRouter>
       <SeedInitializer />
@@ -112,6 +127,21 @@ function App() {
             <Layout><Reports /></Layout>
           </ProtectedRoute>
         } />
+        <Route path="/admin/upcoming-safaris" element={
+          <ProtectedRoute allowedRole="admin" title="Upcoming Safaris">
+            <Layout><UpcomingSafaris /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/ai-manager" element={
+          <ProtectedRoute allowedRole="admin" title="AI Manager Hub">
+            <Layout><AIManager /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/ai-logs" element={
+          <ProtectedRoute allowedRole="admin" title="AI Activity Log">
+            <Layout><AIActivityLog /></Layout>
+          </ProtectedRoute>
+        } />
         <Route path="/admin/settings" element={
           <ProtectedRoute allowedRole="admin" title="Settings">
             <Layout><Settings /></Layout>
@@ -147,6 +177,11 @@ function App() {
         <Route path="/reservations/drivers" element={
           <ProtectedRoute allowedRole="res_agent" title="Drivers">
             <Layout><ResDrivers /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/reservations/upcoming-safaris" element={
+          <ProtectedRoute allowedRole="res_agent" title="Upcoming Safaris">
+            <Layout><UpcomingSafaris /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/reservations/profile" element={

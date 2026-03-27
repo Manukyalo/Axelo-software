@@ -5,6 +5,7 @@ import './index.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { DataProvider } from './contexts/DataContext';
+import { AIManagerProvider } from './contexts/AIManagerContext';
 import { Toaster } from 'react-hot-toast';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -12,18 +13,20 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <ThemeProvider>
       <AuthProvider>
         <DataProvider>
-          <App />
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              className: 'font-dm-sans',
-              style: {
-                borderRadius: '10px',
-                background: '#333',
-                color: '#fff',
-              },
-            }}
-          />
+          <AIManagerProvider>
+            <App />
+            <Toaster 
+              position="top-right"
+              toastOptions={{
+                className: 'font-dm-sans',
+                style: {
+                  borderRadius: '10px',
+                  background: '#333',
+                  color: '#fff',
+                },
+              }}
+            />
+          </AIManagerProvider>
         </DataProvider>
       </AuthProvider>
     </ThemeProvider>

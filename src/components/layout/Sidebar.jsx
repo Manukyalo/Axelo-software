@@ -13,7 +13,9 @@ import {
   LayoutDashboard,
   PlusCircle,
   Briefcase,
-  User
+  User,
+  MapPin,
+  Zap
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -69,9 +71,11 @@ export const Sidebar = ({ role }) => {
   const adminMenu = [
     { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/bookings', icon: CalendarDays, label: 'Bookings' },
+    { to: '/admin/upcoming-safaris', icon: MapPin, label: 'Upcoming Safaris' },
     { to: '/admin/vehicles', icon: Car, label: 'Vehicles' },
     { to: '/admin/drivers', icon: Users, label: 'Drivers' },
     { to: '/admin/packages', icon: Package, label: 'Tour Packages', disabled: true },
+    { to: '/admin/ai-manager', icon: Zap, label: 'AI Manager' },
     { to: '/admin/reports', icon: BarChart3, label: 'Reports' },
     { to: '/admin/settings', icon: Settings, label: 'Settings' },
   ];
@@ -81,6 +85,7 @@ export const Sidebar = ({ role }) => {
     { to: '/reservations/new-booking', icon: PlusCircle, label: 'New Booking' },
     { to: '/reservations/my-bookings', icon: Briefcase, label: 'My Bookings' },
     { to: '/reservations/all-bookings', icon: CalendarDays, label: 'All Bookings' },
+    { to: '/reservations/upcoming-safaris', icon: MapPin, label: 'Upcoming Safaris' },
     { to: '/reservations/vehicles', icon: Car, label: 'Vehicles' },
     { to: '/reservations/drivers', icon: Users, label: 'Drivers' },
     { to: '/reservations/profile', icon: User, label: 'Profile' },
