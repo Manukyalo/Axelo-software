@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   MapPin, 
@@ -22,10 +22,47 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { TripChecklist } from './TripChecklist';
 import { useNavigate } from 'react-router-dom';
+import { useData } from '../../contexts/DataContext';
+import { toast } from 'react-hot-toast';
 
 export const SafariDetailDrawer = ({ safari, isOpen, onClose, drivers, vehicles }) => {
-  const navigate = useNavigate();
+  const { dispatch } = useData();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    status: '',
+    driverId: '',
+    vehicleId: '',
+    customVehicle: ''
+  });
+
+  useEffect(() => {
+    if (safari) {
+      setEditData({
+        status: safari.status || 'Confirmed',
+        driverId: safari.driverId || '',
+        vehicleId: safari.vehicleId || '',
+        customVehicle: safari.customVehicle || ''
+      });
+    }
+  }, [safari, isOpen]);
+
   if (!safari) return null;
+
+  const handleSave = async () => {
+    try {
+      await dispatch({
+        type: 'UPDATE_BOOKING',
+        payload: {
+          id: safari.id,
+          ...editData
+        }
+      });
+      setIsEditing(false);
+      toast.success('Trip updated successfully');
+    } catch (error) {
+      console.error('Update error:', error);
+    }
+  };
 
   const driver = drivers?.find(d => d.id === safari.driverId);
   const vehicle = vehicles?.find(v => v.id === safari.vehicleId);
@@ -55,7 +92,17 @@ export const SafariDetailDrawer = ({ safari, isOpen, onClose, drivers, vehicles 
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-dark-border bg-safari-bg dark:bg-dark-surface">
             <div>
               <h2 className="text-2xl font-playfair font-bold text-safari-primary dark:text-dark-text">Trip Details</h2>
-              <p className="text-xs text-safari-gold font-jetbrains font-bold uppercase tracking-widest">{safari.id}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-xs text-safari-gold font-jetbrains font-bold uppercase tracking-widest">{safari.id}</p>
+                {!isEditing && (
+                  <button 
+                    onClick={() => setIsEditing(true)}
+                    className="text-[10px] bg-safari-gold/20 text-safari-gold px-2 py-0.5 rounded-full font-bold hover:bg-safari-gold hover:text-white transition-all uppercase tracking-tighter"
+                  >
+                    Edit Trip
+                  </button>
+                )}
+              </div>
             </div>
             <button 
               onClick={onClose}
@@ -75,7 +122,20 @@ export const SafariDetailDrawer = ({ safari, isOpen, onClose, drivers, vehicles 
               <div className="relative z-10">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-xl font-playfair font-bold text-safari-primary dark:text-dark-text">{safari.clientName}</h3>
-                  <Badge variant={safari.status === 'Confirmed' ? 'success' : 'gold'}>{safari.status}</Badge>
+                  {isEditing ? (
+                    <select 
+                      value={editData.status}
+                      onChange={(e) => setEditData({...editData, status: e.target.value})}
+                      className="bg-white dark:bg-dark-card border border-safari-gold/30 rounded-lg px-2 py-1 text-xs font-bold text-safari-primary focus:ring-1 focus:ring-safari-gold outline-none"
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Confirmed">Confirmed</option>
+                      <option value="Cancelled">Cancelled</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  ) : (
+                    <Badge variant={safari.status === 'Confirmed' ? 'success' : safari.status === 'Completed' ? 'info' : 'gold'}>{safari.status}</Badge>
+                  )}
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
@@ -145,7 +205,18 @@ export const SafariDetailDrawer = ({ safari, isOpen, onClose, drivers, vehicles 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-white dark:bg-dark-surface rounded-2xl border border-gray-100 dark:border-dark-border">
                 <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-2">Assigned Driver</p>
-                {driver ? (
+                {isEditing ? (
+                  <select
+                    value={editData.driverId}
+                    onChange={(e) => setEditData({...editData, driverId: e.target.value})}
+                    className="w-full bg-gray-50 dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-xl px-3 py-2 text-sm outline-none focus:border-safari-gold transition-colors"
+                  >
+                    <option value="">Unassigned</option>
+                    {drivers?.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                ) : driver ? (
                    <div className="flex items-center justify-between w-full">
                      <div className="flex items-center gap-3">
                        <div className="w-10 h-10 rounded-full bg-safari-gold/10 flex items-center justify-center text-safari-gold">
@@ -165,12 +236,35 @@ export const SafariDetailDrawer = ({ safari, isOpen, onClose, drivers, vehicles 
                      </button>
                    </div>
                 ) : (
-                   <p className="text-sm text-red-500 italic">No driver assigned</p>
+                   <p className="text-sm text-red-500 italic font-medium">No driver assigned</p>
                 )}
               </div>
               <div className="p-4 bg-white dark:bg-dark-surface rounded-2xl border border-gray-100 dark:border-dark-border">
                 <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-2">Assigned Vehicle</p>
-                {vehicle || safari.vehicleId === 'custom' ? (
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <select
+                      value={editData.vehicleId}
+                      onChange={(e) => setEditData({...editData, vehicleId: e.target.value})}
+                      className="w-full bg-gray-50 dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-xl px-3 py-2 text-sm outline-none focus:border-safari-gold transition-colors"
+                    >
+                      <option value="">Unassigned</option>
+                      <option value="custom">Custom Entry</option>
+                      {vehicles?.map(v => (
+                        <option key={v.id} value={v.id}>{v.plate} - {v.name}</option>
+                      ))}
+                    </select>
+                    {editData.vehicleId === 'custom' && (
+                      <input 
+                        type="text"
+                        placeholder="Enter vehicle plate..."
+                        value={editData.customVehicle}
+                        onChange={(e) => setEditData({...editData, customVehicle: e.target.value})}
+                        className="w-full bg-gray-50 dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-xl px-3 py-2 text-xs outline-none focus:border-safari-gold transition-colors font-jetbrains uppercase"
+                      />
+                    )}
+                  </div>
+                ) : (vehicle || safari.vehicleId === 'custom') ? (
                    <div className="flex items-center gap-3">
                      <div className="w-10 h-10 rounded-full bg-safari-gold/10 flex items-center justify-center text-safari-gold">
                        <Car size={18} />
@@ -183,7 +277,7 @@ export const SafariDetailDrawer = ({ safari, isOpen, onClose, drivers, vehicles 
                      </div>
                    </div>
                 ) : (
-                   <p className="text-sm text-red-500 italic">No vehicle assigned</p>
+                   <p className="text-sm text-red-500 italic font-medium">No vehicle assigned</p>
                 )}
               </div>
             </div>
@@ -210,14 +304,25 @@ export const SafariDetailDrawer = ({ safari, isOpen, onClose, drivers, vehicles 
 
           {/* Footer Actions */}
           <div className="p-6 border-t border-gray-100 dark:border-dark-border bg-gray-50 dark:bg-dark-surface shrink-0">
-             <div className="grid grid-cols-2 gap-3">
-               <Button variant="outline" className="gap-2" onClick={() => window.print()}>
-                 <Printer size={18} /> Trip Manifest
-               </Button>
-               <Button className="gap-2" onClick={() => navigate('/admin/bookings')}>
-                 <ExternalLink size={18} /> Full Booking
-               </Button>
-             </div>
+             {isEditing ? (
+               <div className="grid grid-cols-2 gap-3">
+                 <Button variant="outline" onClick={() => setIsEditing(false)}>
+                   Cancel
+                 </Button>
+                 <Button onClick={handleSave} className="bg-safari-primary hover:bg-safari-primary/90 text-white shadow-lg">
+                   Save Changes
+                 </Button>
+               </div>
+             ) : (
+               <div className="grid grid-cols-2 gap-3">
+                 <Button variant="outline" className="gap-2" onClick={() => window.print()}>
+                   <Printer size={18} /> Trip Manifest
+                 </Button>
+                 <Button className="gap-2" onClick={() => navigate('/admin/bookings')}>
+                   <ExternalLink size={18} /> Full Booking
+                 </Button>
+               </div>
+             )}
           </div>
         </div>
       </div>
