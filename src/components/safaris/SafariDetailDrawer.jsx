@@ -144,14 +144,23 @@ export const SafariDetailDrawer = ({ safari, isOpen, onClose, drivers, vehicles 
               <div className="p-4 bg-white dark:bg-dark-surface rounded-2xl border border-gray-100 dark:border-dark-border">
                 <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-2">Assigned Driver</p>
                 {driver ? (
-                   <div className="flex items-center gap-3">
-                     <div className="w-10 h-10 rounded-full bg-safari-gold/10 flex items-center justify-center text-safari-gold">
-                       <User size={18} />
+                   <div className="flex items-center justify-between w-full">
+                     <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-full bg-safari-gold/10 flex items-center justify-center text-safari-gold">
+                         <User size={18} />
+                       </div>
+                       <div>
+                         <p className="text-sm font-bold text-safari-primary dark:text-dark-text">{driver.name}</p>
+                         <p className="text-[10px] text-safari-success font-bold uppercase tracking-tighter">Available</p>
+                       </div>
                      </div>
-                     <div>
-                       <p className="text-sm font-bold text-safari-primary dark:text-dark-text">{driver.name}</p>
-                       <p className="text-[10px] text-safari-success font-bold uppercase tracking-tighter">Available</p>
-                     </div>
+                     <button 
+                       onClick={() => window.open('https://eastern-vacations-staff.vercel.app/', '_blank')}
+                       className="p-2 rounded-lg hover:bg-safari-gold/5 text-safari-gold transition-all"
+                       title="View in Staff Portal"
+                     >
+                       <ExternalLink size={16} />
+                     </button>
                    </div>
                 ) : (
                    <p className="text-sm text-red-500 italic">No driver assigned</p>

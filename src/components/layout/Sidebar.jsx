@@ -15,14 +15,16 @@ import {
   Briefcase,
   User,
   MapPin,
-  Zap
+  Zap,
+  ExternalLink,
+  ShieldCheck
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import toast from 'react-hot-toast';
 
-const NavItem = ({ to, icon: Icon, label, collapsed, disabled }) => {
+const NavItem = ({ to, icon: Icon, label, collapsed, disabled, external }) => {
   if (disabled) {
     return (
       <div
@@ -37,6 +39,28 @@ const NavItem = ({ to, icon: Icon, label, collapsed, disabled }) => {
           </span>
         }
       </div>
+    );
+  }
+
+  if (external) {
+    return (
+      <a
+        href={to}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`
+          flex items-center gap-3 px-4 py-3 transition-all duration-300
+          text-gray-400 hover:text-safari-gold hover:bg-safari-gold/5 border-l-4 border-transparent
+        `}
+      >
+        <Icon size={22} className="shrink-0" />
+        {!collapsed && (
+          <span className="font-dm-sans font-medium whitespace-nowrap flex items-center justify-between w-full">
+            {label}
+            <ExternalLink size={14} className="opacity-50" />
+          </span>
+        )}
+      </a>
     );
   }
 
@@ -74,6 +98,7 @@ export const Sidebar = ({ role }) => {
     { to: '/admin/upcoming-safaris', icon: MapPin, label: 'Upcoming Safaris' },
     { to: '/admin/vehicles', icon: Car, label: 'Vehicles' },
     { to: '/admin/drivers', icon: Users, label: 'Drivers' },
+    { to: 'https://eastern-vacations-staff.vercel.app/', icon: ShieldCheck, label: 'Staff Portal', external: true },
     { to: '/admin/packages', icon: Package, label: 'Tour Packages', disabled: true },
     { to: '/admin/ai-manager', icon: Zap, label: 'AI Manager' },
     { to: '/admin/reports', icon: BarChart3, label: 'Reports' },
@@ -88,6 +113,7 @@ export const Sidebar = ({ role }) => {
     { to: '/reservations/upcoming-safaris', icon: MapPin, label: 'Upcoming Safaris' },
     { to: '/reservations/vehicles', icon: Car, label: 'Vehicles' },
     { to: '/reservations/drivers', icon: Users, label: 'Drivers' },
+    { to: 'https://eastern-vacations-staff.vercel.app/', icon: ShieldCheck, label: 'Staff Portal', external: true },
     { to: '/reservations/profile', icon: User, label: 'Profile' },
   ];
 
@@ -124,6 +150,7 @@ export const Sidebar = ({ role }) => {
             label={item.label} 
             collapsed={collapsed}
             disabled={item.disabled}
+            external={item.external}
           />
         ))}
       </nav>
