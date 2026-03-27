@@ -31,7 +31,28 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     });
     
-    return unsubscribe;
+    // 🛡️ Token Auto-Refresh Logic: Prevent 400 status on Identity Toolkit
+    const refreshIdToken = async () => {
+      if (auth.currentUser) {
+        try {
+          await auth.currentUser.getIdToken(true);
+          logger.info('Firebase ID Token Silently Refreshed');
+        } catch (err) {
+          logger.error('Token Refresh Failure', { message: err.message });
+        }
+      }
+    };
+
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') refreshIdToken();
+    });
+    window.addEventListener('focus', refreshIdToken);
+    
+    return () => {
+      unsubscribe();
+      window.removeEventListener('visibilitychange', refreshIdToken);
+      window.removeEventListener('focus', refreshIdToken);
+    };
   }, []);
 
   const login = async (username, password, role) => {

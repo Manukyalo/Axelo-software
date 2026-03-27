@@ -54,23 +54,25 @@ export const Reports = () => {
             <h3 className="font-bold text-safari-primary dark:text-dark-text">Monthly Revenue (KES)</h3>
           </CardHeader>
           <CardContent className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#222' : '#f0f0f0'} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `${val/1000}k`} />
-                <Tooltip 
-                  cursor={{ fill: 'rgba(201, 168, 76, 0.05)' }}
-                  contentStyle={{ 
-                    backgroundColor: isDarkMode ? '#1e1e35' : '#fff',
-                    borderRadius: '12px',
-                    border: 'none',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-                  }}
-                />
-                <Bar dataKey="revenue" fill="#C9A84C" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ width: '100%', height: 350 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#222' : '#f0f0f0'} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                  <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `${val/1000}k`} />
+                  <Tooltip 
+                    cursor={{ fill: 'rgba(201, 168, 76, 0.05)' }}
+                    contentStyle={{ 
+                      backgroundColor: isDarkMode ? '#1e1e35' : '#fff',
+                      borderRadius: '12px',
+                      border: 'none',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                  <Bar dataKey="revenue" fill="#C9A84C" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
@@ -79,25 +81,27 @@ export const Reports = () => {
             <h3 className="font-bold text-safari-primary dark:text-dark-text">Bookings by Package</h3>
           </CardHeader>
           <CardContent className="h-[350px]">
-             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={packagesData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={80}
-                  outerRadius={120}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {packagesData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.isEmpty ? (isDarkMode ? '#1e1e35' : '#f9fafb') : COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+             <div style={{ width: '100%', height: 350 }}>
+               <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={packagesData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={80}
+                    outerRadius={120}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {packagesData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.isEmpty ? (isDarkMode ? '#1e1e35' : '#f9fafb') : COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>

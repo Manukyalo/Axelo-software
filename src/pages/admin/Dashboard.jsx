@@ -201,58 +201,60 @@ export const AdminDashboard = () => {
             <h3 className="font-bold text-safari-primary dark:text-dark-text">Bookings Trend</h3>
           </CardHeader>
           <CardContent className="h-[300px] w-full pt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={bookingTrend}>
-                <defs>
-                  <linearGradient id="colorSafari" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#C9A84C" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#C9A84C" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorCityTour" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2D6A4F" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#2D6A4F" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#222' : '#f0f0f0'} />
-                <XAxis 
-                  dataKey="month" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#888', fontSize: 12 }} 
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#888', fontSize: 12 }} 
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: isDarkMode ? '#1e1e35' : '#fff',
-                    border: 'none',
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-                  }}
-                />
-                <Area 
-                  name="Safari"
-                  type="monotone" 
-                  dataKey="safari" 
-                  stroke="#C9A84C" 
-                  strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#colorSafari)" 
-                />
-                <Area 
-                  name="City Tour"
-                  type="monotone" 
-                  dataKey="cityTour" 
-                  stroke="#2D6A4F" 
-                  strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#colorCityTour)" 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={bookingTrend}>
+                  <defs>
+                    <linearGradient id="colorSafari" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#C9A84C" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#C9A84C" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorCityTour" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2D6A4F" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#2D6A4F" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#222' : '#f0f0f0'} />
+                  <XAxis 
+                    dataKey="month" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#888', fontSize: 12 }} 
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#888', fontSize: 12 }} 
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: isDarkMode ? '#1e1e35' : '#fff',
+                      border: 'none',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                  <Area 
+                    name="Safari"
+                    type="monotone" 
+                    dataKey="safari" 
+                    stroke="#C9A84C" 
+                    strokeWidth={3}
+                    fillOpacity={1} 
+                    fill="url(#colorSafari)" 
+                  />
+                  <Area 
+                    name="City Tour"
+                    type="monotone" 
+                    dataKey="cityTour" 
+                    stroke="#2D6A4F" 
+                    strokeWidth={3}
+                    fillOpacity={1} 
+                    fill="url(#colorCityTour)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
@@ -261,31 +263,33 @@ export const AdminDashboard = () => {
             <h3 className="font-bold text-safari-primary dark:text-dark-text">Vehicle Status</h3>
           </CardHeader>
           <CardContent className="h-[300px] w-full flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={vehicleStatusData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {vehicleStatusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                   contentStyle={{ 
-                    backgroundColor: isDarkMode ? '#1e1e35' : '#fff',
-                    border: 'none',
-                    borderRadius: '12px'
-                  }}
-                />
-                <Legend verticalAlign="bottom" height={36}/>
-              </PieChart>
-            </ResponsiveContainer>
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={vehicleStatusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {vehicleStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: isDarkMode ? '#1e1e35' : '#fff',
+                      border: 'none',
+                      borderRadius: '12px'
+                    }}
+                  />
+                  <Legend verticalAlign="bottom" height={36}/>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>

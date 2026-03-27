@@ -127,7 +127,14 @@ export const SafariCard = ({ safari, drivers = [], vehicles = [], onClick }) => 
             <Badge variant={safari.paymentStatus === 'Fully Paid' ? 'success' : 'gold'}>{safari.paymentStatus}</Badge>
             <Badge variant={safari.status === 'Confirmed' ? 'info' : 'gold'}>{safari.status}</Badge>
           </div>
-          <ArrowRight size={18} className="text-gray-300 group-hover:text-safari-gold transition-colors" />
+          <ArrowRight 
+            size={18} 
+            className="text-gray-300 hover:text-safari-gold transition-colors cursor-pointer" 
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick();
+            }}
+          />
         </div>
       </CardContent>
     </Card>
