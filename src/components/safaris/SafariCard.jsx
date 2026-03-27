@@ -14,8 +14,15 @@ import { format, parseISO, differenceInDays } from 'date-fns';
 import { Badge } from '../ui/Badge';
 import { Card, CardContent } from '../ui/Card';
 
-export const SafariCard = ({ safari, drivers, vehicles, onClick }) => {
-  const daysUntil = differenceInDays(parseISO(safari.date), new Date());
+export const SafariCard = ({ safari, drivers = [], vehicles = [], onClick }) => {
+  let daysUntil = 0;
+  try {
+    if (safari.date) {
+      daysUntil = differenceInDays(parseISO(safari.date), new Date());
+    }
+  } catch (e) {
+    console.error('Date error:', e);
+  }
   
   const getStatusColor = () => {
     if (daysUntil < 1 && (!safari.driverId || !safari.vehicleId)) return 'border-l-red-500 animate-pulse-subtle';
@@ -37,8 +44,8 @@ export const SafariCard = ({ safari, drivers, vehicles, onClick }) => {
     );
   };
 
-  const driver = drivers.find(d => d.id === safari.driverId);
-  const vehicle = vehicles.find(v => v.id === safari.vehicleId);
+  const driver = drivers?.find(d => d.id === safari.driverId);
+  const vehicle = vehicles?.find(v => v.id === safari.vehicleId);
 
   return (
     <Card 
@@ -60,7 +67,17 @@ export const SafariCard = ({ safari, drivers, vehicles, onClick }) => {
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             <Calendar size={14} className="text-safari-gold" />
-            <span className="font-jetbrains font-bold">{format(parseISO(safari.date), 'MMM dd, yyyy')}</span>
+            <span className="font-jetbrains font-bold">
+              {safari.date ? (
+                (() => {
+                  try {
+                    return format(parseISO(safari.date), 'MMM dd, yyyy');
+                  } catch (e) {
+                    return safari.date;
+                  }
+                })()
+              ) : 'No date'}
+            </span>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             <Clock size={14} className="text-safari-gold" />
@@ -75,7 +92,7 @@ export const SafariCard = ({ safari, drivers, vehicles, onClick }) => {
         <div className="flex items-center gap-4 py-3 border-t border-b border-gray-50 dark:border-dark-border mb-4">
           <div className="flex items-center gap-1.5 text-xs font-bold text-safari-primary dark:text-dark-text">
             <Users size={14} className="text-gray-400" />
-            {safari.pax.adults + safari.pax.children + safari.pax.infants} Pax
+            {(safari.pax?.adults || 0) + (safari.pax?.children || 0) + (safari.pax?.infants || 0)} Pax
           </div>
           <div className="h-4 w-px bg-gray-100 dark:bg-dark-border" />
           <div className="text-xs text-gray-500 italic">

@@ -25,11 +25,16 @@ export const SafariDetailDrawer = ({ safari, isOpen, onClose, drivers, vehicles 
   const navigate = useNavigate();
   if (!safari) return null;
 
-  const driver = drivers.find(d => d.id === safari.driverId);
-  const vehicle = vehicles.find(v => v.id === safari.vehicleId);
+  const driver = drivers?.find(d => d.id === safari.driverId);
+  const vehicle = vehicles?.find(v => v.id === safari.vehicleId);
 
   const handleWhatsApp = () => {
-    const text = `Dear ${safari.clientName}, your safari to ${safari.destinations || safari.location} departs on ${format(parseISO(safari.date), 'MMM dd, yyyy')} at ${safari.timeOfPickup}. Please be ready at ${safari.location}. Thank you — Eastern Vacations Team.`;
+    let dateStr = safari.date;
+    try {
+      if (safari.date) dateStr = format(parseISO(safari.date), 'MMM dd, yyyy');
+    } catch (e) {}
+
+    const text = `Dear ${safari.clientName}, your safari to ${safari.destinations || safari.location} departs on ${dateStr} at ${safari.timeOfPickup || 'TBD'}. Please be ready at ${safari.location || 'the meetup point'}. Thank you — Eastern Vacations Team.`;
     window.open(`https://wa.me/${safari.clientPhone || ''}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -73,7 +78,15 @@ export const SafariDetailDrawer = ({ safari, isOpen, onClose, drivers, vehicles 
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
                     <Calendar size={16} className="text-safari-gold" />
-                    <span className="font-jetbrains font-bold">{format(parseISO(safari.date), 'EEEE, MMM dd, yyyy')}</span>
+                    <span className="font-jetbrains font-bold">
+                       {(() => {
+                         try {
+                           return safari.date ? format(parseISO(safari.date), 'EEEE, MMM dd, yyyy') : 'No date';
+                         } catch (e) {
+                           return safari.date || 'Invalid date';
+                         }
+                       })()}
+                    </span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
                     <Clock size={16} className="text-safari-gold" />

@@ -45,6 +45,8 @@ export const AIManagerProvider = ({ children }) => {
           status: data.status || 'ACTIVE'
         });
       }
+    }, (error) => {
+      console.error('AI State sync error:', error);
     });
 
     return () => unsub();
@@ -77,6 +79,10 @@ export const AIManagerProvider = ({ children }) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAiAlerts(data);
       setLoading(false);
+    }, (error) => {
+      console.error('AI Alerts sync error:', error);
+      setLoading(false); // Resolve loading state even on error
+      toast.error('AI intelligence stream interrupted');
     });
 
     return () => unsub();

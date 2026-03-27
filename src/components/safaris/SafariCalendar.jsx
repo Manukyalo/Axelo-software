@@ -64,7 +64,14 @@ export const SafariCalendar = ({ safaris, onSafariClick }) => {
       for (let i = 0; i < 7; i++) {
         formattedDate = format(day, 'd');
         const cloneDay = day;
-        const daySafaris = safaris.filter(s => isSameDay(parseISO(s.date), cloneDay));
+        const daySafaris = (safaris || []).filter(s => {
+          if (!s || !s.date) return false;
+          try {
+            return isSameDay(parseISO(s.date), cloneDay);
+          } catch (e) {
+            return false;
+          }
+        });
         
         days.push(
           <div
@@ -84,12 +91,12 @@ export const SafariCalendar = ({ safaris, onSafariClick }) => {
                 <button
                   key={s.id}
                   onClick={() => onSafariClick(s)}
-                  className={`
+                   className={`
                     w-full text-left px-1.5 py-1 rounded text-[10px] font-bold truncate transition-colors
                     ${s.type === 'Safari' ? 'bg-safari-gold/10 text-safari-gold hover:bg-safari-gold/20' : 'bg-safari-success/10 text-safari-success hover:bg-safari-success/20'}
                   `}
                 >
-                  {s.clientName.split(' ')[0]} - {s.packageName || s.type}
+                  {(s.clientName || 'Guest').split(' ')[0]} - {s.packageName || s.type || 'Trip'}
                 </button>
               ))}
             </div>

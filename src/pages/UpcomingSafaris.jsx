@@ -46,35 +46,50 @@ export const UpcomingSafaris = () => {
 
   // Filter Logic
   const filteredSafaris = useMemo(() => {
+    if (!state?.bookings) return [];
+    
     const today = startOfDay(new Date());
     
     return state.bookings
       .filter(b => {
-        const bookingDate = parseISO(b.date);
-        
-        // Basic requirement: Pending/Confirmed and Date >= Today
-        const isUpcoming = (b.status === 'Confirmed' || b.status === 'Pending') && 
-                          (isAfter(bookingDate, today) || isBefore(bookingDate, endOfDay(today)));
-        
-        if (!isUpcoming) return false;
+        if (!b || !b.date) return false;
+        try {
+          const bookingDate = parseISO(b.date);
+          if (isNaN(bookingDate.getTime())) return false;
+          
+          // Basic requirement: Pending/Confirmed and Date >= Today
+          const isUpcoming = (b.status === 'Confirmed' || b.status === 'Pending') && 
+                            (isAfter(bookingDate, today) || isBefore(bookingDate, endOfDay(today)));
+          
+          if (!isUpcoming) return false;
 
-        // Time Filter
-        if (timeFilter === 'This Week') {
-          return isWithinInterval(bookingDate, { start: today, end: addDays(today, 7) });
-        }
-        if (timeFilter === 'This Month') {
-          return isWithinInterval(bookingDate, { start: today, end: addMonths(today, 1) });
-        }
-        if (timeFilter === 'Next 3 Months') {
-          return isWithinInterval(bookingDate, { start: today, end: addMonths(today, 3) });
-        }
+          // Time Filter
+          if (timeFilter === 'This Week') {
+            return isWithinInterval(bookingDate, { start: today, end: addDays(today, 7) });
+          }
+          if (timeFilter === 'This Month') {
+            return isWithinInterval(bookingDate, { start: today, end: addMonths(today, 1) });
+          }
+          if (timeFilter === 'Next 3 Months') {
+            return isWithinInterval(bookingDate, { start: today, end: addMonths(today, 3) });
+          }
 
-        return true;
+          return true;
+        } catch (e) {
+          console.error('Error filtering booking:', b, e);
+          return false;
+        }
       })
       .filter(b => typeFilter === 'All' || b.type === typeFilter)
       .filter(b => statusFilter === 'All' || b.status === statusFilter)
-      .sort((a, b) => parseISO(a.date) - parseISO(b.date));
-  }, [state.bookings, timeFilter, typeFilter, statusFilter]);
+      .sort((a, b) => {
+        try {
+          return parseISO(a.date) - parseISO(b.date);
+        } catch (e) {
+          return 0;
+        }
+      });
+  }, [state?.bookings, timeFilter, typeFilter, statusFilter]);
 
   // Stats Calculations
   const stats = useMemo(() => {

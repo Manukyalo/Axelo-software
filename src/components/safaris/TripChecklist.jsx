@@ -69,7 +69,7 @@ export const TripChecklist = ({ bookingId }) => {
     { key: 'pickupConfirmed', label: 'Pickup location confirmed with client', icon: MapPin },
   ];
 
-  const completedCount = Object.values(checklist).filter(v => v === true).length;
+  const completedCount = Object.values(checklist || {}).filter(v => v === true).length;
   const totalCount = items.length;
 
   return (
