@@ -84,16 +84,18 @@ export const AIManagerProvider = ({ children }) => {
 
   // 3. Start/Update Engine Loop
   useEffect(() => {
-    if (!user) {
+    if (!user || !dataState) {
       aiEngine.stop();
       return;
     }
 
     // Pass live data to engine and start/update
-    aiEngine.start(dataState.bookings, dataState.vehicles, dataState.drivers);
+    if (dataState.bookings && dataState.vehicles && dataState.drivers) {
+      aiEngine.start(dataState.bookings, dataState.vehicles, dataState.drivers);
+    }
 
     return () => aiEngine.stop();
-  }, [user, dataState.bookings, dataState.vehicles, dataState.drivers]);
+  }, [user, dataState]);
 
   // --- Actions ---
 

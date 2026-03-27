@@ -11,7 +11,8 @@ import {
   CheckCircle2,
   Clock,
   UserX,
-  CreditCard
+  Plus,
+  Compass
 } from 'lucide-react';
 import { PageWrapper } from '../components/layout/PageWrapper';
 import { useData } from '../contexts/DataContext';
@@ -30,6 +31,7 @@ import { SafariTimeline } from '../components/safaris/SafariTimeline';
 import { SafariCard } from '../components/safaris/SafariCard';
 import { SafariCalendar } from '../components/safaris/SafariCalendar';
 import { SafariDetailDrawer } from '../components/safaris/SafariDetailDrawer';
+import { AddSafariDrawer } from '../components/safaris/AddSafariDrawer';
 import { Button } from '../components/ui/Button';
 
 export const UpcomingSafaris = () => {
@@ -40,6 +42,7 @@ export const UpcomingSafaris = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedSafari, setSelectedSafari] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
 
   // Filter Logic
   const filteredSafaris = useMemo(() => {
@@ -99,7 +102,16 @@ export const UpcomingSafaris = () => {
       title="Upcoming Safaris" 
       subtitle="All confirmed expeditions on the horizon"
       actions={
-        <div className="flex items-center gap-2 bg-white dark:bg-dark-card p-1 rounded-button shadow-sm border border-gray-100 dark:border-dark-border">
+        <div className="flex items-center gap-4">
+          {/* Add Safari Button - Admin only focus */}
+          <Button 
+            onClick={() => setIsAddDrawerOpen(true)}
+            className="hidden md:flex items-center gap-2 bg-safari-primary hover:bg-safari-primary/95 text-white border-none shadow-lg px-6"
+          >
+            <Plus size={18} /> Schedule Safari
+          </Button>
+
+          <div className="flex items-center gap-2 bg-white dark:bg-dark-card p-1 rounded-button shadow-sm border border-gray-100 dark:border-dark-border">
           <button 
             onClick={() => setViewMode('timeline')}
             className={`p-2 rounded-button transition-all ${viewMode === 'timeline' ? 'bg-safari-gold text-white shadow-md' : 'text-gray-400 hover:text-safari-gold'}`}
@@ -122,7 +134,8 @@ export const UpcomingSafaris = () => {
             <Calendar size={18} />
           </button>
         </div>
-      }
+      </div>
+    }
     >
       {/* Time Filter Tabs */}
       <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm">
@@ -237,6 +250,11 @@ export const UpcomingSafaris = () => {
         safari={selectedSafari}
         drivers={state.drivers}
         vehicles={state.vehicles}
+      />
+
+      <AddSafariDrawer 
+        isOpen={isAddDrawerOpen} 
+        onClose={() => setIsAddDrawerOpen(false)} 
       />
     </PageWrapper>
   );

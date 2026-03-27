@@ -35,6 +35,10 @@ class AIManagerEngine {
 
   async start(bookings, vehicles, drivers) {
     if (this.isRunning) return;
+    if (!bookings || !vehicles || !drivers) {
+      console.warn('🤖 AI Manager Engine: Data not ready, delaying start...');
+      return;
+    }
     this.isRunning = true;
     
     console.log('🤖 AI Manager Engine: Initializing logic loop...');
@@ -68,6 +72,7 @@ class AIManagerEngine {
   }
 
   async runLoop(bookings, vehicles, drivers) {
+    if (!bookings || !vehicles || !drivers) return;
     try {
       const startTime = Date.now();
       const aiStateRef = doc(db, 'aiState', this.engineId);

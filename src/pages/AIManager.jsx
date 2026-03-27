@@ -24,17 +24,18 @@ import { useNavigate } from 'react-router-dom';
 export const AIManager = () => {
   const navigate = useNavigate();
   const { 
-    aiAlerts, 
-    unresolvedCount, 
-    criticalCount,
-    engineStatus,
-    lastScanTime,
-    nextScanTime,
-    runManualScan,
-    resolveAlert,
-    dismissAlert,
-    markAlertRead
-  } = useAI();
+    aiAlerts = [], 
+    unresolvedCount = 0, 
+    criticalCount = 0,
+    engineStatus = 'IDLE',
+    lastScanTime = null,
+    nextScanTime = null,
+    loading = true,
+    runManualScan = () => {},
+    resolveAlert = () => {},
+    dismissAlert = () => {},
+    markAlertRead = () => {}
+  } = useAI() || {};
 
   const [filterType, setFilterType] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,6 +61,17 @@ export const AIManager = () => {
         a.message.toLowerCase().includes(searchQuery.toLowerCase())
       );
   }, [aiAlerts, filterType, searchQuery]);
+
+  if (loading && aiAlerts.length === 0) {
+    return (
+      <PageWrapper title="AI Manager Hub">
+        <div className="h-[60vh] flex flex-col items-center justify-center space-y-4">
+          <BrainCircuit size={48} className="text-safari-gold animate-pulse" />
+          <p className="text-safari-earthy animate-pulse font-dm-sans">Initializing Intelligence...</p>
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper 
