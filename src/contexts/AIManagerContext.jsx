@@ -39,9 +39,15 @@ export const AIManagerProvider = ({ children }) => {
     const unsub = onSnapshot(doc(db, 'aiState', 'primary_ai_engine'), (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
+        const parseDate = (val) => {
+          if (!val) return null;
+          if (val.toDate) return val.toDate();
+          if (typeof val === 'string') return new Date(val);
+          return null;
+        };
         setAiState({
-          lastScanTime: data.lastScanTime?.toDate() || null,
-          nextScanTime: data.nextScanTime?.toDate() || null,
+          lastScanTime: parseDate(data.lastScanTime),
+          nextScanTime: parseDate(data.nextScanTime),
           status: data.status || 'ACTIVE'
         });
       }
