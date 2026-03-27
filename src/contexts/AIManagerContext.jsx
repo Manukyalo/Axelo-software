@@ -87,8 +87,10 @@ export const AIManagerProvider = ({ children }) => {
       }, (error) => {
         console.warn('AI Alerts sync inhibited:', error.message);
         setLoading(false);
-        // Only show toast to logged-in admins who SHOULD have access
-        if (user?.role === 'admin') {
+        
+        // 🤫 Only show toast if user is an ADMIN and NOT on the login page
+        const isLoginPage = window.location.pathname.includes('/login');
+        if (user?.role === 'admin' && !isLoginPage) {
           toast.error('AI synchronization slow or interrupted');
         }
       });

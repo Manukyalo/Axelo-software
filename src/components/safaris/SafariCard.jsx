@@ -85,7 +85,12 @@ export const SafariCard = ({ safari, drivers = [], vehicles = [], onClick }) => 
           </div>
           <div className="col-span-2 flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
             <MapPin size={14} className="text-safari-gold mt-1 shrink-0" />
-            <span className="line-clamp-1">{safari.location || safari.destinations}</span>
+            <div className="flex flex-col">
+              <span className="line-clamp-1">{safari.location || safari.destinations}</span>
+              {safari.nationalPark && (
+                <span className="text-[10px] text-safari-gold font-bold uppercase tracking-wider">{safari.nationalPark}</span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -109,9 +114,9 @@ export const SafariCard = ({ safari, drivers = [], vehicles = [], onClick }) => 
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Car size={13} className={vehicle ? 'text-safari-success' : 'text-safari-warning'} />
-              <span className={vehicle ? 'font-medium font-jetbrains' : 'italic text-safari-warning'}>
-                {vehicle ? vehicle.plate : '⚠ No Vehicle'}
+              <Car size={13} className={vehicle || safari.vehicleId === 'custom' ? 'text-safari-success' : 'text-safari-warning'} />
+              <span className={vehicle || safari.vehicleId === 'custom' ? 'font-medium font-jetbrains' : 'italic text-safari-warning'}>
+                {vehicle ? vehicle.plate : (safari.vehicleId === 'custom' ? safari.customVehicle : '⚠ No Vehicle')}
               </span>
             </div>
           </div>

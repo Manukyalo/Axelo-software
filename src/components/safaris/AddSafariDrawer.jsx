@@ -8,32 +8,61 @@ import {
   Users, 
   CreditCard,
   Plus,
-  Compass
+  Compass,
+  Trash2,
+  Car,
+  Home
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
 import toast from 'react-hot-toast';
 
 export const AddSafariDrawer = ({ isOpen, onClose }) => {
   const { user } = useAuth();
+  const { state } = useData();
   const [loading, setLoading] = useState(false);
+  
   const [formData, setFormData] = useState({
     clientName: '',
     location: '',
+    nationalPark: '',
     date: '',
     timeOfPickup: '',
     adults: 1,
     children: 0,
     type: 'Van',
+    vehicleId: '',
+    customVehicle: '',
+    driverId: '',
     paymentStatus: 'Unpaid',
     status: 'Confirmed',
-    notes: ''
+    notes: '',
+    itinerary: [{ lodge: '', park: '', nights: 1 }]
   });
 
   if (!isOpen) return null;
+
+  const addItineraryRow = () => {
+    setFormData({
+      ...formData,
+      itinerary: [...formData.itinerary, { lodge: '', park: '', nights: 1 }]
+    });
+  };
+
+  const removeItineraryRow = (index) => {
+    const newItinerary = formData.itinerary.filter((_, i) => i !== index);
+    setFormData({ ...formData, itinerary: newItinerary });
+  };
+
+  const updateItineraryRow = (index, field, value) => {
+    const newItinerary = [...formData.itinerary];
+    newItinerary[index][field] = value;
+    setFormData({ ...formData, itinerary: newItinerary });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,16 +73,17 @@ export const AddSafariDrawer = ({ isOpen, onClose }) => {
 
     setLoading(true);
     try {
+      const { adults, children, ...restOfData } = formData;
       const bookingData = {
-        ...formData,
-        adults: parseInt(formData.adults),
-        children: parseInt(formData.children),
+        ...restOfData,
+        pax: {
+          adults: parseInt(adults),
+          children: parseInt(children),
+          infants: 0
+        },
         createdAt: serverTimestamp(),
         createdBy: user.uid,
         creatorName: user.username || 'Admin',
-        // Default empty assignments for a new safari
-        driverId: '',
-        vehicleId: '',
       };
 
       await addDoc(collection(db, 'bookings'), bookingData);
@@ -74,14 +104,19 @@ export const AddSafariDrawer = ({ isOpen, onClose }) => {
       setFormData({
         clientName: '',
         location: '',
+        nationalPark: '',
         date: '',
         timeOfPickup: '',
         adults: 1,
         children: 0,
         type: 'Van',
+        vehicleId: '',
+        customVehicle: '',
+        driverId: '',
         paymentStatus: 'Unpaid',
         status: 'Confirmed',
-        notes: ''
+        notes: '',
+        itinerary: [{ lodge: '', park: '', nights: 1 }]
       });
     } catch (error) {
       console.error('Error adding safari:', error);
@@ -134,15 +169,28 @@ export const AddSafariDrawer = ({ isOpen, onClose }) => {
 
           <div className="space-y-4 pt-4">
             <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-safari-gold mb-4 pb-2 border-b border-gray-50 dark:border-dark-border">Trip Details</h3>
-            <div className="grid grid-cols-1 gap-4">
+            
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 ml-1">Destination / Location *</label>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 ml-1">Main Destination *</label>
                 <div className="relative">
                   <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <Input 
                     value={formData.location}
                     onChange={(e) => setFormData({...formData, location: e.target.value})}
-                    placeholder="e.g. Maasai Mara, Amboseli"
+                    placeholder="e.g. Maasai Mara"
+                    className="pl-10 h-12 rounded-xl"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 ml-1">Primary Park/Reserve</label>
+                <div className="relative">
+                  <Compass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Input 
+                    value={formData.nationalPark}
+                    onChange={(e) => setFormData({...formData, nationalPark: e.target.value})}
+                    placeholder="e.g. Mara Triangle"
                     className="pl-10 h-12 rounded-xl"
                   />
                 </div>
@@ -203,6 +251,130 @@ export const AddSafariDrawer = ({ isOpen, onClose }) => {
                   />
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div className="space-y-4 pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-safari-gold">Safari Itinerary / Accommodations</h3>
+              <button 
+                type="button"
+                onClick={addItineraryRow}
+                className="text-[10px] font-bold uppercase text-safari-primary dark:text-safari-gold flex items-center gap-1 hover:underline"
+              >
+                <Plus size={12} /> Add Stop
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              {formData.itinerary.map((item, index) => (
+                <div key={index} className="p-4 rounded-xl border border-gray-100 dark:border-dark-border bg-gray-50/50 dark:bg-dark-card/30 space-y-3 relative group">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-gray-400">Lodge / Camp</label>
+                      <Input 
+                        value={item.lodge}
+                        onChange={(e) => updateItineraryRow(index, 'lodge', e.target.value)}
+                        placeholder="e.g. Keekorok Lodge"
+                        className="h-10 text-xs rounded-lg"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-gray-400">Park / Area</label>
+                      <Input 
+                        value={item.park}
+                        onChange={(e) => updateItineraryRow(index, 'park', e.target.value)}
+                        placeholder="e.g. Masai Mara"
+                        className="h-10 text-xs rounded-lg"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 items-end">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-gray-400">Total Nights</label>
+                      <Input 
+                        type="number"
+                        min="1"
+                        value={item.nights}
+                        onChange={(e) => updateItineraryRow(index, 'nights', parseInt(e.target.value))}
+                        className="h-10 text-xs rounded-lg"
+                      />
+                    </div>
+                    {formData.itinerary.length > 1 && (
+                      <button 
+                        type="button"
+                        onClick={() => removeItineraryRow(index)}
+                        className="h-10 px-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4 pt-4">
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-safari-gold mb-4 pb-2 border-b border-gray-50 dark:border-dark-border">Assignment & Inventory</h3>
+            
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 ml-1">Assign Driver</label>
+                <div className="relative">
+                  <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <select 
+                    className="w-full h-12 rounded-xl border border-gray-100 dark:border-dark-border bg-gray-50 dark:bg-dark-surface pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-safari-gold/20"
+                    value={formData.driverId}
+                    onChange={(e) => setFormData({...formData, driverId: e.target.value})}
+                  >
+                    <option value="">Select a driver...</option>
+                    {state.drivers.filter(d => d.status !== 'Retired').map(driver => (
+                      <option key={driver.id} value={driver.id}>{driver.name} ({driver.experience || 'Pro'})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 ml-1">Safari Vehicle</label>
+                <div className="relative">
+                  <Car size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <select 
+                    className="w-full h-12 rounded-xl border border-gray-100 dark:border-dark-border bg-gray-50 dark:bg-dark-surface pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-safari-gold/20"
+                    value={formData.vehicleId}
+                    onChange={(e) => {
+                      const v = state.vehicles.find(v => v.id === e.target.value);
+                      setFormData({
+                        ...formData, 
+                        vehicleId: e.target.value,
+                        type: v ? v.type : formData.type,
+                        customVehicle: e.target.value === 'custom' ? '' : formData.customVehicle
+                      });
+                    }}
+                  >
+                    <option value="">Select vehicle from inventory...</option>
+                    {state.vehicles.filter(v => v.status === 'Active').map(vehicle => (
+                      <option key={vehicle.id} value={vehicle.id}>{vehicle.name} - {vehicle.plate} ({vehicle.type})</option>
+                    ))}
+                    <option value="custom">+ Manual vehicle input...</option>
+                  </select>
+                </div>
+              </div>
+
+              {formData.vehicleId === 'custom' && (
+                <div className="space-y-1.5 animate-fade-in">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 ml-1">Custom Vehicle Details</label>
+                  <Input 
+                    value={formData.customVehicle}
+                    onChange={(e) => setFormData({...formData, customVehicle: e.target.value})}
+                    placeholder="Enter plate or temporary vehicle ID"
+                    className="h-12 rounded-xl"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

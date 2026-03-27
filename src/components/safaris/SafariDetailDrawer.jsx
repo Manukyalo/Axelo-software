@@ -94,11 +94,43 @@ export const SafariDetailDrawer = ({ safari, isOpen, onClose, drivers, vehicles 
                   </div>
                   <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
                     <MapPin size={16} className="text-safari-gold shrink-0" />
-                    <span>{safari.location || safari.destinations}</span>
+                    <div>
+                      <p>{safari.location || safari.destinations}</p>
+                      {safari.nationalPark && (
+                        <p className="text-[10px] text-safari-gold font-bold uppercase tracking-wider mt-1 flex items-center gap-1">
+                          <Compass size={10} /> {safari.nationalPark}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Itinerary Section */}
+            {safari.itinerary && safari.itinerary.length > 0 && (
+              <div className="space-y-4">
+                <h4 className="font-bold text-safari-primary dark:text-dark-text text-sm uppercase tracking-widest flex items-center gap-2">
+                  <ChevronRight size={16} className="text-safari-gold" /> Safari Itinerary
+                </h4>
+                <div className="space-y-3 pl-4 border-l-2 border-safari-gold/20">
+                  {safari.itinerary.map((stop, idx) => (
+                    <div key={idx} className="relative pl-6 pb-4 last:pb-0">
+                      <div className="absolute left-[-1.15rem] top-1 w-3 h-3 rounded-full bg-safari-gold border-2 border-white dark:border-dark-bg" />
+                      <div className="flex flex-col">
+                        <p className="text-sm font-bold text-safari-primary dark:text-dark-text">
+                          {stop.lodge || 'TBD Lodge'}
+                        </p>
+                        <div className="flex items-center gap-3 text-[11px] text-gray-500 mt-0.5">
+                          <span className="flex items-center gap-1"><MapPin size={10} /> {stop.park || 'Unknown Park'}</span>
+                          <span className="flex items-center gap-1 italic"><Home size={10} /> {stop.nights} {stop.nights === 1 ? 'Night' : 'Nights'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Assignments */}
             <div className="grid grid-cols-2 gap-4">
@@ -120,14 +152,16 @@ export const SafariDetailDrawer = ({ safari, isOpen, onClose, drivers, vehicles 
               </div>
               <div className="p-4 bg-white dark:bg-dark-surface rounded-2xl border border-gray-100 dark:border-dark-border">
                 <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-2">Assigned Vehicle</p>
-                {vehicle ? (
+                {vehicle || safari.vehicleId === 'custom' ? (
                    <div className="flex items-center gap-3">
                      <div className="w-10 h-10 rounded-full bg-safari-gold/10 flex items-center justify-center text-safari-gold">
                        <Car size={18} />
                      </div>
                      <div>
-                       <p className="text-sm font-bold text-safari-primary dark:text-dark-text font-jetbrains uppercase">{vehicle.plate}</p>
-                       <p className="text-[10px] text-gray-500">{vehicle.name}</p>
+                       <p className="text-sm font-bold text-safari-primary dark:text-dark-text font-jetbrains uppercase">
+                         {vehicle ? vehicle.plate : safari.customVehicle}
+                       </p>
+                       <p className="text-[10px] text-gray-500">{vehicle ? vehicle.name : 'Manual Entry'}</p>
                      </div>
                    </div>
                 ) : (
