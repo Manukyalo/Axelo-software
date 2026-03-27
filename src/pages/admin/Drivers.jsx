@@ -14,7 +14,8 @@ import {
   ShieldCheck,
   LayoutGrid,
   List,
-  UserPlus
+  UserPlus,
+  Users
 } from 'lucide-react';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Button } from '../../components/ui/Button';
@@ -28,7 +29,8 @@ import { validateString, validateEmail } from '../../utils/validation';
 import toast from 'react-hot-toast';
 
 const DriverCard = ({ driver, onEdit, onSchedule, onDelete }) => {
-  const licenseExpiry = differenceInDays(parseISO(driver.licenseExpiry), new Date());
+  const licenseExpiryDate = driver.licenseExpiry ? parseISO(driver.licenseExpiry) : new Date();
+  const licenseExpiry = differenceInDays(licenseExpiryDate, new Date());
   const isExpired = licenseExpiry < 0;
   const isExpiringSoon = licenseExpiry >= 0 && licenseExpiry < 30;
 
@@ -44,7 +46,7 @@ const DriverCard = ({ driver, onEdit, onSchedule, onDelete }) => {
     }
   };
 
-  const initials = driver.name.split(' ').map(n => n[0]).join('').toUpperCase();
+  const initials = (driver.name || 'D').split(' ').map(n => n[0]).join('').toUpperCase();
 
   return (
     <Card className="group relative overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-safari-gold/10 border-gray-100/50 dark:border-dark-border/50 bg-white/80 dark:bg-dark-card/80 backdrop-blur-xl">
@@ -110,7 +112,7 @@ const DriverCard = ({ driver, onEdit, onSchedule, onDelete }) => {
               <span>License Exp</span>
             </div>
             <span className={`font-bold ${isExpired ? 'text-red-500' : isExpiringSoon ? 'text-amber-500' : 'text-safari-primary dark:text-dark-text'}`}>
-              {format(parseISO(driver.licenseExpiry), 'MMM dd, yyyy')}
+              {driver.licenseExpiry ? format(licenseExpiryDate, 'MMM dd, yyyy') : 'No Date Set'}
             </span>
           </div>
         </div>

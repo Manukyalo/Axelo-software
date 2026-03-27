@@ -13,7 +13,9 @@ import {
   Printer, 
   ExternalLink,
   ChevronRight,
-  Info
+  Info,
+  Compass,
+  Home
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Button } from '../ui/Button';
