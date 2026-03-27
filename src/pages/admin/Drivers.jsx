@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -6,7 +6,7 @@ import {
   Mail, 
   Star, 
   ShieldAlert,
-  Edit2,
+  Edit2, 
   Trash2,
   Calendar,
   Briefcase,
@@ -20,8 +20,11 @@ import {
   X,
   Eye,
   Camera,
-  Trash
+  Trash,
+  AlertCircle
 } from 'lucide-react';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -159,10 +162,45 @@ const DriverCard = ({ driver, onEdit, onSchedule, onDelete }) => {
   );
 };
 
-const PendingApprovalsView = ({ approvals }) => {
+const PendingApprovalsView = () => {
   const { dispatch } = useData();
+  const [pendingDrivers, setPendingDrivers] = useState([]);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'driverAuth'),
+      where('approved', '==', false)
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const drivers = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPendingDrivers(drivers ?? []);
+      setLoading(false);
+    }, (error) => {
+      console.error('Pending approvals error:', error);
+      setPendingDrivers([]);
+      setLoading(false);
+    });
+    
+    return () => unsubscribe();
+  }, []);
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'Unknown date';
+    try {
+      if (timestamp?.toDate) return format(timestamp.toDate(), 'MMM dd, yyyy');
+      if (timestamp?.seconds) return format(new Date(timestamp.seconds * 1000), 'MMM dd, yyyy');
+      return 'Unknown date';
+    } catch (e) {
+      return 'Unknown date';
+    }
+  };
 
   const handleApprove = async (driver) => {
     try {
@@ -191,15 +229,15 @@ const PendingApprovalsView = ({ approvals }) => {
 
   const handleReject = async () => {
     try {
-      const driver = approvals.find(a => a.id === rejectingId);
+      const driver = pendingDrivers.find(a => a.id === rejectingId);
       await dispatch({ type: 'DELETE_DRIVERAUTH', payload: rejectingId });
       
       // Cloud function call mentioned in request - we simulate it with notification
       await dispatch({
         type: 'ADD_NOTIFICATION',
         payload: {
-          title: `Driver Rejected — ${driver?.name}`,
-          message: `${driver?.name}'s application was rejected and account disabled.`,
+          title: `Driver Rejected — ${driver?.name ?? 'Unknown Driver'}`,
+          message: `${driver?.name ?? 'Unknown Driver'}'s application was rejected and account disabled.`,
           type: 'INFO',
           targetRole: 'admin',
           date: new Date().toISOString()
@@ -213,42 +251,61 @@ const PendingApprovalsView = ({ approvals }) => {
     }
   };
 
-  if (approvals.length === 0) {
+  if (loading) {
+    return (
+      <div className="py-20 text-center animate-pulse">
+        <div className="w-12 h-12 bg-gray-200 dark:bg-dark-border rounded-full mx-auto mb-4" />
+        <p className="text-gray-400 font-dm-sans">Checking for pending approvals...</p>
+      </div>
+    );
+  }
+
+  if (pendingDrivers.length === 0) {
     return (
       <div className="py-20 text-center bg-gray-50/50 dark:bg-dark-card/50 rounded-3xl border border-dashed border-gray-200 dark:border-dark-border">
         <ShieldCheck size={48} className="mx-auto text-gray-300 mb-4" />
-        <p className="text-gray-500 font-dm-sans">No pending driver approvals at the moment.</p>
+        <p className="text-gray-500 font-dm-sans">No pending approvals at this time</p>
       </div>
     );
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-      {approvals.map(driver => (
-        <Card key={driver.id} className="overflow-hidden border-gray-100 dark:border-dark-border">
+      {pendingDrivers.map(driver => (
+        <Card key={driver?.id} className="overflow-hidden border-gray-100 dark:border-dark-border group/card">
           <CardContent className="p-0">
             <div className="h-48 bg-gray-100 dark:bg-dark-bg relative group">
-              <img 
-                src={driver.faceImageUrl || 'https://via.placeholder.com/400x300?text=No+Face+ID'} 
-                alt={driver.name} 
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Button size="sm" variant="secondary" onClick={() => setSelectedPhoto(driver.faceImageUrl)} className="gap-2">
-                  <Eye size={14} /> View Face ID
-                </Button>
-              </div>
+              {driver?.faceImageUrl ? (
+                <img 
+                  src={driver.faceImageUrl} 
+                  alt={driver?.name ?? 'Driver Face ID'} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-safari-gold/10 text-safari-gold">
+                   <div className="w-20 h-20 rounded-full bg-white dark:bg-dark-card flex items-center justify-center text-3xl font-black shadow-inner">
+                      {driver?.name?.charAt(0) ?? '?'}
+                   </div>
+                </div>
+              )}
+              {driver?.faceImageUrl && (
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Button size="sm" variant="secondary" onClick={() => setSelectedPhoto(driver.faceImageUrl)} className="gap-2">
+                    <Eye size={14} /> View Face ID
+                  </Button>
+                </div>
+              )}
             </div>
             <div className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="font-bold text-safari-primary dark:text-dark-text">{driver.name}</h3>
+                  <h3 className="font-bold text-safari-primary dark:text-dark-text">{driver?.name ?? 'Unknown Driver'}</h3>
                   <p className="text-xs text-gray-500 mt-1">
-                    Registered {driver.registeredAt ? formatDistanceToNow(new Date(driver.registeredAt), { addSuffix: true }) : 'recently'}
+                    Registered {formatDate(driver?.registeredAt)}
                   </p>
                 </div>
-                <Badge variant="gold" className="text-[10px] uppercase tracking-widest">
-                  {driver.role === 'safari_driver' ? 'Safari Driver' : 'City Driver'}
+                <Badge variant="gold" className="text-[10px] uppercase tracking-widest bg-safari-gold/10 text-safari-gold border-safari-gold/20">
+                  {driver?.role === 'safari_driver' ? 'Safari Driver' : 'City Driver'}
                 </Badge>
               </div>
               
@@ -624,7 +681,7 @@ export const Drivers = () => {
       )}
 
       {activeTab === 'PENDING' && (
-        <PendingApprovalsView approvals={state.driverAuth.filter(a => !a.approved)} />
+        <PendingApprovalsView />
       )}
 
       {activeTab === 'PORTERS' && (
