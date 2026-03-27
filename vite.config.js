@@ -41,6 +41,9 @@ export default defineConfig({
         ]
       },
       workbox: {
+         skipWaiting: true,
+         clientsClaim: true,
+         cleanupOutdatedCaches: true,
          // Aggressively cache the entire site locally for near instant boot speeds
          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
          maximumFileSizeToCacheInBytes: 5242880 // 5MiB

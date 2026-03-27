@@ -31,7 +31,7 @@ import {
 import { SafariTimeline } from '../components/safaris/SafariTimeline';
 import { SafariCard } from '../components/safaris/SafariCard';
 import { SafariCalendar } from '../components/safaris/SafariCalendar';
-import { SafariDetailDrawer } from '../components/safaris/SafariDetailDrawer';
+import { BookingDetailModal } from '../components/bookings/BookingDetailModal';
 import { AddSafariDrawer } from '../components/safaris/AddSafariDrawer';
 import { Button } from '../components/ui/Button';
 
@@ -272,13 +272,11 @@ export const UpcomingSafaris = () => {
         )}
       </div>
 
-      {/* Detail Slide-over */}
-      <SafariDetailDrawer 
+      {/* Booking Management Modal */}
+      <BookingDetailModal 
         isOpen={isDrawerOpen} 
         onClose={() => setIsDrawerOpen(false)} 
-        safari={selectedSafari}
-        drivers={state.drivers}
-        vehicles={state.vehicles}
+        booking={selectedSafari}
       />
 
       <AddSafariDrawer 

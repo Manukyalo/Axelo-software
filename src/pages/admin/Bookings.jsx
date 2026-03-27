@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -21,6 +21,8 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
+import { BookingDetailModal } from '../../components/bookings/BookingDetailModal';
+import { PrintBooking } from '../../components/bookings/PrintBooking';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { validateString, validateEmail, validateNumber } from '../../utils/validation';
@@ -31,6 +33,10 @@ export const Bookings = () => {
   const { state, dispatch } = useData();
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [bookingTypeFilter, setBookingTypeFilter] = useState('All');
@@ -58,15 +64,35 @@ export const Bookings = () => {
     }
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this booking?')) {
+  const handleDelete = (e, id) => {
+    e.stopPropagation();
+    if (window.confirm('Are you sure you want to permanently delete this booking? This action cannot be undone.')) {
       dispatch({ type: 'DELETE_BOOKING', payload: id });
       toast.success('Booking deleted');
     }
   };
 
+  const handlePrint = (e, booking) => {
+    e.stopPropagation();
+    setSelectedBooking(booking);
+    setIsPrinting(true);
+    // Give state time to update before triggering print dialog
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 500);
+  };
+
+  const handleView = (e, booking) => {
+    e.stopPropagation();
+    setSelectedBooking(booking);
+    setIsDetailModalOpen(true);
+  };
+
   const filteredBookings = state.bookings.filter(b => {
-    const matchesSearch = b.clientName.toLowerCase().includes(search.toLowerCase()) || b.id.toLowerCase().includes(search.toLowerCase());
+    const nameMatch = b.clientName?.toLowerCase().includes(search.toLowerCase()) || false;
+    const idMatch = b.id?.toLowerCase().includes(search.toLowerCase()) || false;
+    const matchesSearch = nameMatch || idMatch;
     const matchesStatus = statusFilter === 'All' || b.status === statusFilter;
     const matchesType = bookingTypeFilter === 'All' || (b.type || 'Safari') === bookingTypeFilter;
     return matchesSearch && matchesStatus && matchesType;
@@ -126,22 +152,28 @@ export const Bookings = () => {
         pax: { adults, children, infants: 0 },
         status: 'Pending',
         paymentStatus,
-        createdById: user.role
+        createdById: user.role,
+        paymentLog: paidAmount > 0 ? [{
+          amount: paidAmount,
+          method: 'Initial Deposit',
+          date: new Date().toISOString(),
+          recordedBy: user.username || 'System'
+        }] : []
       };
 
       dispatch({ type: 'ADD_BOOKING', payload: newBooking });
       
       if (!isAdmin) {
          dispatch({ 
-           type: 'ADD_NOTIFICATION', 
-           payload: {
-             title: "Booking Approval Required",
-             message: `Agent ${user.username} submitted a new booking [${nextId}] for ${clientName}.`,
-             date: new Date().toISOString(),
-             read: false,
-             type: 'WARNING',
-             targetRole: 'admin'
-           }
+            type: 'ADD_NOTIFICATION', 
+            payload: {
+              title: "Booking Approval Required",
+              message: `Agent ${user.username} submitted a new booking [${nextId}] for ${clientName}.`,
+              date: new Date().toISOString(),
+              read: false,
+              type: 'WARNING',
+              targetRole: 'admin'
+            }
          });
       }
 
@@ -237,7 +269,11 @@ export const Bookings = () => {
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-dark-border">
               {filteredBookings.map((booking) => (
-                <tr key={booking.id} className="hover:bg-safari-gold/5 transition-colors group">
+                <tr 
+                  key={booking.id} 
+                  className="hover:bg-safari-gold/5 transition-colors group cursor-pointer"
+                  onClick={(e) => handleView(e, booking)}
+                >
                   <td className="px-6 py-4 font-jetbrains font-bold text-xs text-safari-gold">{booking.id}</td>
                   <td className="px-6 py-4">
                     <p className="font-bold text-safari-primary dark:text-dark-text text-sm">{booking.clientName}</p>
@@ -248,15 +284,15 @@ export const Bookings = () => {
                       <span className="text-sm">{booking.packageName || state.packages.find(p => p.id === booking.packageId)?.name || 'Custom Package'}</span>
                     ) : (
                       <div>
-                         <p className="text-sm font-bold text-safari-primary dark:text-dark-text">{booking.location}</p>
-                         <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-1"><Clock size={10} /> Pickup: {booking.timeOfPickup}</p>
+                          <p className="text-sm font-bold text-safari-primary dark:text-dark-text">{booking.location}</p>
+                          <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-1"><Clock size={10} /> Pickup: {booking.timeOfPickup}</p>
                       </div>
                     )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 text-sm">
                       <Calendar size={14} className="text-gray-400" />
-                      {format(parseISO(booking.date), 'MMM dd, yyyy')}
+                      {booking.date ? format(parseISO(booking.date), 'MMM dd, yyyy') : 'No Date'}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -270,14 +306,29 @@ export const Bookings = () => {
                   {isAdmin && <td className="px-6 py-4">{getPaymentBadge(booking.paymentStatus)}</td>}
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-safari-gold">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={(e) => handlePrint(e, booking)}
+                        className="h-8 w-8 hover:text-safari-gold transition-colors"
+                      >
                         <Printer size={16} />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-safari-gold">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={(e) => handleView(e, booking)}
+                        className="h-8 w-8 hover:text-safari-gold transition-colors"
+                      >
                         <Eye size={16} />
                       </Button>
                       {isAdmin && (
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(booking.id)} className="h-8 w-8 text-red-500 hover:bg-red-50">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => handleDelete(e, booking.id)} 
+                          className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+                        >
                           <Trash2 size={16} />
                         </Button>
                       )}
@@ -287,10 +338,26 @@ export const Bookings = () => {
               ))}
             </tbody>
           </table>
+          
+          {filteredBookings.length === 0 && (
+            <div className="py-20 text-center">
+               <p className="text-gray-400 font-dm-sans">No bookings found matching your filters.</p>
+            </div>
+          )}
         </div>
       </Card>
 
-      {/* New Booking Modal */}
+      {/* Booking Detail Modal */}
+      <BookingDetailModal 
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        booking={selectedBooking}
+      />
+
+      {/* Invisible Print View Holder */}
+      {isPrinting && <PrintBooking booking={selectedBooking} state={state} />}
+
+      {/* New Reservation Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Reservation">
         <form onSubmit={handleCreateBooking} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
