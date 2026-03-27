@@ -6,7 +6,9 @@ import {
   Banknote,
   AlertCircle,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Activity,
+  MapPin
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -332,6 +334,48 @@ export const AdminDashboard = () => {
               ))}
             </tbody>
           </table>
+        </CardContent>
+      </Card>
+      <Card className="mt-8 border-gray-100 dark:border-dark-border">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-xl font-playfair font-bold text-safari-primary dark:text-dark-text flex items-center gap-2">
+            <Activity className="text-safari-gold" size={20} /> Live Driver Activity
+          </CardTitle>
+          <Badge variant="gold" className="animate-pulse">Real-time Feed</Badge>
+        </CardHeader>
+        <CardContent>
+          <div className="relative space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-safari-gold/20 before:to-transparent">
+             {(state.tripUpdates || []).length === 0 ? (
+               <div className="py-10 text-center opacity-50">
+                  <p className="text-sm font-dm-sans">No recent trip updates.</p>
+               </div>
+             ) : (
+               state.tripUpdates.slice(0, 8).sort((a,b) => b.timestamp?.seconds - a.timestamp?.seconds).map((update, idx) => (
+                 <div key={update.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
+                    {/* Icon */}
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white dark:border-dark-border bg-safari-bg dark:bg-dark-card shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 transition-all group-hover:scale-110">
+                       <div className="w-2 h-2 rounded-full bg-safari-gold" />
+                    </div>
+                    {/* Content */}
+                    <div className="w-[calc(100%-4rem)] md:w-[45%] p-4 rounded-2xl border border-gray-50 dark:border-dark-border bg-white dark:bg-dark-surface shadow-sm group-hover:shadow-md transition-all">
+                       <div className="flex justify-between items-start mb-1">
+                          <p className="font-bold text-safari-primary dark:text-dark-text text-sm">
+                             {state.drivers.find(d => d.id === update.driverId)?.name || 'Unknown Driver'}
+                          </p>
+                          <time className="text-[10px] font-jetbrains text-gray-400">
+                             {update.timestamp?.seconds ? format(new Date(update.timestamp.seconds * 1000), 'HH:mm') : ''}
+                          </time>
+                       </div>
+                       <p className="text-xs text-safari-gold font-bold uppercase tracking-wider mb-2">{update.type}</p>
+                       <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                          <MapPin size={12} className="shrink-0" />
+                          <span className="truncate">{update.locationName || 'On Track'}</span>
+                       </div>
+                    </div>
+                 </div>
+               ))
+             )}
+          </div>
         </CardContent>
       </Card>
     </PageWrapper>

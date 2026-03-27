@@ -17,7 +17,10 @@ import {
   MapPin,
   Zap,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Map,
+  ShieldAlert,
+  Activity
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -97,7 +100,9 @@ export const Sidebar = ({ role }) => {
     { to: '/admin/bookings', icon: CalendarDays, label: 'Bookings' },
     { to: '/admin/upcoming-safaris', icon: MapPin, label: 'Upcoming Safaris' },
     { to: '/admin/vehicles', icon: Car, label: 'Vehicles' },
-    { to: '/admin/drivers', icon: Users, label: 'Drivers' },
+    { to: '/admin/drivers', icon: Users, label: 'Fleet Personnel' },
+    { to: '/admin/live-tracking', icon: Map, label: 'Live Tracking' },
+    { to: '/admin/sos-alerts', icon: ShieldAlert, label: 'SOS Alerts' },
     { to: 'https://eastern-vacations-staff.vercel.app/', icon: ShieldCheck, label: 'Staff Portal', external: true },
     { to: '/admin/packages', icon: Package, label: 'Tour Packages', disabled: true },
     { to: '/admin/ai-manager', icon: Zap, label: 'AI Manager' },

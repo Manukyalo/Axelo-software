@@ -15,7 +15,12 @@ import {
   LayoutGrid,
   List,
   UserPlus,
-  Users
+  Users,
+  Check,
+  X,
+  Eye,
+  Camera,
+  Trash
 } from 'lucide-react';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Button } from '../../components/ui/Button';
@@ -24,7 +29,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { useData } from '../../contexts/DataContext';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO, differenceInDays, formatDistanceToNow } from 'date-fns';
 import { validateString, validateEmail } from '../../utils/validation';
 import toast from 'react-hot-toast';
 
@@ -154,6 +159,323 @@ const DriverCard = ({ driver, onEdit, onSchedule, onDelete }) => {
   );
 };
 
+const PendingApprovalsView = ({ approvals }) => {
+  const { dispatch } = useData();
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [rejectingId, setRejectingId] = useState(null);
+
+  const handleApprove = async (driver) => {
+    try {
+      await dispatch({ 
+        type: 'UPDATE_DRIVERAUTH', 
+        payload: { id: driver.id, approved: true } 
+      });
+      
+      // Notify both admin and driver (as per request)
+      await dispatch({
+        type: 'ADD_NOTIFICATION',
+        payload: {
+          title: `Driver Approved — ${driver.name}`,
+          message: `${driver.name} has been approved and can now access the staff portal.`,
+          type: 'SUCCESS',
+          targetRole: 'both',
+          date: new Date().toISOString()
+        }
+      });
+      
+      toast.success(`${driver.name} approved successfully`);
+    } catch (err) {
+      toast.error('Failed to approve driver');
+    }
+  };
+
+  const handleReject = async () => {
+    try {
+      const driver = approvals.find(a => a.id === rejectingId);
+      await dispatch({ type: 'DELETE_DRIVERAUTH', payload: rejectingId });
+      
+      // Cloud function call mentioned in request - we simulate it with notification
+      await dispatch({
+        type: 'ADD_NOTIFICATION',
+        payload: {
+          title: `Driver Rejected — ${driver?.name}`,
+          message: `${driver?.name}'s application was rejected and account disabled.`,
+          type: 'INFO',
+          targetRole: 'admin',
+          date: new Date().toISOString()
+        }
+      });
+      
+      toast.success('Driver application rejected');
+      setRejectingId(null);
+    } catch (err) {
+      toast.error('Failed to reject driver');
+    }
+  };
+
+  if (approvals.length === 0) {
+    return (
+      <div className="py-20 text-center bg-gray-50/50 dark:bg-dark-card/50 rounded-3xl border border-dashed border-gray-200 dark:border-dark-border">
+        <ShieldCheck size={48} className="mx-auto text-gray-300 mb-4" />
+        <p className="text-gray-500 font-dm-sans">No pending driver approvals at the moment.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      {approvals.map(driver => (
+        <Card key={driver.id} className="overflow-hidden border-gray-100 dark:border-dark-border">
+          <CardContent className="p-0">
+            <div className="h-48 bg-gray-100 dark:bg-dark-bg relative group">
+              <img 
+                src={driver.faceImageUrl || 'https://via.placeholder.com/400x300?text=No+Face+ID'} 
+                alt={driver.name} 
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Button size="sm" variant="secondary" onClick={() => setSelectedPhoto(driver.faceImageUrl)} className="gap-2">
+                  <Eye size={14} /> View Face ID
+                </Button>
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="font-bold text-safari-primary dark:text-dark-text">{driver.name}</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Registered {driver.registeredAt ? formatDistanceToNow(new Date(driver.registeredAt), { addSuffix: true }) : 'recently'}
+                  </p>
+                </div>
+                <Badge variant="gold" className="text-[10px] uppercase tracking-widest">
+                  {driver.role === 'safari_driver' ? 'Safari Driver' : 'City Driver'}
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 mt-6">
+                <Button 
+                  onClick={() => handleApprove(driver)}
+                  className="bg-emerald-500 hover:bg-emerald-600 border-none text-white text-xs font-black uppercase tracking-widest gap-2"
+                >
+                  <Check size={14} /> Approve
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setRejectingId(driver.id)}
+                  className="border-red-500 text-red-500 hover:bg-red-50 text-xs font-black uppercase tracking-widest gap-2"
+                >
+                  <X size={14} /> Reject
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+
+      {/* Face ID Modal */}
+      <Modal isOpen={!!selectedPhoto} onClose={() => setSelectedPhoto(null)} title="Face ID Verification">
+        <div className="rounded-2xl overflow-hidden border border-gray-100 dark:border-dark-border">
+          <img src={selectedPhoto} alt="Face ID" className="w-full h-auto" />
+        </div>
+      </Modal>
+
+      {/* Rejection Confirmation */}
+      <Modal isOpen={!!rejectingId} onClose={() => setRejectingId(null)} title="Confirm Rejection">
+        <div className="space-y-6 py-4">
+          <div className="p-4 bg-red-50 rounded-2xl flex gap-3 text-red-600">
+            <AlertCircle className="shrink-0" size={20} />
+            <p className="text-sm font-medium">Are you sure you want to reject this driver? This will disable their account access and cannot be undone.</p>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setRejectingId(null)}>Cancel</Button>
+            <Button onClick={handleReject} className="bg-red-500 hover:bg-red-600 border-none text-white">Confirm Rejection</Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+const PortersView = () => {
+  const { state, dispatch } = useData();
+  const [subTab, setSubTab] = useState('PENDING'); // PENDING, ALL
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+
+  const pendingPorters = state.porters.filter(p => !p.approved);
+  const allPorters = state.porters.filter(p => p.approved);
+
+  const handleApprove = async (porter) => {
+    try {
+      await dispatch({ type: 'UPDATE_PORTER', payload: { id: porter.id, approved: true } });
+      
+      // Notify admin and linked driver
+      await dispatch({
+        type: 'ADD_NOTIFICATION',
+        payload: {
+          title: `Porter Approved — ${porter.name}`,
+          message: `${porter.name} has been approved and is linked to your account.`,
+          type: 'SUCCESS',
+          targetRole: 'admin',
+          date: new Date().toISOString()
+        }
+      });
+      
+      toast.success('Porter approved');
+    } catch (err) {
+      toast.error('Failed to approve porter');
+    }
+  };
+
+  const handleReject = async (porter) => {
+    if (window.confirm(`Are you sure you want to reject and delete porter ${porter.name}?`)) {
+      try {
+        await dispatch({ type: 'DELETE_PORTER', payload: porter.id });
+        toast.success('Porter rejected');
+      } catch (err) {
+        toast.error('Failed to reject porter');
+      }
+    }
+  };
+
+  const toggleStatus = async (porter) => {
+    const newStatus = porter.status === 'Active' ? 'Inactive' : 'Active';
+    try {
+      await dispatch({ type: 'UPDATE_PORTER', payload: { id: porter.id, status: newStatus } });
+      toast.success(`Porter ${newStatus}`);
+    } catch (err) {
+      toast.error('Failed to update status');
+    }
+  };
+
+  const getMilestoneBadge = (count) => {
+    if (count >= 100) return <Badge variant="gold" className="bg-platinum/20 text-platinum border-platinum/30">👑 Senior Porter</Badge>;
+    if (count >= 50) return <Badge variant="gold">⭐ Experienced Porter</Badge>;
+    if (count >= 10) return <Badge variant="info" className="bg-silver/20 text-silver">🌟 Active Porter</Badge>;
+    return <Badge variant="default">New Porter</Badge>;
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-4 p-1 bg-gray-50 dark:bg-dark-bg rounded-2xl w-max">
+        <button 
+          onClick={() => setSubTab('PENDING')}
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${subTab === 'PENDING' ? 'bg-white dark:bg-dark-card shadow-sm text-safari-gold' : 'text-gray-400'}`}
+        >
+          Pending Approval ({pendingPorters.length})
+        </button>
+        <button 
+          onClick={() => setSubTab('ALL')}
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${subTab === 'ALL' ? 'bg-white dark:bg-dark-card shadow-sm text-safari-gold' : 'text-gray-400'}`}
+        >
+          All Porters ({allPorters.length})
+        </button>
+      </div>
+
+      {subTab === 'PENDING' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {pendingPorters.length === 0 ? (
+            <div className="col-span-full py-20 text-center opacity-50 flex flex-col items-center">
+              <Users size={48} className="text-gray-300 mb-4" />
+              <p className="text-sm font-dm-sans">No porters awaiting approval.</p>
+            </div>
+          ) : (
+            pendingPorters.map(porter => {
+              const linkedDriver = state.drivers.find(d => d.id === porter.driverId)?.name || 'Unknown Driver';
+              return (
+                <Card key={porter.id} className="border-gray-100 dark:border-dark-border">
+                  <CardContent className="p-5 flex items-center gap-4">
+                    <button onClick={() => setSelectedPhoto(porter.faceImageUrl)} className="relative group shrink-0">
+                      <img src={porter.faceImageUrl || 'https://via.placeholder.com/100'} className="w-16 h-16 rounded-xl object-cover border border-gray-100" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                        <Eye size={12} className="text-white" />
+                      </div>
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-safari-primary dark:text-dark-text truncate">{porter.name}</h4>
+                      <p className="text-[11px] text-gray-500 font-medium">#{porter.phone}</p>
+                      <p className="text-[10px] text-safari-gold font-bold uppercase mt-1">By: {linkedDriver}</p>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                       <button onClick={() => handleApprove(porter)} className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"><Check size={16} /></button>
+                       <button onClick={() => handleReject(porter)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors"><X size={16} /></button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      ) : (
+        <Card className="border-gray-100 dark:border-dark-border">
+          <CardContent className="p-0 overflow-x-auto">
+             <table className="w-full text-left">
+               <thead className="bg-gray-50/50 dark:bg-dark-bg/50">
+                 <tr>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Porter Details</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Linked Driver</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 text-center">Trips</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Milestone</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Actions</th>
+                 </tr>
+               </thead>
+               <tbody className="divide-y divide-gray-50 dark:divide-dark-border">
+                 {allPorters.length === 0 ? (
+                   <tr><td colSpan="6" className="py-20 text-center opacity-50 font-dm-sans">No approved porters found.</td></tr>
+                 ) : (
+                   allPorters.map(porter => (
+                     <tr key={porter.id} className="hover:bg-gray-50/50 dark:hover:bg-dark-card/50 transition-colors">
+                       <td className="px-6 py-4">
+                         <div className="flex items-center gap-3">
+                            <img src={porter.faceImageUrl} className="w-10 h-10 rounded-lg object-cover" />
+                            <div>
+                               <p className="text-sm font-bold text-safari-primary dark:text-dark-text">{porter.name}</p>
+                               <p className="text-[10px] text-gray-400 font-medium">{porter.phone}</p>
+                            </div>
+                         </div>
+                       </td>
+                       <td className="px-6 py-4 text-xs font-medium text-gray-600 dark:text-gray-400">
+                          {state.drivers.find(d => d.id === porter.driverId)?.name || 'Unknown'}
+                       </td>
+                       <td className="px-6 py-4 text-center">
+                          <span className="text-xs font-jetbrains font-black text-safari-gold bg-safari-gold/5 px-2 py-0.5 rounded-full">{porter.tripCount || 0}</span>
+                       </td>
+                       <td className="px-6 py-4">
+                          {getMilestoneBadge(porter.tripCount || 0)}
+                       </td>
+                       <td className="px-6 py-4">
+                          <button 
+                            onClick={() => toggleStatus(porter)}
+                            className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-tighter px-2.5 py-1 rounded-full border transition-all ${
+                              porter.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-400 border-gray-100'
+                            }`}
+                          >
+                             <div className={`w-1.5 h-1.5 rounded-full ${porter.status === 'Active' ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
+                             {porter.status || 'Active'}
+                          </button>
+                       </td>
+                       <td className="px-6 py-4 text-right">
+                          <button onClick={() => handleReject(porter)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"><Trash size={16} /></button>
+                       </td>
+                     </tr>
+                   ))
+                 )}
+               </tbody>
+             </table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Photo Modal */}
+      <Modal isOpen={!!selectedPhoto} onClose={() => setSelectedPhoto(null)} title="Porter Photo">
+        <div className="rounded-2xl overflow-hidden">
+          <img src={selectedPhoto} className="w-full h-auto" />
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
 export const Drivers = () => {
   const { state, dispatch } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -161,7 +483,11 @@ export const Drivers = () => {
   const [editingDriver, setEditingDriver] = useState(null);
   const [schedulingDriver, setSchedulingDriver] = useState(null);
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState('ALL'); // ALL, PENDING, PORTERS
   const [driverTypeFilter, setDriverTypeFilter] = useState('All');
+  
+  const pendingCount = state.driverAuth.filter(a => !a.approved).length;
+  const pendingPortersCount = state.porters.filter(p => !p.approved).length;
 
   const handleDelete = (driver) => {
     if (window.confirm(`Are you sure you want to delete driver ${driver.name}?`)) {
@@ -221,20 +547,32 @@ export const Drivers = () => {
         </div>
       }
     >
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-8">
-        {/* Tabs */}
-        <div className="flex gap-1.5 bg-white/50 dark:bg-dark-card/50 backdrop-blur-md p-1.5 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm w-full md:w-auto overflow-x-auto no-scrollbar">
-          {['All', 'Safari Guide', 'City Chauffeur', 'Transfer Driver'].map(type => (
+      <div className="flex flex-col md:flex-row gap-6 items-center justify-between mb-8 border-b border-gray-100 dark:border-dark-border pb-6">
+        {/* Main Tabs */}
+        <div className="flex gap-8">
+          {[
+            { id: 'ALL', label: 'All Personnel', count: state.drivers.length },
+            { id: 'PENDING', label: 'Pending Approvals', count: pendingCount },
+            { id: 'PORTERS', label: 'Porters', count: state.porters.length }
+          ].map(tab => (
             <button
-              key={type}
-              onClick={() => setDriverTypeFilter(type)}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap ${
-                driverTypeFilter === type 
-                  ? 'bg-safari-gold text-white shadow-lg shadow-safari-gold/20' 
-                  : 'text-gray-500 hover:bg-white dark:hover:bg-dark-surface hover:shadow-sm'
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`pb-4 px-1 text-sm font-black uppercase tracking-widest transition-all relative ${
+                activeTab === tab.id ? 'text-safari-gold' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              {type}
+              {tab.label}
+              {tab.count > 0 && (
+                <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] ${
+                  activeTab === tab.id ? 'bg-safari-gold text-white' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {tab.count}
+                </span>
+              )}
+              {activeTab === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-safari-gold rounded-full" />
+              )}
             </button>
           ))}
         </div>
@@ -245,7 +583,7 @@ export const Drivers = () => {
             <Search className="text-gray-400 mr-2" size={18} />
             <input 
               type="text" 
-              placeholder="Search by name, phone or license..." 
+              placeholder="Search..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-transparent border-none text-sm outline-none font-dm-sans placeholder:text-gray-400"
@@ -254,17 +592,44 @@ export const Drivers = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredDrivers.map(d => (
-          <DriverCard 
-            key={d.id} 
-            driver={d} 
-            onEdit={(d) => { setEditingDriver(d); setIsModalOpen(true); }} 
-            onSchedule={(d) => { setSchedulingDriver(d); setIsScheduleModalOpen(true); }}
-            onDelete={handleDelete}
-          />
-        ))}
-      </div>
+      {activeTab === 'ALL' && (
+        <>
+          <div className="flex gap-1.5 bg-white/50 dark:bg-dark-card/50 backdrop-blur-md p-1.5 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm w-full md:w-auto overflow-x-auto no-scrollbar mb-8 max-w-max">
+            {['All', 'Safari Guide', 'City Chauffeur', 'Transfer Driver'].map(type => (
+              <button
+                key={type}
+                onClick={() => setDriverTypeFilter(type)}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap ${
+                  driverTypeFilter === type 
+                    ? 'bg-safari-gold text-white shadow-lg shadow-safari-gold/20' 
+                    : 'text-gray-500 hover:bg-white dark:hover:bg-dark-surface hover:shadow-sm'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filteredDrivers.map(d => (
+              <DriverCard 
+                key={d.id} 
+                driver={d} 
+                onEdit={(d) => { setEditingDriver(d); setIsModalOpen(true); }} 
+                onSchedule={(d) => { setSchedulingDriver(d); setIsScheduleModalOpen(true); }}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {activeTab === 'PENDING' && (
+        <PendingApprovalsView approvals={state.driverAuth.filter(a => !a.approved)} />
+      )}
+
+      {activeTab === 'PORTERS' && (
+        <PortersView />
+      )}
 
       <Modal 
         isOpen={isModalOpen} 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Bell, AlertCircle, Info, CheckCircle, ShieldAlert } from 'lucide-react';
+import { X, Bell, AlertCircle, Info, CheckCircle, ShieldAlert, UserPlus, Zap } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -26,6 +26,8 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
 
   const getIcon = (type) => {
     switch (type) {
+      case 'SOS': return <ShieldAlert className="text-red-500 animate-pulse" size={18} />;
+      case 'REGISTRATION': return <UserPlus className="text-safari-gold" size={18} />;
       case 'CRITICAL': return <AlertCircle className="text-red-500" size={18} />;
       case 'WARNING': return <ShieldAlert className="text-safari-warning" size={18} />;
       case 'SUCCESS': return <CheckCircle className="text-safari-success" size={18} />;

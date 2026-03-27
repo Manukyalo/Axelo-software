@@ -7,18 +7,22 @@ import { AdminLogin, ReservationsLogin } from './pages/auth/Login';
 
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
+import { GlobalSOSBanner } from './components/shared/GlobalSOSBanner';
 
 // Layout
 const Layout = ({ children }) => {
   const { user } = useAuth();
   return (
-    <div className="flex h-screen bg-safari-bg dark:bg-dark-bg overflow-hidden">
-      <Sidebar role={user?.role} />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-hidden">
-          {children}
-        </main>
+    <div className="flex flex-col h-screen overflow-hidden bg-safari-bg dark:bg-dark-bg">
+      <GlobalSOSBanner />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar role={user?.role} />
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-hidden">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   );
@@ -27,6 +31,8 @@ const Layout = ({ children }) => {
 import { AdminDashboard } from './pages/admin/Dashboard';
 import { Vehicles } from './pages/admin/Vehicles';
 import { Drivers } from './pages/admin/Drivers';
+import { LiveTracking } from './pages/admin/LiveTracking';
+import { SOSAlerts } from './pages/admin/SOSAlerts';
 import { Bookings } from './pages/admin/Bookings';
 import { Packages } from './pages/admin/Packages';
 import { Reports } from './pages/admin/Reports';
@@ -110,6 +116,16 @@ function App() {
         <Route path="/admin/drivers" element={
           <ProtectedRoute allowedRole="admin" title="Drivers">
             <Layout><Drivers /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/live-tracking" element={
+          <ProtectedRoute allowedRole="admin" title="Live Fleet Tracking">
+            <Layout><LiveTracking /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/sos-alerts" element={
+          <ProtectedRoute allowedRole="admin" title="Emergency SOS Alerts">
+            <Layout><SOSAlerts /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/admin/bookings" element={
