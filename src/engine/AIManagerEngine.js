@@ -34,8 +34,14 @@ class AIManagerEngine {
   }
 
   async start(bookings, vehicles, drivers) {
+    // Always update the live data references
+    this.bookings = bookings;
+    this.vehicles = vehicles;
+    this.drivers = drivers;
+
     if (this.isRunning) return;
-    if (!bookings || !vehicles || !drivers) {
+    
+    if (!this.bookings || !this.vehicles || !this.drivers) {
       console.warn('🤖 AI Manager Engine: Data not ready, delaying start...');
       return;
     }
@@ -45,12 +51,12 @@ class AIManagerEngine {
     await this.logActivity('Engine', 'Intelligence loop started');
     
     // Run immediately on start
-    await this.runLoop(bookings, vehicles, drivers);
+    await this.runLoop();
     
     // Set 90s interval
     this.intervalId = setInterval(() => {
       if (!this.isPaused) {
-        this.runLoop(bookings, vehicles, drivers);
+        this.runLoop();
       }
     }, 90000);
   }
@@ -71,8 +77,8 @@ class AIManagerEngine {
     await this.logActivity('Engine', 'Intelligence loop terminated');
   }
 
-  async runLoop(bookings, vehicles, drivers) {
-    if (!bookings || !vehicles || !drivers) return;
+  async runLoop() {
+    if (!this.bookings || !this.vehicles || !this.drivers) return;
     try {
       const startTime = Date.now();
       const aiStateRef = doc(db, 'aiState', this.engineId);
@@ -87,11 +93,12 @@ class AIManagerEngine {
       // Run Modules
       let alertsGenerated = 0;
       
-      alertsGenerated += await this.runBookingReminders(bookings);
-      alertsGenerated += await this.runForgottenBookingDetector(bookings);
-      alertsGenerated += await this.runInsuranceWatchdog(vehicles);
-      alertsGenerated += await this.runCapacityPlanner(bookings, vehicles, drivers);
-      alertsGenerated += await this.runDailyBriefing(bookings, vehicles, drivers);
+      alertsGenerated += await this.runBookingReminders();
+      alertsGenerated += await this.runForgottenBookingDetector();
+      alertsGenerated += await this.runInsuranceWatchdog();
+      alertsGenerated += await this.runCapacityPlanner();
+      alertsGenerated += await this.runDailyBriefing();
+      alertsGenerated += await this.runParkFeeWatchdog();
 
       await this.logActivity('Loop', `Scan complete. ${alertsGenerated} new alerts generated.`);
     } catch (err) {
@@ -154,11 +161,11 @@ class AIManagerEngine {
 
   // --- Engine Modules ---
 
-  async runBookingReminders(bookings) {
+  async runBookingReminders() {
     let count = 0;
     const today = startOfDay(new Date());
 
-    for (const b of bookings) {
+    for (const b of this.bookings) {
       if (b.status !== 'Confirmed' && b.status !== 'Pending') continue;
       
       const departureDate = parseISO(b.date);
@@ -224,11 +231,11 @@ class AIManagerEngine {
     return count;
   }
 
-  async runForgottenBookingDetector(bookings) {
+  async runForgottenBookingDetector() {
     let count = 0;
     const now = Date.now();
 
-    for (const b of bookings) {
+    for (const b of this.bookings) {
       // Logic for stale pending bookings
       // Note: We'd need a createdAt timestamp on the booking object for full accuracy
       // For now, we'll assume most have one or skip if missing.
@@ -264,11 +271,11 @@ class AIManagerEngine {
     return count;
   }
 
-  async runInsuranceWatchdog(vehicles) {
+  async runInsuranceWatchdog() {
     let count = 0;
     const today = new Date();
 
-    for (const v of vehicles) {
+    for (const v of this.vehicles) {
       let expiry;
       if (v.insuranceExpiry?.seconds) {
         expiry = v.insuranceExpiry.toDate();
@@ -319,7 +326,7 @@ class AIManagerEngine {
     return count;
   }
 
-  async runCapacityPlanner(bookings, vehicles, drivers) {
+  async runCapacityPlanner() {
     // Only run once a day
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const aiStateRef = doc(db, 'aiState', this.engineId);
@@ -327,14 +334,14 @@ class AIManagerEngine {
     if (snap.exists() && snap.data().dailyBriefingDate === todayStr) return 0;
 
     let count = 0;
-    const activeVehicles = vehicles.filter(v => v.status === 'Active').length;
-    const availableDrivers = drivers.filter(d => d.status === 'Available' || d.status === 'On Trip').length;
+    const activeVehicles = this.vehicles.filter(v => v.status === 'Active').length;
+    const availableDrivers = this.drivers.filter(d => d.status === 'Available' || d.status === 'On Trip').length;
 
     // Check next 30 days
     for (let i = 0; i < 30; i++) {
         const checkDate = addDays(new Date(), i);
         const dateStr = format(checkDate, 'yyyy-MM-dd');
-        const dayBookings = bookings.filter(b => b.date === dateStr).length;
+        const dayBookings = this.bookings.filter(b => b.date === dateStr).length;
 
         if (dayBookings > activeVehicles) {
           count += await this.createAlert({
@@ -353,7 +360,7 @@ class AIManagerEngine {
     return count;
   }
 
-  async runDailyBriefing(bookings, vehicles, drivers) {
+  async runDailyBriefing() {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const aiStateRef = doc(db, 'aiState', this.engineId);
     const snap = await getDoc(aiStateRef);
@@ -364,24 +371,24 @@ class AIManagerEngine {
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
     
-    const todayBookings = bookings.filter(b => b.date === todayStr);
-    const weekBookings = bookings.filter(b => {
+    const todayBookings = this.bookings.filter(b => b.date === todayStr);
+    const weekBookings = this.bookings.filter(b => {
       const d = parseISO(b.date);
       return isWithinInterval(d, { start: startOfDay(new Date()), end: addDays(new Date(), 7) });
     }).length;
 
     const criticalItems = [];
     // Simple checks for briefing
-    if (vehicles.some(v => differenceInDays(parseISO(v.insuranceExpiry), new Date()) <= 0)) criticalItems.push('Expired insurance');
-    if (bookings.some(b => !b.driverId && differenceInDays(parseISO(b.date), new Date()) <= 3)) criticalItems.push('Unassigned drivers for upcoming trips');
+    if (this.vehicles.some(v => differenceInDays(parseISO(v.insuranceExpiry), new Date()) <= 0)) criticalItems.push('Expired insurance');
+    if (this.bookings.some(b => !b.driverId && differenceInDays(parseISO(b.date), new Date()) <= 3)) criticalItems.push('Unassigned drivers for upcoming trips');
 
     let briefingText = `Good ${greeting}, Administrator. Here is your daily briefing.\n\n`;
     
     if (todayBookings.length > 0) {
       briefingText += `TODAY'S SAFARIS: ${todayBookings.length} departing today.\n`;
       todayBookings.forEach(b => {
-        const dName = drivers.find(d => d.id === b.driverId)?.name || 'UNASSIGNED';
-        const vPlate = vehicles.find(v => v.id === b.vehicleId)?.plate || 'UNASSIGNED';
+        const dName = this.drivers.find(d => d.id === b.driverId)?.name || 'UNASSIGNED';
+        const vPlate = this.vehicles.find(v => v.id === b.vehicleId)?.plate || 'UNASSIGNED';
         briefingText += `• ${b.clientName} at ${b.timeOfPickup || 'TBD'} to ${b.destinations || b.location} (Driver: ${dName}, Vehicle: ${vPlate})\n`;
       });
     } else {
@@ -394,8 +401,8 @@ class AIManagerEngine {
       briefingText += `\nPENDING ATTENTION: ${criticalItems.join(', ')}.\n`;
     }
 
-    const activeCount = vehicles.filter(v => v.status === 'Active').length;
-    briefingText += `\nFLEET STATUS: ${activeCount} of ${vehicles.length} vehicles active.`;
+    const activeCount = this.vehicles.filter(v => v.status === 'Active').length;
+    briefingText += `\nFLEET STATUS: ${activeCount} of ${this.vehicles.length} vehicles active.`;
 
     await this.createAlert({
       title: `Daily Intelligence Briefing — ${format(new Date(), 'MMM dd, yyyy')}`,
@@ -413,6 +420,40 @@ class AIManagerEngine {
     await setDoc(aiStateRef, { dailyBriefingDate: todayStr }, { merge: true });
     
     return 1;
+  }
+
+  async runParkFeeWatchdog() {
+    let count = 0;
+    const today = startOfDay(new Date());
+
+    for (const b of this.bookings) {
+      if (b.status !== 'Confirmed' && b.status !== 'Pending') continue;
+      if (!b.itinerary || b.itinerary.length === 0) continue;
+
+      let currentVisitDate = parseISO(b.date);
+
+      for (const stop of b.itinerary) {
+        const daysUntilVisit = differenceInDays(currentVisitDate, today);
+
+        if (stop.parkFeeStatus !== 'Paid' && daysUntilVisit >= 0 && daysUntilVisit <= 2) {
+          count += await this.createAlert({
+            title: `Park Fee Reminder — ${stop.park || 'National Park'}`,
+            message: `Park fees for ${b.clientName} at ${stop.park || 'the park'} are marked as ${stop.parkFeeStatus || 'Pending'}. Visit date: ${format(currentVisitDate, 'MMM dd')}.`,
+            type: daysUntilVisit <= 1 ? 'CRITICAL' : 'HIGH',
+            category: 'booking',
+            entityId: `${b.id}-fee-${stop.park}`,
+            entityType: 'booking',
+            recommendedAction: 'Verify payment and update status in the Safari Details panel.',
+            moduleSource: 'ParkFeeWatchdog',
+            targetRole: 'admin'
+          });
+        }
+
+        // Increment visit date for the next stop based on current stop nights
+        currentVisitDate = addDays(currentVisitDate, stop.nights || 1);
+      }
+    }
+    return count;
   }
 }
 

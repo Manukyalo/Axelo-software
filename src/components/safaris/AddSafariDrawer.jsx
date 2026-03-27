@@ -41,7 +41,7 @@ export const AddSafariDrawer = ({ isOpen, onClose }) => {
     paymentStatus: 'Unpaid',
     status: 'Confirmed',
     notes: '',
-    itinerary: [{ lodge: '', park: '', nights: 1 }]
+    itinerary: [{ lodge: '', park: '', nights: 1, parkFeeStatus: 'Pending' }]
   });
 
   if (!isOpen) return null;
@@ -49,7 +49,7 @@ export const AddSafariDrawer = ({ isOpen, onClose }) => {
   const addItineraryRow = () => {
     setFormData({
       ...formData,
-      itinerary: [...formData.itinerary, { lodge: '', park: '', nights: 1 }]
+      itinerary: [...formData.itinerary, { lodge: '', park: '', nights: 1, parkFeeStatus: 'Pending' }]
     });
   };
 
@@ -289,7 +289,7 @@ export const AddSafariDrawer = ({ isOpen, onClose }) => {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 items-end">
+                  <div className="grid grid-cols-3 gap-3 items-end">
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold uppercase text-gray-400">Total Nights</label>
                       <Input 
@@ -300,15 +300,29 @@ export const AddSafariDrawer = ({ isOpen, onClose }) => {
                         className="h-10 text-xs rounded-lg"
                       />
                     </div>
-                    {formData.itinerary.length > 1 && (
-                      <button 
-                        type="button"
-                        onClick={() => removeItineraryRow(index)}
-                        className="h-10 px-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center"
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-gray-400">Park Fee</label>
+                      <select 
+                        className="w-full h-10 rounded-lg border border-gray-100 dark:border-dark-border bg-white dark:bg-dark-surface px-2 text-[10px] font-bold outline-none focus:ring-1 focus:ring-safari-gold"
+                        value={item.parkFeeStatus || 'Pending'}
+                        onChange={(e) => updateItineraryRow(index, 'parkFeeStatus', e.target.value)}
                       >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
+                        <option value="Paid">Paid</option>
+                        <option value="Partial">Partial</option>
+                        <option value="Pending">Pending</option>
+                      </select>
+                    </div>
+                    <div className="flex gap-2">
+                      {formData.itinerary.length > 1 && (
+                        <button 
+                          type="button"
+                          onClick={() => removeItineraryRow(index)}
+                          className="h-10 px-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center justify-center flex-1"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

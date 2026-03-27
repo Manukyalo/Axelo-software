@@ -124,6 +124,13 @@ export const SafariDetailDrawer = ({ safari, isOpen, onClose, drivers, vehicles 
                         <div className="flex items-center gap-3 text-[11px] text-gray-500 mt-0.5">
                           <span className="flex items-center gap-1"><MapPin size={10} /> {stop.park || 'Unknown Park'}</span>
                           <span className="flex items-center gap-1 italic"><Home size={10} /> {stop.nights} {stop.nights === 1 ? 'Night' : 'Nights'}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                            stop.parkFeeStatus === 'Paid' ? 'bg-safari-success/20 text-safari-success' :
+                            stop.parkFeeStatus === 'Partial' ? 'bg-safari-gold/20 text-safari-gold' :
+                            'bg-red-500/20 text-red-500'
+                          }`}>
+                            Fee: {stop.parkFeeStatus || 'Pending'}
+                          </span>
                         </div>
                       </div>
                     </div>

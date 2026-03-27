@@ -12,7 +12,7 @@ import {
 import { formatDistanceToNow, differenceInSeconds } from 'date-fns';
 import { Button } from '../ui/Button';
 
-export const EngineStatusPanel = ({ status, lastScanTime, nextScanTime, onRunScan }) => {
+export const EngineStatusPanel = ({ status, lastScanTime, nextScanTime, onRunScan, alerts = [] }) => {
   const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
@@ -32,13 +32,22 @@ export const EngineStatusPanel = ({ status, lastScanTime, nextScanTime, onRunSca
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getAlertCount = (source) => alerts.filter(a => a.moduleSource === source).length;
+
   const modules = [
-    { name: 'Booking Reminder', status: 'Active', alerts: 12 },
-    { name: 'Forgotten Booking', status: 'Active', alerts: 4 },
-    { name: 'Insurance Watchdog', status: 'Active', alerts: 2 },
-    { name: 'Capacity Planner', status: 'Active', alerts: 0 },
-    { name: 'Daily Briefing', status: 'Active', alerts: 1 },
+    { name: 'Booking Reminder', status: 'Active', alerts: getAlertCount('BookingReminders') },
+    { name: 'Forgotten Booking', status: 'Active', alerts: getAlertCount('ForgottenBookingDetector') },
+    { name: 'Insurance Watchdog', status: 'Active', alerts: getAlertCount('InsuranceWatchdog') },
+    { name: 'Capacity Planner', status: 'Active', alerts: getAlertCount('CapacityPlanner') },
+    { name: 'Daily Briefing', status: 'Active', alerts: getAlertCount('DailyBriefingEngine') },
+    { name: 'Park Fee Watchdog', status: 'Active', alerts: getAlertCount('ParkFeeWatchdog') },
   ];
+
+  const stats = {
+    critical: alerts.filter(a => a.type === 'CRITICAL').length,
+    high: alerts.filter(a => a.type === 'HIGH').length,
+    insights: alerts.filter(a => a.type === 'INSIGHT').length,
+  };
 
   return (
     <div className="space-y-6">
@@ -111,25 +120,25 @@ export const EngineStatusPanel = ({ status, lastScanTime, nextScanTime, onRunSca
 
       {/* Alert Summary Stats */}
       <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-gray-100 dark:border-dark-border shadow-sm">
-         <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Intelligence Stats</h4>
-         <div className="space-y-3">
-           <div className="flex justify-between items-center">
-             <span className="text-sm text-gray-600 dark:text-gray-400">Critical Alerts</span>
-             <span className="text-sm font-bold text-red-500">12</span>
-           </div>
-           <div className="flex justify-between items-center">
-             <span className="text-sm text-gray-600 dark:text-gray-400">High Risk</span>
-             <span className="text-sm font-bold text-orange-500">24</span>
-           </div>
-           <div className="flex justify-between items-center">
-             <span className="text-sm text-gray-600 dark:text-gray-400">Optimizations Found</span>
-             <span className="text-sm font-bold text-safari-success">8</span>
-           </div>
-           <div className="pt-3 border-t border-gray-50 dark:border-dark-border flex justify-between items-center">
-             <span className="text-sm font-bold text-safari-primary dark:text-dark-text">Total Resolved Today</span>
-             <span className="text-sm font-bold text-safari-gold text-lg">42</span>
-           </div>
-         </div>
+          <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Intelligence Stats</h4>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Critical Alerts</span>
+              <span className={`text-sm font-bold ${stats.critical > 0 ? 'text-red-500' : 'text-gray-400'}`}>{stats.critical}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600 dark:text-gray-400">High Risk Issues</span>
+              <span className={`text-sm font-bold ${stats.high > 0 ? 'text-orange-500' : 'text-gray-400'}`}>{stats.high}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Operational Insights</span>
+              <span className="text-sm font-bold text-safari-success">{stats.insights}</span>
+            </div>
+            <div className="pt-3 border-t border-gray-50 dark:border-dark-border flex justify-between items-center">
+              <span className="text-sm font-bold text-safari-primary dark:text-dark-text">Total Active Alerts</span>
+              <span className="text-sm font-bold text-safari-gold text-lg">{alerts.length}</span>
+            </div>
+          </div>
       </div>
     </div>
   );

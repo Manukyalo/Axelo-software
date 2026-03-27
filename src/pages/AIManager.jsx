@@ -159,6 +159,7 @@ export const AIManager = () => {
             lastScanTime={lastScanTime} 
             nextScanTime={nextScanTime}
             onRunScan={runManualScan}
+            alerts={aiAlerts}
           />
           
           {/* Quick Stats/Insights */}
