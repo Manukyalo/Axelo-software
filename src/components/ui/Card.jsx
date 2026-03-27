@@ -26,3 +26,9 @@ export const CardContent = ({ children, className = '' }) => (
     {children}
   </div>
 );
+
+export const CardTitle = ({ children, className = '' }) => (
+  <div className={className}>
+    {children}
+  </div>
+);
