@@ -1,3 +1,4 @@
+// Data import trigger: 35 Safari Bookings for 2026 successfully added to Firestore
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
