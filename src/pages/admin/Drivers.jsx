@@ -23,8 +23,8 @@ import {
   Trash,
   AlertCircle
 } from 'lucide-react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { collection, query, where, onSnapshot, doc, getDoc, getDocs, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../../config/firebase';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -175,15 +175,41 @@ const PendingApprovalsView = () => {
       where('approved', '==', false)
     );
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const drivers = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setPendingDrivers(drivers ?? []);
-      setLoading(false);
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      try {
+        const pendingList = await Promise.all(
+          snapshot.docs.map(async (authDoc) => {
+            const authData = { 
+              id: authDoc.id, 
+              ...authDoc.data() 
+            };
+            
+            // Look up driver name from drivers collection by matching email stored in driverAuth
+            if (authData.email) {
+              const driverQuery = query(
+                collection(db, 'drivers'),
+                where('email', '==', authData.email)
+              );
+              const driverSnap = await getDocs(driverQuery);
+              if (!driverSnap.empty) {
+                const driverDoc = driverSnap.docs[0].data();
+                authData.name = driverDoc.name;
+                authData.phone = driverDoc.phone;
+                authData.driverDocId = driverSnap.docs[0].id;
+              }
+            }
+            
+            return authData;
+          })
+        );
+        setPendingDrivers(pendingList);
+      } catch (err) {
+        console.error('Snapshot processing error:', err);
+      } finally {
+        setLoading(false);
+      }
     }, (error) => {
-      console.error('Pending approvals error:', error);
+      console.error('Pending approvals query error:', error);
       setPendingDrivers([]);
       setLoading(false);
     });
@@ -202,28 +228,43 @@ const PendingApprovalsView = () => {
     }
   };
 
-  const handleApprove = async (driver) => {
+  const handleApprove = async (driverAuthId) => {
     try {
-      await dispatch({ 
-        type: 'UPDATE_DRIVERAUTH', 
-        payload: { id: driver.id, approved: true } 
+      const driverAuthRef = doc(db, 'driverAuth', driverAuthId);
+      const driverAuthSnap = await getDoc(driverAuthRef);
+      
+      if (!driverAuthSnap.exists()) {
+        console.error('driverAuth document not found:', driverAuthId);
+        toast.error('Driver record not found. Please refresh and try again.');
+        return;
+      }
+      
+      const driverData = driverAuthSnap.data();
+      const driverName = pendingDrivers.find(d => d.id === driverAuthId)?.name || driverData.email || 'Unknown Driver';
+
+      // Document exists — safe to update
+      await updateDoc(driverAuthRef, {
+        approved: true,
+        approvedAt: serverTimestamp(),
+        approvedBy: auth.currentUser?.uid || 'system_admin'
       });
       
-      // Notify both admin and driver (as per request)
+      // Notify both admin and driver
       await dispatch({
         type: 'ADD_NOTIFICATION',
         payload: {
-          title: `Driver Approved — ${driver.name}`,
-          message: `${driver.name} has been approved and can now access the staff portal.`,
+          title: `Driver Approved — ${driverName}`,
+          message: `${driverName} has been approved and can now access the staff portal.`,
           type: 'SUCCESS',
           targetRole: 'both',
           date: new Date().toISOString()
         }
       });
       
-      toast.success(`${driver.name} approved successfully`);
-    } catch (err) {
-      toast.error('Failed to approve driver');
+      toast.success(`${driverName} approved successfully`);
+    } catch (error) {
+      console.error('Approve error:', error);
+      toast.error('Failed to approve: ' + error.message);
     }
   };
 
@@ -311,7 +352,7 @@ const PendingApprovalsView = () => {
               
               <div className="grid grid-cols-2 gap-3 mt-6">
                 <Button 
-                  onClick={() => handleApprove(driver)}
+                  onClick={() => handleApprove(driver.id)}
                   className="bg-emerald-500 hover:bg-emerald-600 border-none text-white text-xs font-black uppercase tracking-widest gap-2"
                 >
                   <Check size={14} /> Approve
