@@ -34,7 +34,7 @@ export const AIManagerProvider = ({ children }) => {
 
   // 1. Sync AI State (Last/Next Scan Times)
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.role !== 'admin') return;
     
     const unsub = onSnapshot(doc(db, 'aiState', 'primary_ai_engine'), (snapshot) => {
       if (snapshot.exists()) {
@@ -54,38 +54,50 @@ export const AIManagerProvider = ({ children }) => {
 
   // 2. Sync AI Alerts (Real-time)
   useEffect(() => {
-    if (!user) return;
+    // 🛡️ Silent Guard: Stop if no user or restricted role
+    if (!user || (user.role !== 'admin' && user.role !== 'res_agent')) {
+      setLoading(false);
+      return;
+    }
 
     // Filter alerts by role
     let q;
-    if (user.role === 'admin') {
-      q = query(
-        collection(db, 'aiAlerts'), 
-        where('resolved', '==', false),
-        where('dismissed', '==', false),
-        orderBy('createdAt', 'desc')
-      );
-    } else {
-      q = query(
-        collection(db, 'aiAlerts'),
-        where('targetRole', '==', 'both'),
-        where('resolved', '==', false),
-        where('dismissed', '==', false),
-        orderBy('createdAt', 'desc')
-      );
-    }
+    try {
+      if (user.role === 'admin') {
+        q = query(
+          collection(db, 'aiAlerts'), 
+          where('resolved', '==', false),
+          where('dismissed', '==', false),
+          orderBy('createdAt', 'desc')
+        );
+      } else {
+        q = query(
+          collection(db, 'aiAlerts'),
+          where('targetRole', '==', 'both'),
+          where('resolved', '==', false),
+          where('dismissed', '==', false),
+          orderBy('createdAt', 'desc')
+        );
+      }
 
-    const unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setAiAlerts(data);
+      const unsub = onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAiAlerts(data);
+        setLoading(false);
+      }, (error) => {
+        console.warn('AI Alerts sync inhibited:', error.message);
+        setLoading(false);
+        // Only show toast to logged-in admins who SHOULD have access
+        if (user?.role === 'admin') {
+          toast.error('AI synchronization slow or interrupted');
+        }
+      });
+
+      return () => unsub();
+    } catch (e) {
+      console.error('AI Query setup error:', e);
       setLoading(false);
-    }, (error) => {
-      console.error('AI Alerts sync error:', error);
-      setLoading(false); // Resolve loading state even on error
-      toast.error('AI intelligence stream interrupted');
-    });
-
-    return () => unsub();
+    }
   }, [user]);
 
   // 3. Start/Update Engine Loop

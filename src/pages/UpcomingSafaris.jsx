@@ -12,10 +12,11 @@ import {
   Clock,
   UserX,
   Plus,
-  Compass
+  CreditCard
 } from 'lucide-react';
 import { PageWrapper } from '../components/layout/PageWrapper';
 import { useData } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   format, 
   parseISO, 
@@ -35,6 +36,7 @@ import { AddSafariDrawer } from '../components/safaris/AddSafariDrawer';
 import { Button } from '../components/ui/Button';
 
 export const UpcomingSafaris = () => {
+  const { user } = useAuth();
   const { state } = useData();
   const [viewMode, setViewMode] = useState('timeline');
   const [timeFilter, setTimeFilter] = useState('All');
@@ -43,6 +45,7 @@ export const UpcomingSafaris = () => {
   const [selectedSafari, setSelectedSafari] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
+
 
   // Filter Logic
   const filteredSafaris = useMemo(() => {
@@ -93,8 +96,17 @@ export const UpcomingSafaris = () => {
 
   // Stats Calculations
   const stats = useMemo(() => {
+    if (!filteredSafaris) return { departingThisWeek: 0, unassignedDrivers: 0, pendingPayments: 0, readyToGo: 0 };
+    
     const today = startOfDay(new Date());
-    const thisWeek = filteredSafaris.filter(s => isWithinInterval(parseISO(s.date), { start: today, end: addDays(today, 7) }));
+    const thisWeek = filteredSafaris.filter(s => {
+      try {
+        if (!s.date) return false;
+        return isWithinInterval(parseISO(s.date), { start: today, end: addDays(today, 7) });
+      } catch (e) {
+        return false;
+      }
+    });
     const unassigned = filteredSafaris.filter(s => !s.driverId || s.driverId === '');
     const pendingPayment = filteredSafaris.filter(s => s.paymentStatus !== 'Fully Paid');
     const ready = filteredSafaris.filter(s => s.driverId && s.vehicleId && s.paymentStatus === 'Fully Paid');
@@ -119,12 +131,14 @@ export const UpcomingSafaris = () => {
       actions={
         <div className="flex items-center gap-4">
           {/* Add Safari Button - Admin only focus */}
-          <Button 
-            onClick={() => setIsAddDrawerOpen(true)}
-            className="hidden md:flex items-center gap-2 bg-safari-primary hover:bg-safari-primary/95 text-white border-none shadow-lg px-6"
-          >
-            <Plus size={18} /> Schedule Safari
-          </Button>
+          {(user?.role === 'admin') && (
+            <Button 
+              onClick={() => setIsAddDrawerOpen(true)}
+              className="hidden md:flex items-center gap-2 bg-safari-primary hover:bg-safari-primary/95 text-white border-none shadow-lg px-6"
+            >
+              <Plus size={18} /> Schedule Safari
+            </Button>
+          )}
 
           <div className="flex items-center gap-2 bg-white dark:bg-dark-card p-1 rounded-button shadow-sm border border-gray-100 dark:border-dark-border">
           <button 
