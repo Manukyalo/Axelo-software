@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- 🛡️ Security Helpers ---
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // Admin mapping based on AuthContext logic
+      return isAuthenticated() && (
+        request.auth.token.email == 'admin@easternvacations.com' ||
+        request.auth.token.email == 'manu@easternvacations.com'
+      );
+    }
+
+    function isAgent() {
+      return isAuthenticated() && request.auth.token.email.matches('.*@easternvacations.com');
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // --- 📦 CORE BUSINESS DATA ---
+
+    match /bookings/{bookingId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin() || (resource.data.createdById == request.auth.token.email);
+    }
+
+    match /vehicles/{vehicleId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /drivers/{driverId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /packages/{packageId} {
+      allow read: if true; // Publicly viewable for booking
+      allow write: if isAdmin();
+    }
+
+    match /notifications/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // --- 🚛 FLEET MANAGEMENT EXTENSION (STAFF PWA) ---
+
+    match /driverAuth/{driverId} {
+      // Drivers can read/write their own registration profile
+      allow read: if isAdmin() || isOwner(driverId);
+      allow create: if isAuthenticated(); 
+      allow update: if isAdmin() || isOwner(driverId);
+      allow delete: if isAdmin();
+    }
+
+    match /porters/{porterId} {
+      // Admins and Drivers can manage assigned porters
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAdmin() || (resource.data.driverId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    match /driverLocations/{driverId} {
+      // Real-time location tracking: Driver writes, Admin reads
+      allow read: if isAdmin();
+      allow write: if isOwner(driverId);
+    }
+
+    match /sosAlerts/{alertId} {
+      // SOS flow: Driver triggers, Admin acknowledges/resolves
+      allow read: if isAdmin() || (resource.data.driverId == request.auth.uid);
+      allow create: if isAuthenticated();
+      allow update: if isAdmin(); 
+      allow delete: if isAdmin();
+    }
+
+    match /tripUpdates/{updateId} {
+      // Operational logging
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // --- 🔒 DEFAULT DENY ---
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
