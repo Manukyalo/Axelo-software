@@ -38,8 +38,8 @@ service cloud.firestore {
     }
 
     match /drivers/{driverId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read: if true; 
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.token.email == resource.data.email);
     }
 
     match /packages/{packageId} {

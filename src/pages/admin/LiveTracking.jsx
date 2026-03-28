@@ -223,7 +223,7 @@ export const LiveTracking = () => {
     }
 
     return () => map.current?.remove();
-  }, [mapStyle, mapLoaded]);
+  }, [mapStyle]);
 
   // Driver Real-time updates
   useEffect(() => {
