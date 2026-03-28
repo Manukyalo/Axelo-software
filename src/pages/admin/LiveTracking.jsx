@@ -13,12 +13,10 @@ import {
   Zap,
   Battery,
   User,
-  Compass
+  Compass,
+  Loader2
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
-
-// Set Mapbox token
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 export const LiveTracking = () => {
   const { state } = useData();
@@ -27,31 +25,141 @@ export const LiveTracking = () => {
   const markers = useRef({});
   const [search, setSearch] = useState('');
   const [selectedDriver, setSelectedDriver] = useState(null);
-  const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/light-v11');
+  const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/dark-v11');
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  const addParkLayers = () => {
+    if (!map.current) return;
+    
+    // Check if source already exists to avoid errors
+    if (map.current.getSource('parks')) return;
+
+    const parks = {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'properties': { 'name': 'Maasai Mara National Reserve' },
+          'geometry': {
+            'type': 'Polygon',
+            'coordinates': [[
+              [34.8, -1.2], [35.2, -1.2], [35.4, -1.5], [35.1, -1.8], [34.7, -1.6], [34.8, -1.2]
+            ]]
+          }
+        },
+        {
+          'type': 'Feature',
+          'properties': { 'name': 'Amboseli National Park' },
+          'geometry': {
+            'type': 'Polygon',
+            'coordinates': [[
+              [37.1, -2.6], [37.4, -2.6], [37.5, -2.8], [37.2, -2.9], [37.0, -2.7], [37.1, -2.6]
+            ]]
+          }
+        },
+        {
+          'type': 'Feature',
+          'properties': { 'name': 'Tsavo West National Park' },
+          'geometry': {
+            'type': 'Polygon',
+            'coordinates': [[
+              [37.8, -2.8], [38.3, -3.0], [38.4, -3.4], [37.9, -3.5], [37.7, -3.1], [37.8, -2.8]
+            ]]
+          }
+        }
+      ]
+    };
+
+    map.current.addSource('parks', {
+      'type': 'geojson',
+      'data': parks
+    });
+
+    map.current.addLayer({
+      'id': 'parks-layer',
+      'type': 'fill',
+      'source': 'parks',
+      'layout': {},
+      'paint': {
+        'fill-color': '#10b981',
+        'fill-opacity': 0.2,
+        'fill-outline-color': '#059669'
+      }
+    });
+
+    map.current.addLayer({
+      'id': 'park-labels',
+      'type': 'symbol',
+      'source': 'parks',
+      'layout': {
+        'text-field': ['get', 'name'],
+        'text-size': 11,
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        'text-offset': [0, 0.6],
+        'text-anchor': 'top'
+      },
+      'paint': {
+        'text-color': '#10b981',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1
+      }
+    });
+  };
 
   // Initialize Map
   useEffect(() => {
     if (map.current) return;
+    if (!mapContainer.current) return;
     
+    const token = import.meta.env.VITE_MAPBOX_TOKEN;
+    if (!token) {
+      console.error('Mapbox token missing');
+      return;
+    }
+    
+    mapboxgl.accessToken = token;
+
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: mapStyle,
-      center: [37.9062, -3.0758], // Kilimanjaro/Amboseli area as default
-      zoom: 7,
+      center: [36.8219, -1.2921],
+      zoom: 6,
       pitch: 45
     });
 
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
+    map.current.on('load', () => {
+      setMapLoaded(true);
+      addParkLayers();
+    });
+
+    map.current.on('style.load', () => {
+      addParkLayers();
+    });
+
+    map.current.on('error', (e) => {
+      console.error('Mapbox error:', e);
+    });
+
     return () => {
-      map.current.remove();
-      map.current = null;
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
     };
   }, []);
 
+  // Update style when mapStyle state changes
+  useEffect(() => {
+    if (map.current && mapLoaded) {
+      map.current.setStyle(mapStyle);
+    }
+  }, [mapStyle, mapLoaded]);
+
   // Sync Markers
   useEffect(() => {
-    if (!map.current) return;
+    if (!map.current || !mapLoaded) return;
 
     const currentLocations = state.driverLocations || [];
     
@@ -81,10 +189,10 @@ export const LiveTracking = () => {
         markers.current[loc.driverId] = new mapboxgl.Marker(el)
           .setLngLat([loc.longitude, loc.latitude])
           .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
-            <div class="p-2 font-dm-sans">
-              <p class="font-bold text-sm">${driver.name}</p>
+            <div class="p-2 font-dm-sans bg-white dark:bg-dark-card rounded-xl">
+              <p class="font-bold text-sm text-gray-900 dark:text-white">${driver.name}</p>
               <p class="text-[10px] uppercase text-gray-500 font-bold">${loc.isOnline ? 'Online' : 'Offline'}</p>
-              <p class="text-[10px] text-safari-gold mt-1">${loc.speed ? `${Math.round(loc.speed)} km/h` : 'Stationary'}</p>
+              <p class="text-[10px] text-safari-gold mt-1 font-bold">${loc.speed ? `${Math.round(loc.speed)} km/h` : 'Stationary'}</p>
             </div>
           `))
           .addTo(map.current);
@@ -102,7 +210,7 @@ export const LiveTracking = () => {
         }
       }
     });
-  }, [state.driverLocations, state.drivers]);
+  }, [state.driverLocations, state.drivers, mapLoaded]);
 
   const focusOnDriver = (loc) => {
     if (!map.current) return;
@@ -133,7 +241,7 @@ export const LiveTracking = () => {
                 placeholder="Search drivers..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-transparent border-none text-sm outline-none font-dm-sans placeholder:text-gray-400"
+                className="w-full bg-transparent border-none text-sm outline-none font-dm-sans placeholder:text-gray-400 dark:text-white"
               />
             </div>
           </div>
@@ -146,16 +254,16 @@ export const LiveTracking = () => {
                  <button 
                    key={loc.driverId}
                    onClick={() => focusOnDriver(loc)}
-                   className={`w-full p-4 rounded-2xl border transition-all text-left flex gap-3 ${isSelected ? 'bg-safari-primary text-white border-safari-primary shadow-lg shadow-safari-primary/20' : 'bg-white border-gray-100 hover:border-safari-gold/30 hover:shadow-md'}`}
+                   className={`w-full p-4 rounded-2xl border transition-all text-left flex gap-3 ${isSelected ? 'bg-safari-primary text-white border-safari-primary shadow-lg shadow-safari-primary/20' : 'bg-white dark:bg-dark-card border-gray-100 dark:border-dark-border hover:border-safari-gold/30 hover:shadow-md'}`}
                  >
                     <div className="relative">
                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold ${isSelected ? 'bg-white/20' : 'bg-safari-gold/10 text-safari-gold'}`}>
                           {driver?.name.charAt(0)}
                        </div>
-                       <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 ${isSelected ? 'border-safari-primary' : 'border-white'} ${loc.isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
+                       <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 ${isSelected ? 'border-safari-primary' : 'border-white dark:border-dark-card'} ${loc.isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                       <p className={`font-bold text-sm truncate ${isSelected ? 'text-white' : 'text-safari-primary'}`}>{driver?.name}</p>
+                       <p className={`font-bold text-sm truncate ${isSelected ? 'text-white' : 'text-safari-primary dark:text-safari-gold'}`}>{driver?.name}</p>
                        <div className="flex items-center gap-3 mt-1 underline-none">
                           <span className={`text-[10px] font-medium flex items-center gap-1 ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>
                              <Compass size={10} /> {Math.round(loc.speed || 0)} km/h
@@ -172,44 +280,74 @@ export const LiveTracking = () => {
           </div>
         </div>
 
-        {/* Map Container */}
-        <div className="flex-1 relative rounded-3xl overflow-hidden border border-gray-100 shadow-2xl bg-gray-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
-          <div ref={mapContainer} className="absolute inset-0" />
+        {/* Map Container Wrapper */}
+        <div className="flex-1 relative rounded-3xl overflow-hidden border border-gray-100 dark:border-dark-border shadow-2xl bg-safari-primary">
+          <div 
+            ref={mapContainer}
+            className="w-full"
+            style={{
+              width: '100%',
+              height: 'calc(100vh - 180px)',
+              minHeight: '500px',
+              borderRadius: '16px'
+            }}
+          />
           
-          {/* Map Controls */}
-          <div className="absolute top-6 left-6 flex flex-col gap-2">
-             <button 
-               onClick={() => setMapStyle('mapbox://styles/mapbox/light-v11')}
-               className={`p-3 rounded-xl shadow-xl transition-all ${mapStyle.includes('light') ? 'bg-safari-gold text-white' : 'bg-white text-gray-500 hover:text-safari-gold'}`}
-             >
-                <Layers size={20} />
-             </button>
-             <button 
-               onClick={() => setMapStyle('mapbox://styles/mapbox/satellite-v9')}
-               className={`p-3 rounded-xl shadow-xl transition-all ${mapStyle.includes('satellite') ? 'bg-safari-gold text-white' : 'bg-white text-gray-500 hover:text-safari-gold'}`}
-             >
-                <MapIcon size={20} />
-             </button>
-          </div>
+          {/* Loading State Overlay */}
+          {!mapLoaded && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-safari-primary z-50">
+              <Loader2 className="w-8 h-8 text-safari-gold animate-spin mb-4" />
+              <p className="text-white font-medium animate-pulse">Initializing Map Engine...</p>
+            </div>
+          )}
+          
+          {/* Map Style Controls */}
+          {mapLoaded && (
+            <div className="absolute top-6 left-6 flex flex-col gap-2 z-10">
+               <button 
+                 onClick={() => setMapStyle('mapbox://styles/mapbox/dark-v11')}
+                 className={`p-3 rounded-xl shadow-xl transition-all ${mapStyle.includes('dark') ? 'bg-safari-gold text-white' : 'bg-white dark:bg-dark-card text-gray-500 hover:text-safari-gold'}`}
+                 title="Dark Mode"
+               >
+                  <Layers size={20} />
+               </button>
+               <button 
+                 onClick={() => setMapStyle('mapbox://styles/mapbox/light-v11')}
+                 className={`p-3 rounded-xl shadow-xl transition-all ${mapStyle.includes('light') ? 'bg-safari-gold text-white' : 'bg-white dark:bg-dark-card text-gray-500 hover:text-safari-gold'}`}
+                 title="Light Mode"
+               >
+                  <Navigation size={20} />
+               </button>
+               <button 
+                 onClick={() => setMapStyle('mapbox://styles/mapbox/satellite-v9')}
+                 className={`p-3 rounded-xl shadow-xl transition-all ${mapStyle.includes('satellite') ? 'bg-safari-gold text-white' : 'bg-white dark:bg-dark-card text-gray-500 hover:text-safari-gold'}`}
+                 title="Satellite View"
+               >
+                  <MapIcon size={20} />
+               </button>
+            </div>
+          )}
 
           {/* Quick Stats Overlay */}
-          <div className="absolute bottom-6 right-6 flex gap-4">
-             <div className="bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-white/20 flex gap-6 items-center">
-                <div className="flex items-center gap-2">
-                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                   <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                      {state.driverLocations?.filter(l => l.isOnline).length || 0} Drivers Online
-                   </span>
-                </div>
-                <div className="w-px h-4 bg-gray-200" />
-                <div className="flex items-center gap-2">
-                   <div className="w-2 h-2 rounded-full bg-red-500 animate-bounce" />
-                   <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                      {state.sosAlerts?.filter(s => s.status === 'Active').length || 0} SOS Active
-                   </span>
-                </div>
-             </div>
-          </div>
+          {mapLoaded && (
+            <div className="absolute bottom-6 right-6 flex gap-4 z-10">
+               <div className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-white/20 dark:border-dark-border flex gap-6 items-center">
+                  <div className="flex items-center gap-2">
+                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                        {state.driverLocations?.filter(l => l.isOnline).length || 0} Drivers Online
+                     </span>
+                  </div>
+                  <div className="w-px h-4 bg-gray-200 dark:bg-dark-border" />
+                  <div className="flex items-center gap-2">
+                     <div className="w-2 h-2 rounded-full bg-red-500 animate-bounce" />
+                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                        {state.sosAlerts?.filter(s => s.status === 'Active').length || 0} SOS Active
+                     </span>
+                  </div>
+               </div>
+            </div>
+          )}
         </div>
       </div>
       
@@ -230,13 +368,6 @@ export const LiveTracking = () => {
         @keyframes pulse-subtle {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: .7; transform: scale(1.1); }
-        }
-        @keyframes bounce-horizontal {
-          0%, 100% { transform: translateX(0); }
-          50% { transform: translateX(-10px); }
-        }
-        .animate-bounce-horizontal {
-          animation: bounce-horizontal 2s infinite;
         }
       `}</style>
     </PageWrapper>
