@@ -37,11 +37,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // UPDATED: Allow authorized users to link their newly created UID to their personnel record
     match /drivers/{driverId} {
       allow read: if true; 
       allow create: if isAuthenticated() && request.auth.uid == driverId;
       allow update: if isAdmin() || (isAuthenticated() && (
-        request.auth.token.email.matches('(?i)' + (resource.data.email || "")) || 
+        request.auth.token.email.lower() == resource.data.get('email', '').lower() ||
+        request.auth.token.email.lower() == resource.data.get('personalEmail', '').lower() ||
         !('uid' in resource.data) ||
         resource.data.uid == "" ||
         resource.data.uid == request.auth.uid ||
