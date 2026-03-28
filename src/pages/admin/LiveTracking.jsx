@@ -1,8 +1,8 @@
-import 'mapbox-gl/dist/mapbox-gl.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import React, { useEffect, useRef, useState } from 'react';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { useData } from '../../contexts/DataContext';
-import mapboxgl from 'mapbox-gl';
+import maplibregl from 'maplibre-gl';
 import { 
   Search, 
   Navigation, 
@@ -10,13 +10,13 @@ import {
   Maximize2, 
   Map as MapIcon, 
   Layers, 
-  Zap,
-  Battery,
-  User,
-  Compass,
-  Loader2,
-  MapPin,
-  AlertCircle
+  Zap, 
+  Battery, 
+  User, 
+  Compass, 
+  Loader2, 
+  MapPin, 
+  AlertCircle 
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 
@@ -27,14 +27,13 @@ export const LiveTracking = () => {
   const markers = useRef({});
   const [search, setSearch] = useState('');
   const [selectedDriver, setSelectedDriver] = useState(null);
-  const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/dark-v11');
+  const [mapStyle, setMapStyle] = useState('https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json');
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(null);
 
   const addParkLayers = () => {
     if (!map.current) return;
     
-    // Check if source already exists to avoid errors
     if (map.current.getSource('parks')) return;
 
     const parks = {
@@ -109,52 +108,36 @@ export const LiveTracking = () => {
     });
   };
 
-  // Force resize effect
   useEffect(() => {
     if (map.current && mapLoaded) {
-      console.log('Forcing map resize on mount/load');
       map.current.resize();
     }
   }, [mapLoaded]);
 
-  // Initialize Map
   useEffect(() => {
     if (map.current) return;
     if (!mapContainer.current) return;
     
-    const token = import.meta.env.VITE_MAPBOX_TOKEN;
-    console.log('Mapbox token verification:', token ? `${token.substring(0, 20)}...` : 'MISSING');
-    
-    if (!token) {
-      setMapError('Mapbox token is missing from environment variables.');
-      return;
-    }
-    
-    mapboxgl.accessToken = token;
-
     try {
-      map.current = new mapboxgl.Map({
+      map.current = new maplibregl.Map({
         container: mapContainer.current,
         style: mapStyle,
-        center: [36.8219, -1.2921], // Center on Kenya
+        center: [36.8219, -1.2921], 
         zoom: 6,
         pitch: 45
       });
 
-      // Add initialization timeout [FIX 2]
       const initTimeout = setTimeout(() => {
         if (!mapLoaded) {
-          console.error('Map initialization timed out after 10 seconds');
-          setMapError('Map failed to initialize. Please check your network connection and token validity.');
+          setMapError('Map failed to initialize. Please check your network connection.');
         }
       }, 10000);
 
-      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
 
       map.current.on('load', () => {
-        console.log('Map engine loaded successfully');
         clearTimeout(initTimeout);
-        map.current.resize(); // Force resize on load [FIX 3]
+        map.current.resize();
         setMapLoaded(true);
         addParkLayers();
       });
@@ -164,11 +147,10 @@ export const LiveTracking = () => {
       });
 
       map.current.on('error', (e) => {
-        console.error('Mapbox error event:', e.error);
-        setMapError(`Map Engine Error: ${e.error?.message || 'Unknown error occurred'}`);
+        console.error('MapLibre error:', e);
+        setMapError(`Map Engine Error: ${e.error?.message || 'Unknown error'}`);
       });
     } catch (err) {
-      console.error('Map initialization try-catch error:', err);
       setMapError(`Critical Initialization Failure: ${err.message}`);
     }
 
@@ -180,20 +162,17 @@ export const LiveTracking = () => {
     };
   }, []);
 
-  // Update style when mapStyle state changes
   useEffect(() => {
     if (map.current && mapLoaded) {
       map.current.setStyle(mapStyle);
     }
   }, [mapStyle, mapLoaded]);
 
-  // Sync Markers
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
 
     const currentLocations = state.driverLocations || [];
     
-    // Remove old markers for drivers no longer in list
     Object.keys(markers.current).forEach(id => {
       if (!currentLocations.find(l => l.driverId === id)) {
         markers.current[id].remove();
@@ -206,7 +185,6 @@ export const LiveTracking = () => {
       if (!driver) return;
 
       if (!markers.current[loc.driverId]) {
-        // Create custom marker element
         const el = document.createElement('div');
         el.className = 'driver-marker';
         
@@ -216,9 +194,9 @@ export const LiveTracking = () => {
         
         el.appendChild(inner);
 
-        markers.current[loc.driverId] = new mapboxgl.Marker(el)
+        markers.current[loc.driverId] = new maplibregl.Marker(el)
           .setLngLat([loc.longitude, loc.latitude])
-          .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
+          .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`
             <div class="p-2 font-dm-sans bg-white dark:bg-dark-card rounded-xl">
               <p class="font-bold text-sm text-gray-900 dark:text-white">${driver.name}</p>
               <p class="text-[10px] uppercase text-gray-500 font-bold">${loc.isOnline ? 'Online' : 'Offline'}</p>
@@ -229,12 +207,10 @@ export const LiveTracking = () => {
           
         el.addEventListener('click', () => setSelectedDriver(loc.driverId));
       } else {
-        // Update existing marker
         markers.current[loc.driverId].setLngLat([loc.longitude, loc.latitude]);
         const inner = markers.current[loc.driverId].getElement().firstChild;
         inner.className = `w-8 h-8 rounded-full border-2 border-white shadow-xl flex items-center justify-center transition-all duration-500 ${loc.isOnline ? 'bg-safari-gold animate-pulse-subtle' : 'bg-gray-400'}`;
         
-        // Update heading rotation if available
         if (loc.heading !== undefined) {
           inner.style.transform = `rotate(${loc.heading}deg)`;
         }
@@ -260,7 +236,6 @@ export const LiveTracking = () => {
   return (
     <PageWrapper title="Live Fleet Tracking">
       <div className="flex h-full gap-6 overflow-hidden">
-        {/* Sidebar */}
         <div className="w-80 flex flex-col gap-4">
           <div className="relative group">
             <div className="absolute inset-0 bg-safari-gold/5 rounded-2xl blur-xl group-focus-within:bg-safari-gold/10 transition-all duration-500" />
@@ -310,7 +285,6 @@ export const LiveTracking = () => {
           </div>
         </div>
 
-        {/* Map Container Wrapper */}
         <div className="flex-1 relative rounded-3xl overflow-hidden border border-gray-100 dark:border-dark-border shadow-2xl bg-safari-primary">
           <div 
             ref={mapContainer}
@@ -323,16 +297,14 @@ export const LiveTracking = () => {
             }}
           />
           
-          {/* Loading State Overlay */}
           {!mapLoaded && !mapError && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-safari-primary z-50">
               <Loader2 className="w-12 h-12 text-safari-gold animate-spin mb-4" />
               <p className="text-white font-dm-sans font-medium animate-pulse">Initializing Map Engine...</p>
-              <p className="text-white/50 text-[10px] mt-2 uppercase tracking-widest">Establishing Secure Connection</p>
+              <p className="text-white/50 text-[10px] mt-2 uppercase tracking-widest">Free & Secure Connection</p>
             </div>
           )}
 
-          {/* Error State Overlay [FIX 7] */}
           {mapError && (
              <div className="absolute inset-0 flex flex-col items-center justify-center bg-safari-primary/95 backdrop-blur-md z-[60] p-8 text-center">
                 <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6">
@@ -350,32 +322,28 @@ export const LiveTracking = () => {
                      Retry Initialization
                    </button>
                 </div>
-                <p className="mt-8 text-[10px] text-gray-500 uppercase tracking-[0.2em]">
-                   Eastern Vacations Systems Integrity Monitor
-                </p>
              </div>
           )}
           
-          {/* Map Style Controls */}
           {mapLoaded && (
             <div className="absolute top-6 left-6 flex flex-col gap-2 z-10">
                <button 
-                 onClick={() => setMapStyle('mapbox://styles/mapbox/dark-v11')}
+                 onClick={() => setMapStyle('https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json')}
                  className={`p-3 rounded-xl shadow-xl transition-all ${mapStyle.includes('dark') ? 'bg-safari-gold text-white' : 'bg-white dark:bg-dark-card text-gray-500 hover:text-safari-gold'}`}
                  title="Dark Mode"
                >
                   <Layers size={20} />
                </button>
                <button 
-                 onClick={() => setMapStyle('mapbox://styles/mapbox/light-v11')}
-                 className={`p-3 rounded-xl shadow-xl transition-all ${mapStyle.includes('light') ? 'bg-safari-gold text-white' : 'bg-white dark:bg-dark-card text-gray-500 hover:text-safari-gold'}`}
+                 onClick={() => setMapStyle('https://basemaps.cartocdn.com/gl/positron-gl-style/style.json')}
+                 className={`p-3 rounded-xl shadow-xl transition-all ${mapStyle.includes('positron') ? 'bg-safari-gold text-white' : 'bg-white dark:bg-dark-card text-gray-500 hover:text-safari-gold'}`}
                  title="Light Mode"
                >
                   <Navigation size={20} />
                </button>
                <button 
-                 onClick={() => setMapStyle('mapbox://styles/mapbox/satellite-v9')}
-                 className={`p-3 rounded-xl shadow-xl transition-all ${mapStyle.includes('satellite') ? 'bg-safari-gold text-white' : 'bg-white dark:bg-dark-card text-gray-500 hover:text-safari-gold'}`}
+                 onClick={() => setMapStyle('https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json')}
+                 className={`p-3 rounded-xl shadow-xl transition-all ${mapStyle.includes('voyager') ? 'bg-safari-gold text-white' : 'bg-white dark:bg-dark-card text-gray-500 hover:text-safari-gold'}`}
                  title="Satellite View"
                >
                   <MapIcon size={20} />
@@ -383,7 +351,6 @@ export const LiveTracking = () => {
             </div>
           )}
 
-          {/* Quick Stats Overlay */}
           {mapLoaded && (
             <div className="absolute bottom-6 right-6 flex gap-4 z-10">
                <div className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-white/20 dark:border-dark-border flex gap-6 items-center">
@@ -407,14 +374,14 @@ export const LiveTracking = () => {
       </div>
       
       <style>{`
-        .mapboxgl-popup-content {
+        .mapboxgl-popup-content, .maplibregl-popup-content {
           border-radius: 16px !important;
           padding: 0 !important;
           overflow: hidden !important;
           border: 1px solid rgba(0,0,0,0.05) !important;
           box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1) !important;
         }
-        .mapboxgl-popup-close-button {
+        .mapboxgl-popup-close-button, .maplibregl-popup-close-button {
           padding: 4px 8px !important;
         }
         .animate-pulse-subtle {
