@@ -566,10 +566,10 @@ const PortersView = () => {
                           {state.drivers.find(d => d.id === porter.driverId)?.name || 'Unknown'}
                        </td>
                        <td className="px-6 py-4 text-center">
-                          <span className="text-xs font-jetbrains font-black text-safari-gold bg-safari-gold/5 px-2 py-0.5 rounded-full">{porter.tripCount || 0}</span>
+                          <span className="text-xs font-jetbrains font-black text-safari-gold bg-safari-gold/5 px-2 py-0.5 rounded-full">{porter.totalTrips || 0}</span>
                        </td>
                        <td className="px-6 py-4">
-                          {getMilestoneBadge(porter.tripCount || 0)}
+                          {getMilestoneBadge(porter.totalTrips || 0)}
                        </td>
                        <td className="px-6 py-4">
                           <button 
