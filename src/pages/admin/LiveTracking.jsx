@@ -425,7 +425,16 @@ export const LiveTracking = () => {
         const inner = document.createElement('div');
         inner.className = `driver-marker-inner online-pulse ${hasSOS ? 'sos-pulse' : ''}`;
         inner.innerHTML = getRoleIcon(driver.role);
+
+        const nameLabel = document.createElement('div');
+        nameLabel.className = 'driver-label';
+        nameLabel.style.cssText = 'background: rgba(17, 27, 21, 0.85); backdrop-filter: blur(4px); padding: 3px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); white-space: nowrap; margin-left: 8px;';
+        nameLabel.innerHTML = `<span style="color: #fff; font-size: 10px; font-weight: 800; text-transform: uppercase;">${driver.name}</span>`;
+
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
         el.appendChild(inner);
+        el.appendChild(nameLabel);
 
         const marker = new maplibregl.Marker({ element: el, zIndexOffset: 1000 })
           .setLngLat([loc.longitude, loc.latitude])
@@ -456,8 +465,11 @@ export const LiveTracking = () => {
         markers.current[loc.driverId] = marker;
       } else {
         markers.current[loc.driverId].setLngLat([loc.longitude, loc.latitude]);
-        const inner = markers.current[loc.driverId].getElement().firstChild;
-        inner.className = `driver-marker-inner online-pulse ${hasSOS ? 'sos-pulse' : ''}`;
+        const container = markers.current[loc.driverId].getElement();
+        const inner = container.querySelector('.driver-marker-inner');
+        if (inner) {
+          inner.className = `driver-marker-inner online-pulse ${hasSOS ? 'sos-pulse' : ''}`;
+        }
       }
     });
 
@@ -579,6 +591,49 @@ export const LiveTracking = () => {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button 
+              onClick={() => setShowParks(!showParks)}
+              className={`p-3 rounded-2xl border ${showParks ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-white/5 border-white/5'} flex flex-col gap-2 items-start transition-all`}
+            >
+              <Trees size={16} className={showParks ? 'text-emerald-500' : 'text-gray-500'} />
+              <div className="text-left">
+                <div className={`text-[10px] font-black uppercase ${showParks ? 'text-emerald-500' : 'text-gray-500'}`}>Parks</div>
+                <div className="text-[8px] text-gray-500 uppercase">{showParks ? 'Visible' : 'Hidden'}</div>
+              </div>
+            </button>
+            <button 
+              onClick={() => setShowLodges(!showLodges)}
+              className={`p-3 rounded-2xl border ${showLodges ? 'bg-safari-gold/10 border-safari-gold/30' : 'bg-white/5 border-white/5'} flex flex-col gap-2 items-start transition-all`}
+            >
+              <svg className={showLodges ? 'text-safari-gold' : 'text-gray-500'} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v20"/><path d="M21 2v20"/><path d="M3 10h18"/><path d="M10 2v20"/><path d="M14 2v20"/><path d="M3 18h18"/></svg>
+              <div className="text-left">
+                <div className={`text-[10px] font-black uppercase ${showLodges ? 'text-safari-gold' : 'text-gray-500'}`}>Lodges</div>
+                <div className="text-[8px] text-gray-500 uppercase">{showLodges ? 'Visible' : 'Hidden'}</div>
+              </div>
+            </button>
+            <button 
+              onClick={() => setShowGates(!showGates)}
+              className={`p-3 rounded-2xl border ${showGates ? 'bg-orange-500/10 border-orange-500/30' : 'bg-white/5 border-white/5'} flex flex-col gap-2 items-start transition-all`}
+            >
+              <span className={`text-base leading-none ${!showGates && 'grayscale opacity-50'}`}>🚧</span>
+              <div className="text-left">
+                <div className={`text-[10px] font-black uppercase ${showGates ? 'text-orange-500' : 'text-gray-500'}`}>Gates</div>
+                <div className="text-[8px] text-gray-500 uppercase">{showGates ? 'Visible' : 'Hidden'}</div>
+              </div>
+            </button>
+            <button 
+              onClick={() => setShowDrivers(!showDrivers)}
+              className={`p-3 rounded-2xl border ${showDrivers ? 'bg-blue-500/10 border-blue-500/30' : 'bg-white/5 border-white/5'} flex flex-col gap-2 items-start transition-all`}
+            >
+              <User size={16} className={showDrivers ? 'text-blue-500' : 'text-gray-500'} />
+              <div className="text-left">
+                <div className={`text-[10px] font-black uppercase ${showDrivers ? 'text-blue-500' : 'text-gray-500'}`}>Drivers</div>
+                <div className="text-[8px] text-gray-500 uppercase">{showDrivers ? 'Visible' : 'Hidden'}</div>
+              </div>
+            </button>
           </div>
 
           {/* DRIVER LIST */}
