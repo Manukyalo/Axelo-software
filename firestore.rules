@@ -40,9 +40,10 @@ service cloud.firestore {
     match /drivers/{driverId} {
       allow read: if true; 
       allow write: if isAdmin() || (isAuthenticated() && (
-        request.auth.token.email == resource.data.email || 
-        resource.data.uid == request.auth.uid ||
-        !('uid' in resource.data)
+        request.auth.token.email.matches('(?i)' + resource.data.email) || 
+        !('uid' in resource.data) ||
+        resource.data.uid == "" ||
+        resource.data.uid == request.auth.uid
       ));
     }
 
