@@ -98,14 +98,25 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
           {/* AI Critical Section */}
           {criticalAiAlerts.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-safari-gold mb-4 flex items-center gap-2 px-2">
-                <Zap size={10} className="fill-current" /> AI Neural Defense
-              </h3>
+              <div className="flex justify-between items-center mb-4 px-2">
+                <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-safari-gold flex items-center gap-2">
+                  <Zap size={10} className="fill-current" /> AI Neural Defense
+                </h3>
+                <button 
+                  onClick={() => {
+                    criticalAiAlerts.forEach(a => resolveAlert(a.id));
+                    toast.success('All AI signals resolved');
+                  }}
+                  className="text-[8px] font-black uppercase tracking-widest text-safari-gold/60 hover:text-safari-gold border border-safari-gold/20 px-2 py-1 rounded-md transition-all"
+                >
+                  Resolve All
+                </button>
+              </div>
               {criticalAiAlerts.map((a) => (
                 <div 
                   key={a.id} 
                   className="p-5 rounded-[20px] bg-red-500/5 dark:bg-red-500/10 border border-red-500/20 shadow-sm transition-all cursor-pointer hover:bg-red-500/10"
-                  onClick={() => { resolveAlert(a.id); onClose(); }}
+                  onClick={() => resolveAlert(a.id)}
                 >
                    <div className="flex gap-4">
                      <div className="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-red-200 dark:shadow-none">
@@ -121,7 +132,7 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
                        <p className="text-xs text-gray-500 font-medium leading-relaxed mb-3 line-clamp-3">{a.message}</p>
                        <div className="flex items-center gap-2">
                          <Badge className="bg-red-500 text-[8px] px-2 py-0 border-none uppercase font-black">Urgent</Badge>
-                         <span className="text-[9px] font-black text-safari-gold dark:text-safari-gold uppercase tracking-widest italic animate-pulse">Execute Action</span>
+                         <span className="text-[9px] font-black text-safari-gold dark:text-safari-gold uppercase tracking-widest italic animate-pulse">Acknowledge Signal</span>
                        </div>
                      </div>
                    </div>

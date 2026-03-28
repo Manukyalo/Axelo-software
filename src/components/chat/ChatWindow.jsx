@@ -192,8 +192,12 @@ export const ChatWindow = ({ chatId }) => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-           <button className="p-2.5 text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-colors">
-             <MoreVertical size={20} />
+           <button 
+            onClick={handleDeleteConversation}
+            className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all group"
+            title="Delete Conversation"
+           >
+              <Trash2 size={20} className="group-hover:scale-110 transition-transform" />
            </button>
         </div>
       </div>

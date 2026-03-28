@@ -240,44 +240,61 @@ const PendingApprovalsView = () => {
       
       if (!driverAuthSnap.exists()) {
         console.error('driverAuth document not found:', driverAuthId);
-        toast.error('Driver record not found. Please refresh and try again.');
+        toast.error('Record not found. Please refresh.');
         return;
       }
       
       const driverData = driverAuthSnap.data();
-      const driverName = pendingDrivers.find(d => d.id === driverAuthId)?.name || driverData.email || 'Unknown Driver';
+      const driverName = pendingDrivers.find(d => d.id === driverAuthId)?.name || driverData.email || 'Unknown Personnel';
+      const role = driverData.role || 'driver';
 
-      // Document exists — safe to update
+      // Update primary auth doc
       await updateDoc(driverAuthRef, {
         approved: true,
         approvedAt: serverTimestamp(),
         approvedBy: auth.currentUser?.uid || 'system_admin'
       });
 
-      // Also update the primary driver record to set status to 'Available'
-      // We use the same ID (UID) as established in the new registration flow
+      // Update/Create primary record in 'drivers'
       const driverRef = doc(db, 'drivers', driverAuthId);
-      await updateDoc(driverRef, {
+      await setDoc(driverRef, {
+        ...driverData,
         status: 'Available',
-        approvedAt: serverTimestamp()
-      });
+        approved: true,
+        approvedAt: serverTimestamp(),
+        totalTrips: 0
+      }, { merge: true });
+
+      // Special handling for porters
+      if (role === 'porter') {
+        const porterRef = doc(db, 'porters', driverAuthId);
+        await setDoc(porterRef, {
+          id: driverAuthId,
+          name: driverData.name,
+          phone: driverData.phone,
+          status: 'Active',
+          totalTrips: 0,
+          approved: true,
+          approvedAt: serverTimestamp()
+        }, { merge: true });
+      }
       
-      // Notify both admin and driver
+      // Notify
       await dispatch({
         type: 'ADD_NOTIFICATION',
         payload: {
-          title: `Driver Approved — ${driverName}`,
-          message: `${driverName} has been approved and can now access the staff portal.`,
+          title: `Personnel Approved — ${driverName}`,
+          message: `${driverName} (${role}) has been approved and can now access the staff portal.`,
           type: 'SUCCESS',
           targetRole: 'both',
           date: new Date().toISOString()
         }
       });
       
-      toast.success(`${driverName} approved successfully`);
+      toast.success(`${driverName} approved as ${role}`);
     } catch (error) {
       console.error('Approve error:', error);
-      toast.error('Failed to approve: ' + error.message);
+      toast.error('Approval failed: ' + error.message);
     }
   };
 
@@ -359,7 +376,7 @@ const PendingApprovalsView = () => {
                   </p>
                 </div>
                 <Badge variant="gold" className="text-[10px] uppercase tracking-widest bg-safari-gold/10 text-safari-gold border-safari-gold/20">
-                  {driver?.role === 'safari_driver' ? 'Safari Driver' : 'City Driver'}
+                  {driver?.role === 'safari_driver' ? 'Safari Driver' : driver?.role === 'porter' ? 'Porter Personnel' : 'City Ops'}
                 </Badge>
               </div>
               
