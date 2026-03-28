@@ -147,16 +147,19 @@ export const LiveTracking = () => {
           pitch: 50
         });
 
-        // 1. Render Parks
+        // 1. Render Parks (Enhanced with Labels)
         KENYA_PARKS.forEach(park => {
           const el = document.createElement('div');
-          el.style.cssText = `
-            width: 10px; height: 10px; border-radius: 50%;
-            background: ${park.color}; border: 2px solid white;
-            cursor: pointer; transition: transform 0.2s ease;
+          el.style.cssText = 'display: flex; align-items: center; gap: 8px; cursor: pointer; transform-origin: left center; transition: transform 0.2s ease;';
+          
+          el.innerHTML = `
+            <div style="width: 10px; height: 10px; border-radius: 50%; background: ${park.color}; border: 1.5px solid #fff; box-shadow: 0 0 8px ${park.color}60;"></div>
+            <div style="background: rgba(17, 27, 21, 0.85); backdrop-filter: blur(4px); padding: 3px 10px; border-radius: 8px; border: 1px solid ${park.color}40; white-space: nowrap;">
+              <span style="color: #fff; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'DM Sans', sans-serif;">${park.name}</span>
+            </div>
           `;
           
-          el.addEventListener('mouseenter', () => el.style.transform = 'scale(1.8)');
+          el.addEventListener('mouseenter', () => el.style.transform = 'scale(1.1)');
           el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)');
           
           const popup = new maplibregl.Popup({ offset: 15, closeButton: false })
@@ -176,14 +179,20 @@ export const LiveTracking = () => {
           marker.addTo(map.current);
         });
 
-        // 2. Render Lodges & Camps
+        // 2. Render Lodges & Camps (Enhanced with Labels)
         KENYA_LODGES.forEach(lodge => {
           const el = document.createElement('div');
           const icon = lodge.type === 'tented_camp' ? '⛺' : '🏨';
-          el.innerHTML = icon;
-          el.style.cssText = 'font-size: 14px; cursor: pointer; transition: transform 0.2s ease; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));';
+          el.style.cssText = 'display: flex; align-items: center; gap: 6px; cursor: pointer; transform-origin: left center; transition: transform 0.2s ease;';
           
-          el.addEventListener('mouseenter', () => el.style.transform = 'scale(1.5)');
+          el.innerHTML = `
+            <span style="font-size: 18px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">${icon}</span>
+            <div style="background: rgba(10, 10, 20, 0.85); backdrop-filter: blur(6px); padding: 3px 10px; border-radius: 8px; border: 1px solid #C9A84C30; white-space: nowrap;">
+              <span style="color: #C9A84C; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'DM Sans', sans-serif;">${lodge.name}</span>
+            </div>
+          `;
+          
+          el.addEventListener('mouseenter', () => el.style.transform = 'scale(1.2)');
           el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)');
           
           const stars = '★'.repeat(lodge.stars) + '☆'.repeat(5 - lodge.stars);
@@ -207,13 +216,19 @@ export const LiveTracking = () => {
           marker.addTo(map.current);
         });
 
-        // 3. Render Gates
+        // 3. Render Entry Gates (Enhanced with Labels)
         KENYA_GATES.forEach(gate => {
           const el = document.createElement('div');
-          el.innerHTML = '🚧';
-          el.style.cssText = 'font-size: 13px; cursor: pointer; transition: transform 0.2s ease;';
+          el.style.cssText = 'display: flex; align-items: center; gap: 6px; cursor: pointer; transform-origin: left center; transition: transform 0.2s ease;';
           
-          el.addEventListener('mouseenter', () => el.style.transform = 'scale(1.5)');
+          el.innerHTML = `
+            <span style="font-size: 16px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🚧</span>
+            <div style="background: rgba(10, 20, 15, 0.85); backdrop-filter: blur(6px); padding: 3px 10px; border-radius: 8px; border: 1px solid #4ade8030; white-space: nowrap;">
+              <span style="color: #4ade80; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'DM Sans', sans-serif;">${gate.name}</span>
+            </div>
+          `;
+          
+          el.addEventListener('mouseenter', () => el.style.transform = 'scale(1.2)');
           el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)');
           
           const popup = new maplibregl.Popup({ offset: 15, closeButton: false })
