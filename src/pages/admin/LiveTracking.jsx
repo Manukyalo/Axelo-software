@@ -23,7 +23,8 @@ import {
   Activity,
   Phone,
   Clock,
-  LayoutGrid
+  LayoutGrid,
+  X
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { KENYA_PARKS } from '../../utils/parkBoundaries';
@@ -55,6 +56,8 @@ export const LiveTracking = () => {
   const [search, setSearch] = useState('');
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [selectedParkId, setSelectedParkId] = useState(null);
+  const [selectedLodgeId, setSelectedLodgeId] = useState(null);
+  const [selectedGateId, setSelectedGateId] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(6.5);
   const [mapType, setMapType] = useState('dark');
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -86,11 +89,17 @@ export const LiveTracking = () => {
   const [showDrivers, setShowDrivers] = useState(true);
 
   // Statistics
-  const stats = useMemo(() => {
+  const dbStats = useMemo(() => {
     return {
       parks: KENYA_PARKS.length,
       lodges: KENYA_LODGES.length,
       gates: KENYA_GATES.length,
+      drivers: state.drivers.length
+    };
+  }, [state.drivers]);
+
+  const stats = useMemo(() => {
+    return {
       online: state.driverLocations?.filter(l => l.isOnline).length || 0,
       sos: state.sosAlerts?.filter(s => s.status === 'Active').length || 0
     };
@@ -194,6 +203,9 @@ export const LiveTracking = () => {
             const btn = document.getElementById(`focus-${park.id}`);
             if (btn) btn.addEventListener('click', () => {
               setSelectedParkId(park.id);
+              setSelectedDriver(null);
+              setSelectedLodgeId(null);
+              setSelectedGateId(null);
               handleFlyTo(park.center, 10.5);
               popup.remove();
             });
@@ -224,25 +236,32 @@ export const LiveTracking = () => {
           el.addEventListener('mouseenter', () => el.style.transform = 'scale(1.2)');
           el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)');
           
-          const stars = '★'.repeat(lodge.stars) + '☆'.repeat(5 - lodge.stars);
-          const popup = new maplibregl.Popup({ offset: 15, closeButton: false })
-            .setHTML(`
-              <div style="background: linear-gradient(135deg, #1A1A2E 0%, #16162A 100%); color: #F0EDE8; padding: 14px; border-radius: 12px; border: 1px solid #C9A84C40; min-width: 200px;">
-                <div style="font-size: 10px; text-transform: uppercase; color: #C9A84C; letter-spacing: 1px;">${lodge.type.replace('_', ' ')}</div>
-                <div style="font-weight: 700; font-size: 15px; margin: 2px 0;">${lodge.name}</div>
-                <div style="color: #C9A84C; font-size: 12px; margin-bottom: 8px;">${stars}</div>
-                <p style="font-size: 11px; opacity: 0.7; margin-bottom: 8px;">${lodge.description}</p>
-                <div style="font-size: 10px; color: #C9A84C;">📍 ${lodge.parkName}</div>
-                ${lodge.phone ? `<div style="font-size: 10px; margin-top: 4px; opacity: 0.5;">📞 ${lodge.phone}</div>` : ''}
-              </div>
-            `);
-
-          const marker = new maplibregl.Marker({ element: el })
+          const m = new maplibregl.Marker({ element: el })
             .setLngLat(lodge.center)
-            .setPopup(popup);
+            .setPopup(new maplibregl.Popup({ offset: 15, closeButton: false })
+            .setHTML(`
+            <div class="p-3 bg-white border border-black/10 rounded-xl text-black font-dm-sans min-w-[160px] shadow-2xl">
+              <div class="text-[9px] uppercase font-black text-safari-gold mb-0.5">${lodge.type.replace('_',' ')}</div>
+              <div class="text-xs font-black text-black">${lodge.name}</div>
+              <div class="text-[10px] text-black/40 mt-1">📍 ${lodge.parkName}</div>
+              <button id="focus-lodge-${lodge.id}" class="w-full mt-2 py-1.5 bg-safari-gold text-black text-[9px] font-black uppercase rounded-lg hover:bg-black hover:text-safari-gold transition-all">Focus this Lodge</button>
+            </div>
+          `));
+
+          m.on('open', () => {
+            setTimeout(() => {
+              document.getElementById(`focus-lodge-${lodge.id}`)?.addEventListener('click', () => {
+                handleFlyTo(lodge.center, 14);
+                setSelectedLodgeId(lodge.id);
+                setSelectedParkId(null);
+                setSelectedDriver(null);
+                setSelectedGateId(null);
+              });
+            }, 0);
+          });
           
-          lodgeMarkers.current[lodge.id] = marker;
-          marker.addTo(map.current);
+          lodgeMarkers.current[lodge.id] = m;
+          m.addTo(map.current);
         });
 
         // 3. Render Entry Gates (Enhanced with Labels)
@@ -261,22 +280,31 @@ export const LiveTracking = () => {
           el.addEventListener('mouseenter', () => el.style.transform = 'scale(1.2)');
           el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)');
           
-          const popup = new maplibregl.Popup({ offset: 15, closeButton: false })
-            .setHTML(`
-              <div style="background: #111; color: white; padding: 14px; border-radius: 12px; border: 1px solid rgba(231,111,81,0.4); min-width: 180px;">
-                <div style="font-size: 10px; color: #E76F51; font-weight: 800;">ENTRY GATE</div>
-                <div style="font-weight: 700; font-size: 14px; margin: 2px 0;">${gate.name}</div>
-                <p style="font-size: 11px; opacity: 0.6; margin-bottom: 8px;">${gate.direction}</p>
-                <div style="font-size: 10px; color: #C9A84C;">⏰ ${gate.openHours}</div>
-              </div>
-            `);
-
-          const marker = new maplibregl.Marker({ element: el })
+          const m = new maplibregl.Marker({ element: el })
             .setLngLat(gate.center)
-            .setPopup(popup);
+            .setPopup(new maplibregl.Popup({ offset: 15, closeButton: false })
+            .setHTML(`
+            <div class="p-3 bg-white border border-black/10 rounded-xl text-black font-dm-sans min-w-[140px] shadow-2xl">
+              <div class="text-[9px] uppercase font-black text-emerald-500 mb-0.5">Entry Gate</div>
+              <div class="text-xs font-black text-black">${gate.name}</div>
+              <button id="focus-gate-${gate.id}" class="w-full mt-2 py-1.5 bg-emerald-500 text-white text-[9px] font-black uppercase rounded-lg hover:bg-black transition-all">Focus this Gate</button>
+            </div>
+          `));
+
+          m.on('open', () => {
+            setTimeout(() => {
+              document.getElementById(`focus-gate-${gate.id}`)?.addEventListener('click', () => {
+                handleFlyTo(gate.center, 15);
+                setSelectedGateId(gate.id);
+                setSelectedParkId(null);
+                setSelectedDriver(null);
+                setSelectedLodgeId(null);
+              });
+            }, 0);
+          });
           
-          gateMarkers.current[gate.id] = marker;
-          marker.addTo(map.current);
+          gateMarkers.current[gate.id] = m;
+          m.addTo(map.current);
         });
 
         map.current.on('zoom', () => {
@@ -391,7 +419,14 @@ export const LiveTracking = () => {
                 {searchResults.drivers.map(loc => {
                   const d = state.drivers.find(dr => dr.id === loc.driverId);
                   return (
-                    <button key={loc.driverId} onClick={() => { handleFlyTo([loc.longitude, loc.latitude]); setSearch(''); }} className="w-full px-4 py-2 hover:bg-safari-gold/10 text-left flex items-center gap-3">
+                    <button key={loc.driverId} onClick={() => { 
+                    handleFlyTo([loc.longitude, loc.latitude]); 
+                    setSelectedDriver(loc.driverId);
+                    setSelectedParkId(null);
+                    setSelectedLodgeId(null);
+                    setSelectedGateId(null);
+                    setSearch(''); 
+                  }} className="w-full px-4 py-2 hover:bg-safari-gold/10 text-left flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-emerald-500" />
                       <div className="flex-1 min-w-0">
                         <div className="text-[11px] font-bold dark:text-white truncate">{d?.name}</div>
@@ -401,7 +436,14 @@ export const LiveTracking = () => {
                   );
                 })}
                 {searchResults.lodges.map(lodge => (
-                  <button key={lodge.id} onClick={() => { handleFlyTo(lodge.center); setSearch(''); }} className="w-full px-4 py-2 hover:bg-safari-gold/10 text-left flex items-center gap-3">
+                  <button key={lodge.id} onClick={() => { 
+                    handleFlyTo(lodge.center); 
+                    setSelectedLodgeId(lodge.id);
+                    setSelectedParkId(null);
+                    setSelectedDriver(null);
+                    setSelectedGateId(null);
+                    setSearch(''); 
+                  }} className="w-full px-4 py-2 hover:bg-safari-gold/10 text-left flex items-center gap-3">
                     <span className="text-sm">{lodge.type === 'tented_camp' ? '⛺' : '🏨'}</span>
                     <div className="flex-1 min-w-0">
                       <div className="text-[11px] font-bold dark:text-white truncate">{lodge.name}</div>
@@ -412,9 +454,12 @@ export const LiveTracking = () => {
                 {searchResults.parks.map(park => (
                   <button key={park.id} onClick={() => { 
                     setSelectedParkId(park.id); 
-                    handleFlyTo(park.center, 10.5); 
+                    setSelectedDriver(null);
+                    setSelectedLodgeId(null);
+                    setSelectedGateId(null);
+                    handleFlyTo(park.center, park.zoom || 11); 
                     setSearch(''); 
-                  }} className="w-full px-4 py-2 hover:bg-safari-gold/10 text-left flex items-center gap-3">
+                  }} className="w-full px-4 py-2 hover:bg-safari-gold/10 text-left flex items-center gap-3 group">
                     <div className="w-2 h-2 rounded-full" style={{ background: park.color }} />
                     <div className="flex-1 min-w-0">
                       <div className="text-[11px] font-bold dark:text-white truncate">{park.name}</div>
@@ -423,7 +468,14 @@ export const LiveTracking = () => {
                   </button>
                 ))}
                 {searchResults.gates.map(gate => (
-                  <button key={gate.id} onClick={() => { handleFlyTo(gate.center, 14); setSearch(''); }} className="w-full px-4 py-2 hover:bg-safari-gold/10 text-left flex items-center gap-3">
+                  <button key={gate.id} onClick={() => { 
+                    handleFlyTo(gate.center); 
+                    setSelectedGateId(gate.id);
+                    setSelectedParkId(null);
+                    setSelectedDriver(null);
+                    setSelectedLodgeId(null);
+                    setSearch(''); 
+                  }} className="w-full px-4 py-2 hover:bg-safari-gold/10 text-left flex items-center gap-3">
                     <span className="text-sm">🚧</span>
                     <div className="flex-1 min-w-0">
                       <div className="text-[11px] font-bold dark:text-white truncate">{gate.name}</div>
@@ -441,7 +493,14 @@ export const LiveTracking = () => {
                const driver = state.drivers.find(d => d.id === loc.driverId);
                const hasSOS = state.sosAlerts?.some(s => s.driverId === loc.driverId && s.status === 'Active');
                return (
-                 <button key={loc.driverId} onClick={() => handleFlyTo([loc.longitude, loc.latitude])} className={`w-full p-4 rounded-2xl border transition-all text-left flex gap-3 relative ${selectedDriver === loc.driverId ? 'bg-safari-primary border-safari-primary shadow-lg' : 'bg-white dark:bg-dark-card border-gray-100 dark:border-dark-border hover:border-safari-gold/30'}`}>
+                  <button 
+                    key={loc.driverId} 
+                    onClick={() => {
+                      handleFlyTo([loc.longitude, loc.latitude]);
+                      setSelectedDriver(loc.driverId);
+                    }} 
+                    className={`w-full p-4 flex items-center gap-4 transition-all hover:bg-black/5 active:scale-95 ${selectedDriver === loc.driverId ? 'bg-safari-gold/10' : ''}`}
+                  >
                     {hasSOS && <div className="absolute top-0 right-0 w-1.5 h-full bg-red-500 animate-pulse" />}
                     <div className="w-10 h-10 rounded-xl bg-safari-gold/10 text-safari-gold flex items-center justify-center font-bold text-sm">
                       {driver?.name?.charAt(0)}
@@ -466,24 +525,39 @@ export const LiveTracking = () => {
         <div className="flex-1 relative rounded-3xl overflow-hidden shadow-2xl bg-[#0D1612]">
           <div ref={mapContainer} className={`w-full h-full zoom-state-${Math.floor(currentZoom)} ${selectedParkId ? 'park-focus-mode' : ''}`} style={{ minHeight: '500px' }} />
 
-          {/* FOCUSED PARK BADGE */}
-          {selectedParkId && (
+          {/* FOCUSED ASSET BADGE */}
+          {(selectedParkId || selectedDriver || selectedLodgeId || selectedGateId) && (
             <div className="absolute top-6 right-20 z-10 animate-in fade-in slide-in-from-top-4 duration-500">
                <div className="bg-safari-gold border border-black/10 rounded-xl px-4 py-2 flex items-center gap-3 shadow-2xl">
-                 <Trees size={16} className="text-black" />
-                 <div className="flex flex-col">
-                   <span className="text-[10px] text-black/60 font-black uppercase tracking-widest leading-none">Focused Area</span>
-                   <span className="text-sm text-black font-black font-playfair">{KENYA_PARKS.find(p => p.id === selectedParkId)?.name}</span>
-                 </div>
-                 <button 
-                  onClick={() => {
-                    setSelectedParkId(null);
-                    handleFlyTo([37.9062, -1.2863], 6.5);
-                  }}
-                  className="bg-black/10 hover:bg-black/20 p-1.5 rounded-lg transition-colors ml-2"
-                 >
-                   <X size={14} className="text-black" />
-                 </button>
+                  <div className="w-8 h-8 bg-black/10 rounded-lg flex items-center justify-center">
+                    {selectedParkId && <Trees size={16} className="text-black" />}
+                    {selectedDriver && <User size={16} className="text-black" />}
+                    {selectedLodgeId && <span className="text-sm">🏨</span>}
+                    {selectedGateId && <span className="text-sm">🚧</span>}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase font-black text-black/40 leading-none mb-0.5 tracking-widest">
+                      {selectedParkId ? 'Focused Park' : selectedDriver ? 'Focused Driver' : selectedLodgeId ? 'Focused Lodge' : 'Focused Gate'}
+                    </span>
+                    <span className="text-sm text-black font-black font-playfair">
+                      {selectedParkId && KENYA_PARKS.find(p => p.id === selectedParkId)?.name}
+                      {selectedDriver && state.drivers.find(d => d.id === selectedDriver)?.name}
+                      {selectedLodgeId && KENYA_LODGES.find(l => l.id === selectedLodgeId)?.name}
+                      {selectedGateId && KENYA_GATES.find(g => g.id === selectedGateId)?.name}
+                      {!(selectedParkId || selectedDriver || selectedLodgeId || selectedGateId) && 'Selected Item'}
+                    </span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setSelectedParkId(null);
+                      setSelectedDriver(null);
+                      setSelectedLodgeId(null);
+                      setSelectedGateId(null);
+                    }}
+                    className="ml-2 p-1.5 hover:bg-black/10 rounded-full transition-colors group"
+                  >
+                    <X size={14} className="text-black group-hover:scale-110 transition-transform" />
+                  </button>
                </div>
             </div>
           )}
