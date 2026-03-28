@@ -253,6 +253,14 @@ const PendingApprovalsView = () => {
         approvedAt: serverTimestamp(),
         approvedBy: auth.currentUser?.uid || 'system_admin'
       });
+
+      // Also update the primary driver record to set status to 'Available'
+      // We use the same ID (UID) as established in the new registration flow
+      const driverRef = doc(db, 'drivers', driverAuthId);
+      await updateDoc(driverRef, {
+        status: 'Available',
+        approvedAt: serverTimestamp()
+      });
       
       // Notify both admin and driver
       await dispatch({

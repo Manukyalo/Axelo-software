@@ -54,7 +54,8 @@ export const LiveTracking = () => {
   
   const [search, setSearch] = useState('');
   const [selectedDriver, setSelectedDriver] = useState(null);
-  const [selectedPark, setSelectedPark] = useState(null);
+  const [selectedParkId, setSelectedParkId] = useState(null);
+  const [currentZoom, setCurrentZoom] = useState(6.5);
   const [mapType, setMapType] = useState('dark');
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(null);
@@ -100,15 +101,29 @@ export const LiveTracking = () => {
     if (!mapLoaded) return;
     
     // Parks
-    Object.values(parkMarkers.current).forEach(m => showParks ? m.addTo(map.current) : m.remove());
+    Object.entries(parkMarkers.current).forEach(([id, m]) => {
+      const isVisible = showParks && (!selectedParkId || selectedParkId === id);
+      isVisible ? m.addTo(map.current) : m.remove();
+    });
+
     // Lodges
-    Object.values(lodgeMarkers.current).forEach(m => showLodges ? m.addTo(map.current) : m.remove());
+    Object.entries(lodgeMarkers.current).forEach(([id, m]) => {
+      const lodge = KENYA_LODGES.find(l => l.id === id);
+      const isVisible = showLodges && (!selectedParkId || selectedParkId === lodge?.parkId);
+      isVisible ? m.addTo(map.current) : m.remove();
+    });
+
     // Gates
-    Object.values(gateMarkers.current).forEach(m => showGates ? m.addTo(map.current) : m.remove());
+    Object.entries(gateMarkers.current).forEach(([id, m]) => {
+      const gate = KENYA_GATES.find(g => g.id === id);
+      const isVisible = showGates && (!selectedParkId || selectedParkId === gate?.parkId);
+      isVisible ? m.addTo(map.current) : m.remove();
+    });
+
     // Drivers
     Object.values(markers.current).forEach(m => showDrivers ? m.addTo(map.current) : m.remove());
     
-  }, [showParks, showLodges, showGates, showDrivers, mapLoaded]);
+  }, [showParks, showLodges, showGates, showDrivers, selectedParkId, mapLoaded]);
 
   // Initial Map Load
   useEffect(() => {
@@ -150,11 +165,12 @@ export const LiveTracking = () => {
         // 1. Render Parks (Enhanced with Labels)
         KENYA_PARKS.forEach(park => {
           const el = document.createElement('div');
+          el.className = `park-marker park-${park.id}`;
           el.style.cssText = 'display: flex; align-items: center; gap: 8px; cursor: pointer; transform-origin: left center; transition: transform 0.2s ease;';
           
           el.innerHTML = `
             <div style="width: 10px; height: 10px; border-radius: 50%; background: ${park.color}; border: 1.5px solid #fff; box-shadow: 0 0 8px ${park.color}60;"></div>
-            <div style="background: rgba(17, 27, 21, 0.85); backdrop-filter: blur(4px); padding: 3px 10px; border-radius: 8px; border: 1px solid ${park.color}40; white-space: nowrap;">
+            <div class="park-label" style="background: rgba(17, 27, 21, 0.85); backdrop-filter: blur(4px); padding: 3px 10px; border-radius: 8px; border: 1px solid ${park.color}40; white-space: nowrap;">
               <span style="color: #fff; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'DM Sans', sans-serif;">${park.name}</span>
             </div>
           `;
@@ -168,8 +184,20 @@ export const LiveTracking = () => {
                 <div style="color: ${park.color}; font-weight: 800; font-size: 14px;">${park.name}</div>
                 <div style="font-size: 10px; opacity: 0.5; margin-bottom: 4px;">NATIONAL ${park.type.toUpperCase()}</div>
                 <p style="font-size: 11px; line-height: 1.4; margin: 0;">${park.description}</p>
+                <div style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); pt-2;">
+                   <button id="focus-${park.id}" style="width: 100%; padding: 6px; border-radius: 6px; background: ${park.color}; color: white; border: none; font-size: 10px; font-weight: 800; cursor: pointer; margin-top: 8px;">FOCUS THIS PARK</button>
+                </div>
               </div>
             `);
+
+          popup.on('open', () => {
+            const btn = document.getElementById(`focus-${park.id}`);
+            if (btn) btn.addEventListener('click', () => {
+              setSelectedParkId(park.id);
+              handleFlyTo(park.center, 10.5);
+              popup.remove();
+            });
+          });
 
           const marker = new maplibregl.Marker({ element: el })
             .setLngLat(park.center)
@@ -183,11 +211,12 @@ export const LiveTracking = () => {
         KENYA_LODGES.forEach(lodge => {
           const el = document.createElement('div');
           const icon = lodge.type === 'tented_camp' ? '⛺' : '🏨';
+          el.className = `lodge-marker park-${lodge.parkId}`;
           el.style.cssText = 'display: flex; align-items: center; gap: 6px; cursor: pointer; transform-origin: left center; transition: transform 0.2s ease;';
           
           el.innerHTML = `
             <span style="font-size: 18px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">${icon}</span>
-            <div style="background: rgba(10, 10, 20, 0.85); backdrop-filter: blur(6px); padding: 3px 10px; border-radius: 8px; border: 1px solid #C9A84C30; white-space: nowrap;">
+            <div class="lodge-label" style="background: rgba(10, 10, 20, 0.85); backdrop-filter: blur(6px); padding: 3px 10px; border-radius: 8px; border: 1px solid #C9A84C30; white-space: nowrap;">
               <span style="color: #C9A84C; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'DM Sans', sans-serif;">${lodge.name}</span>
             </div>
           `;
@@ -219,11 +248,12 @@ export const LiveTracking = () => {
         // 3. Render Entry Gates (Enhanced with Labels)
         KENYA_GATES.forEach(gate => {
           const el = document.createElement('div');
+          el.className = `gate-marker park-${gate.parkId}`;
           el.style.cssText = 'display: flex; align-items: center; gap: 6px; cursor: pointer; transform-origin: left center; transition: transform 0.2s ease;';
           
           el.innerHTML = `
             <span style="font-size: 16px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🚧</span>
-            <div style="background: rgba(10, 20, 15, 0.85); backdrop-filter: blur(6px); padding: 3px 10px; border-radius: 8px; border: 1px solid #4ade8030; white-space: nowrap;">
+            <div class="gate-label" style="background: rgba(10, 20, 15, 0.85); backdrop-filter: blur(6px); padding: 3px 10px; border-radius: 8px; border: 1px solid #4ade8030; white-space: nowrap;">
               <span style="color: #4ade80; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'DM Sans', sans-serif;">${gate.name}</span>
             </div>
           `;
@@ -247,6 +277,10 @@ export const LiveTracking = () => {
           
           gateMarkers.current[gate.id] = marker;
           marker.addTo(map.current);
+        });
+
+        map.current.on('zoom', () => {
+          setCurrentZoom(map.current.getZoom());
         });
 
         setMapLoaded(true);
@@ -376,7 +410,11 @@ export const LiveTracking = () => {
                   </button>
                 ))}
                 {searchResults.parks.map(park => (
-                  <button key={park.id} onClick={() => { handleFlyTo(park.center, 10); setSearch(''); }} className="w-full px-4 py-2 hover:bg-safari-gold/10 text-left flex items-center gap-3">
+                  <button key={park.id} onClick={() => { 
+                    setSelectedParkId(park.id); 
+                    handleFlyTo(park.center, 10.5); 
+                    setSearch(''); 
+                  }} className="w-full px-4 py-2 hover:bg-safari-gold/10 text-left flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full" style={{ background: park.color }} />
                     <div className="flex-1 min-w-0">
                       <div className="text-[11px] font-bold dark:text-white truncate">{park.name}</div>
@@ -426,7 +464,29 @@ export const LiveTracking = () => {
 
         {/* MAP & COMMAND LAYERS */}
         <div className="flex-1 relative rounded-3xl overflow-hidden shadow-2xl bg-[#0D1612]">
-          <div ref={mapContainer} className="w-full h-full" style={{ minHeight: '500px' }} />
+          <div ref={mapContainer} className={`w-full h-full zoom-state-${Math.floor(currentZoom)} ${selectedParkId ? 'park-focus-mode' : ''}`} style={{ minHeight: '500px' }} />
+
+          {/* FOCUSED PARK BADGE */}
+          {selectedParkId && (
+            <div className="absolute top-6 right-20 z-10 animate-in fade-in slide-in-from-top-4 duration-500">
+               <div className="bg-safari-gold border border-black/10 rounded-xl px-4 py-2 flex items-center gap-3 shadow-2xl">
+                 <Trees size={16} className="text-black" />
+                 <div className="flex flex-col">
+                   <span className="text-[10px] text-black/60 font-black uppercase tracking-widest leading-none">Focused Area</span>
+                   <span className="text-sm text-black font-black font-playfair">{KENYA_PARKS.find(p => p.id === selectedParkId)?.name}</span>
+                 </div>
+                 <button 
+                  onClick={() => {
+                    setSelectedParkId(null);
+                    handleFlyTo([37.9062, -1.2863], 6.5);
+                  }}
+                  className="bg-black/10 hover:bg-black/20 p-1.5 rounded-lg transition-colors ml-2"
+                 >
+                   <X size={14} className="text-black" />
+                 </button>
+               </div>
+            </div>
+          )}
 
           {/* LAYER TOGGLE PANEL */}
           <div className="absolute top-6 left-6 z-10">
@@ -530,6 +590,26 @@ export const LiveTracking = () => {
         .driver-name { font-weight: 800; font-size: 13px; margin-bottom: 2px; }
         .driver-status { font-size: 9px; font-weight: 800; text-transform: uppercase; opacity: 0.6; margin-bottom: 6px; }
         .driver-meta { display: flex; justify-content: space-between; font-size: 9px; color: rgba(255,255,255,0.5); }
+        
+        /* De-cluttering Logic */
+        .park-marker .park-label { opacity: 0; transform: scale(0.8); transition: all 0.4s ease; transform-origin: left center; pointer-events: none; }
+        .lodge-marker .lodge-label { opacity: 0; transform: scale(0.8); transition: all 0.4s ease; transform-origin: left center; pointer-events: none; }
+        .gate-marker .gate-label { opacity: 0; transform: scale(0.8); transition: all 0.4s ease; transform-origin: left center; pointer-events: none; }
+
+        /* Zoom-based show (Global) */
+        .zoom-state-8 .park-label, .zoom-state-9 .park-label, .zoom-state-10 .park-label, .zoom-state-11 .park-label, .zoom-state-12 .park-label, .zoom-state-13 .park-label, .zoom-state-14 .park-label { opacity: 1; transform: scale(1); pointer-events: auto; }
+        .zoom-state-11 .lodge-label, .zoom-state-12 .lodge-label, .zoom-state-13 .lodge-label, .zoom-state-14 .lodge-label { opacity: 1; transform: scale(1); pointer-events: auto; }
+        .zoom-state-12 .gate-label, .zoom-state-13 .gate-label, .zoom-state-14 .gate-label { opacity: 1; transform: scale(1); pointer-events: auto; }
+
+        /* Park Focus Mode (Overwrites Zoom for specific park) */
+        .park-focus-mode .park-label,
+        .park-focus-mode .lodge-label,
+        .park-focus-mode .gate-label {
+           opacity: 1 !important;
+           transform: scale(1) !important;
+           pointer-events: auto !important;
+        }
+
         @keyframes pulse-gold { 0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(212, 175, 55, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); } }
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); transform: scale(1); } 50% { transform: scale(1.1); } 70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); transform: scale(1); } }
         .maplibregl-popup-content { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }

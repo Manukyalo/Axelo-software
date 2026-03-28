@@ -39,12 +39,15 @@ service cloud.firestore {
 
     match /drivers/{driverId} {
       allow read: if true; 
-      allow write: if isAdmin() || (isAuthenticated() && (
-        request.auth.token.email.matches('(?i)' + resource.data.email) || 
+      allow create: if isAuthenticated() && request.auth.uid == driverId;
+      allow update: if isAdmin() || (isAuthenticated() && (
+        request.auth.token.email.matches('(?i)' + (resource.data.email || "")) || 
         !('uid' in resource.data) ||
         resource.data.uid == "" ||
-        resource.data.uid == request.auth.uid
+        resource.data.uid == request.auth.uid ||
+        request.auth.uid == driverId
       ));
+      allow delete: if isAdmin();
     }
 
     match /packages/{packageId} {
