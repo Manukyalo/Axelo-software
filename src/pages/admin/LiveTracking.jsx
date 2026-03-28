@@ -401,7 +401,7 @@ export const LiveTracking = () => {
     if (!map.current || !mapLoaded) return;
     const currentLocations = state.driverLocations || [];
     
-    currentLocations.forEach(loc => {
+    currentLocations.filter(l => l.isOnline).forEach(loc => {
       const driver = state.drivers.find(d => d.id === loc.driverId);
       if (!driver) return;
       const hasSOS = state.sosAlerts?.some(s => s.driverId === loc.driverId && s.status === 'Active');
@@ -410,54 +410,44 @@ export const LiveTracking = () => {
         const el = document.createElement('div');
         el.className = 'driver-marker-container';
         
-        // Role-Specific Iconography
+        // Professional Iconography
         const getRoleIcon = (role) => {
-          if (role === 'porter') {
-            return `
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M6 20V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/>
-                <rect x="2" y="14" width="20" height="6" rx="2"/>
-                <line x1="6" y1="7" x2="6" y2="7"/>
-                <line x1="18" y1="7" x2="18" y2="7"/>
-              </svg>
-            `;
-          }
-          if (role === 'tour_guide' || role === 'city_ops') {
-            return `
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-                <line x1="4" y1="22" x2="4" y2="15"/>
-              </svg>
-            `;
-          }
-          // Default Jeep for Drivers
+          if (role === 'porter') return `
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 20V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><rect x="2" y="14" width="20" height="6" rx="1"/>
+            </svg>`;
           return `
-            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4 11H20M4 11V15M4 11L5 7H19L20 11M20 11V15M5 15V17M19 15V17M7 17C7 18.1046 7.89543 19 9 19C10.1046 19 11 18.1046 11 17M15 17C15 18.1046 15.8954 19 17 19C18.1046 19 19 18.1046 19 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M7 17H11M15 17H19M11 17H15" stroke="currentColor" stroke-width="2"/>
-              <circle cx="9" cy="17" r="2" stroke="currentColor" stroke-width="2"/>
-              <circle cx="17" cy="17" r="2" stroke="currentColor" stroke-width="2"/>
-            </svg>
-          `;
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>`;
         };
 
         const inner = document.createElement('div');
-        inner.className = `driver-marker-inner ${hasSOS ? 'sos-pulse' : loc.isOnline ? 'online-pulse' : 'offline'}`;
+        inner.className = `driver-marker-inner online-pulse ${hasSOS ? 'sos-pulse' : ''}`;
         inner.innerHTML = getRoleIcon(driver.role);
         el.appendChild(inner);
 
         const marker = new maplibregl.Marker({ element: el, zIndexOffset: 1000 })
           .setLngLat([loc.longitude, loc.latitude])
           .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`
-            <div class="driver-popup glass">
-              <div class="driver-name">${driver.name}</div>
-              <div class="driver-role" style="font-size: 8px; font-weight: 900; color: #D4AF37; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.1em;">
-                ${driver.role?.replace('_', ' ') || 'Personnel'}
+            <div class="driver-popup glass p-4 rounded-2xl min-w-[160px] border border-white/10 shadow-2xl">
+              <div class="flex items-center gap-2 mb-2">
+                 <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                 <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Live Signal</span>
               </div>
-              <div class="driver-status ${hasSOS ? 'text-red-500' : ''}">${hasSOS ? '🆘 SOS ACTIVE' : loc.isOnline ? 'ONLINE' : 'OFFLINE'}</div>
-              <div class="driver-meta">
-                <span>${Math.round(loc.speed || 0)} km/h</span>
-                <span>${loc.batteryLevel}% Bat</span>
+              <div class="text-white font-black text-sm uppercase mb-0.5">${driver.name}</div>
+              <div class="text-safari-gold font-bold text-[9px] uppercase tracking-tighter mb-3">
+                ${driver.role?.replace('_', ' ') || 'Field Personnel'}
+              </div>
+              <div class="grid grid-cols-2 gap-2 pt-2 border-t border-white/10">
+                <div class="flex flex-col">
+                  <span class="text-[8px] text-white/40 uppercase font-bold">Speed</span>
+                  <span class="text-xs font-mono text-white">${Math.round(loc.speed || 0)} <span class="text-[8px] opacity-40">km/h</span></span>
+                </div>
+                <div class="flex flex-col items-end">
+                  <span class="text-[8px] text-white/40 uppercase font-bold">Battery</span>
+                  <span class="text-xs font-mono text-white">${loc.batteryLevel}%</span>
+                </div>
               </div>
             </div>
           `));
@@ -467,12 +457,13 @@ export const LiveTracking = () => {
       } else {
         markers.current[loc.driverId].setLngLat([loc.longitude, loc.latitude]);
         const inner = markers.current[loc.driverId].getElement().firstChild;
-        inner.className = `driver-marker-inner ${hasSOS ? 'sos-pulse' : loc.isOnline ? 'online-pulse' : 'offline'}`;
+        inner.className = `driver-marker-inner online-pulse ${hasSOS ? 'sos-pulse' : ''}`;
       }
     });
 
     Object.keys(markers.current).forEach(id => {
-      if (!currentLocations.find(l => l.driverId === id)) {
+      const loc = currentLocations.find(l => l.driverId === id);
+      if (!loc || !loc.isOnline) {
         markers.current[id].remove();
         delete markers.current[id];
       }
@@ -592,7 +583,7 @@ export const LiveTracking = () => {
 
           {/* DRIVER LIST */}
           <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
-             {(state.driverLocations || []).map(loc => {
+             {(state.driverLocations || []).filter(l => l.isOnline).map(loc => {
                const driver = state.drivers.find(d => d.id === loc.driverId);
                const hasSOS = state.sosAlerts?.some(s => s.driverId === loc.driverId && s.status === 'Active');
                return (
@@ -602,20 +593,28 @@ export const LiveTracking = () => {
                       handleFlyTo([loc.longitude, loc.latitude]);
                       setSelectedDriver(loc.driverId);
                     }} 
-                    className={`w-full p-4 flex items-center gap-4 transition-all hover:bg-black/5 active:scale-95 ${selectedDriver === loc.driverId ? 'bg-safari-gold/10' : ''}`}
+                    className={`w-full p-4 rounded-2xl border border-white/5 bg-white/5 backdrop-blur-md flex items-center gap-4 transition-all hover:bg-safari-gold/20 active:scale-95 mb-3 group ${selectedDriver === loc.driverId ? 'ring-2 ring-safari-gold bg-safari-gold/10' : ''}`}
                   >
-                    {hasSOS && <div className="absolute top-0 right-0 w-1.5 h-full bg-red-500 animate-pulse" />}
-                    <div className="w-10 h-10 rounded-xl bg-safari-gold/10 text-safari-gold flex items-center justify-center font-bold text-sm">
-                      {driver?.name?.charAt(0)}
+                    <div className="relative">
+                      <div className="w-10 h-10 rounded-xl bg-safari-gold/10 text-safari-gold flex items-center justify-center font-black text-sm group-hover:bg-safari-gold group-hover:text-black transition-all">
+                        {driver?.name?.charAt(0)}
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-[#111B15] rounded-full animate-pulse" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start">
-                        <p className={`font-bold text-xs truncate ${selectedDriver === loc.driverId ? 'text-white' : 'dark:text-white'}`}>{driver?.name}</p>
-                        {hasSOS && <Badge className="bg-red-500 text-[8px]">SOS</Badge>}
+                        <p className={`font-black text-[11px] truncate uppercase tracking-tight ${selectedDriver === loc.driverId ? 'text-safari-gold' : 'text-white'}`}>{driver?.name}</p>
+                        {hasSOS && <Badge className="bg-red-500 text-[8px] animate-pulse">SOS</Badge>}
                       </div>
-                      <div className="flex items-center gap-2 mt-1 opacity-60">
-                         <span className="text-[9px] flex items-center gap-1"><Compass size={8}/> {Math.round(loc.speed || 0)}km/h</span>
-                         <span className="text-[9px] flex items-center gap-1"><Battery size={8}/> {loc.batteryLevel}%</span>
+                      <div className="flex items-center gap-3 mt-1.5">
+                         <div className="flex items-center gap-1">
+                           <div className={`w-1 h-3 rounded-full ${loc.batteryLevel > 70 ? 'bg-emerald-500' : loc.batteryLevel > 30 ? 'bg-yellow-500' : 'bg-red-500'}`} />
+                           <span className="text-[9px] font-mono text-white/40">{loc.batteryLevel}%</span>
+                         </div>
+                         <div className="w-px h-2.5 bg-white/10" />
+                         <span className="text-[9px] font-mono text-white/40 flex items-center gap-1">
+                           <Activity size={8} className="text-safari-gold"/> {Math.round(loc.speed || 0)}km/h
+                         </span>
                       </div>
                     </div>
                  </button>
