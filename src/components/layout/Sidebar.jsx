@@ -20,7 +20,8 @@ import {
   ShieldCheck,
   Map,
   ShieldAlert,
-  Activity
+  Activity,
+  MessageSquare
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -105,6 +106,7 @@ export const Sidebar = ({ role }) => {
     { to: '/admin/drivers', icon: Users, label: 'Fleet Personnel' },
     { to: '/admin/live-tracking', icon: Map, label: 'Live Tracking' },
     { to: '/admin/sos-alerts', icon: ShieldAlert, label: 'SOS Alerts' },
+    { to: '/admin/messages', icon: MessageSquare, label: 'Fleet Messages' },
     { to: 'https://eastern-vacations-staff.vercel.app/', icon: ShieldCheck, label: 'Staff Portal', external: true },
     { to: '/admin/packages', icon: Package, label: 'Tour Packages', disabled: true },
     { to: '/admin/ai-manager', icon: Zap, label: 'AI Manager' },

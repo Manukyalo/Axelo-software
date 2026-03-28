@@ -38,6 +38,7 @@ import { Bookings } from './pages/admin/Bookings';
 import { Packages } from './pages/admin/Packages';
 import { Reports } from './pages/admin/Reports';
 import { Settings } from './pages/admin/Settings';
+import { Messages } from './pages/admin/Messages';
 import { UpcomingSafaris } from './pages/UpcomingSafaris';
 import { AIManager } from './pages/AIManager';
 import { AIActivityLog } from './pages/AIActivityLog';
@@ -162,6 +163,11 @@ function App() {
         <Route path="/admin/settings" element={
           <ProtectedRoute allowedRole="admin" title="Settings">
             <Layout><Settings /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/messages" element={
+          <ProtectedRoute allowedRole="admin" title="Fleet Messages">
+            <Layout><Messages /></Layout>
           </ProtectedRoute>
         } />
 

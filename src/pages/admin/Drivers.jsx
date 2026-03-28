@@ -21,8 +21,10 @@ import {
   Eye,
   Camera,
   Trash,
-  AlertCircle
+  AlertCircle,
+  MessageSquare
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { collection, query, where, onSnapshot, doc, getDoc, getDocs, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../../config/firebase';
 import { PageWrapper } from '../../components/layout/PageWrapper';
@@ -37,6 +39,7 @@ import { validateString, validateEmail } from '../../utils/validation';
 import toast from 'react-hot-toast';
 
 const DriverCard = ({ driver, onEdit, onSchedule, onDelete }) => {
+  const navigate = useNavigate();
   const licenseExpiryDate = driver.licenseExpiry ? parseISO(driver.licenseExpiry) : new Date();
   const licenseExpiry = differenceInDays(licenseExpiryDate, new Date());
   const isExpired = licenseExpiry < 0;
@@ -143,6 +146,18 @@ const DriverCard = ({ driver, onEdit, onSchedule, onDelete }) => {
           >
             <Calendar size={12} className="mr-2" />
             Schedule
+          </Button>
+        </div>
+
+        <div className="mt-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full text-xs font-black border-safari-primary/20 text-safari-primary hover:bg-safari-primary hover:text-white gap-2"
+            onClick={() => navigate('/admin/messages', { state: { chatId: `chat_${driver.id}` } })}
+          >
+            <MessageSquare size={12} />
+            Message Driver
           </Button>
         </div>
 
