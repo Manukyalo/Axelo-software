@@ -55,9 +55,28 @@ export const LiveTracking = () => {
   const [search, setSearch] = useState('');
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [selectedPark, setSelectedPark] = useState(null);
-  const [mapStyle] = useState('https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json');
+  const [mapType, setMapType] = useState('dark');
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(null);
+
+  const STYLES = {
+    dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    satellite: {
+      version: 8,
+      sources: {
+        'arcgis-satellite': {
+          type: 'raster',
+          tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+          tileSize: 256,
+          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        }
+      },
+      layers: [{ id: 'satellite', type: 'raster', source: 'arcgis-satellite', minzoom: 0, maxzoom: 22 }]
+    }
+  };
+
+  const getStyleURL = (type) => STYLES[type];
   
   // Layer Toggles
   const [showParks, setShowParks] = useState(true);
@@ -99,10 +118,11 @@ export const LiveTracking = () => {
     try {
       map.current = new maplibregl.Map({
         container: mapContainer.current,
-        style: mapStyle,
+        style: getStyleURL(mapType),
         center: [36.8219, -1.2921], 
         zoom: 6,
-        pitch: 45
+        pitch: 45,
+        antialias: true
       });
 
       const initTimeout = setTimeout(() => {
@@ -223,7 +243,13 @@ export const LiveTracking = () => {
     }
 
     return () => map.current?.remove();
-  }, [mapStyle]);
+  }, []); // Only init once
+
+  // Handle Dynamic Style Changes
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    map.current.setStyle(getStyleURL(mapType), { diff: false });
+  }, [mapType, mapLoaded]);
 
   // Driver Real-time updates
   useEffect(() => {
@@ -394,7 +420,7 @@ export const LiveTracking = () => {
                 <LayoutGrid className="text-safari-gold" size={16} />
                 <span className="text-white font-bold text-xs">Map Layers</span>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 border-b border-white/10 pb-4 mb-4">
                 {[
                   { id: 'parks', label: 'National Parks', icon: '🌿', state: showParks, setter: setShowParks },
                   { id: 'lodges', label: 'Lodges & Camps', icon: '🏨', state: showLodges, setter: setShowLodges },
@@ -409,6 +435,24 @@ export const LiveTracking = () => {
                     <div className={`w-6 h-3 rounded-full relative transition-colors ${layer.state ? 'bg-safari-gold' : 'bg-white/20'}`}>
                       <div className={`absolute top-0.5 h-2 w-2 rounded-full bg-white transition-all ${layer.state ? 'right-0.5' : 'left-0.5'}`} />
                     </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* MODE SELECTOR */}
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'dark', label: 'Dark', icon: '🌙' },
+                  { id: 'light', label: 'Light', icon: '☀️' },
+                  { id: 'satellite', label: 'Sat', icon: '🌍' },
+                ].map(mode => (
+                  <button 
+                    key={mode.id} 
+                    onClick={() => setMapType(mode.id)} 
+                    className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${mapType === mode.id ? 'bg-safari-gold border-safari-gold text-black' : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'}`}
+                  >
+                    <span className="text-xs">{mode.icon}</span>
+                    <span className="text-[8px] font-bold mt-1 uppercase">{mode.label}</span>
                   </button>
                 ))}
               </div>
@@ -447,8 +491,14 @@ export const LiveTracking = () => {
 
           {!mapLoaded && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0D1612] z-50">
-              <div className="w-16 h-16 border-4 border-safari-gold/20 border-t-safari-gold rounded-full animate-spin" />
-              <p className="text-white/40 text-[10px] mt-4 uppercase tracking-widest">Initializing Ops Command</p>
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-safari-gold/20 border-t-safari-gold rounded-full animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-safari-gold text-xs font-black">EV</span>
+                </div>
+              </div>
+              <p className="text-white/40 text-[10px] mt-4 uppercase tracking-widest font-bold">Initalizing Satellite Command</p>
+              {mapError && <p className="text-red-500 text-[10px] mt-2 opacity-80">{mapError}</p>}
             </div>
           )}
         </div>
