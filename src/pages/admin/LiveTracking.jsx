@@ -410,19 +410,40 @@ export const LiveTracking = () => {
         const el = document.createElement('div');
         el.className = 'driver-marker-container';
         
-        // Premium SVG Jeep Icon
-        const jeepSvg = `
-          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 11H20M4 11V15M4 11L5 7H19L20 11M20 11V15M5 15V17M19 15V17M7 17C7 18.1046 7.89543 19 9 19C10.1046 19 11 18.1046 11 17M15 17C15 18.1046 15.8954 19 17 19C18.1046 19 19 18.1046 19 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M7 17H11M15 17H19M11 17H15" stroke="currentColor" stroke-width="2"/>
-            <circle cx="9" cy="17" r="2" stroke="currentColor" stroke-width="2"/>
-            <circle cx="17" cy="17" r="2" stroke="currentColor" stroke-width="2"/>
-          </svg>
-        `;
+        // Role-Specific Iconography
+        const getRoleIcon = (role) => {
+          if (role === 'porter') {
+            return `
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 20V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/>
+                <rect x="2" y="14" width="20" height="6" rx="2"/>
+                <line x1="6" y1="7" x2="6" y2="7"/>
+                <line x1="18" y1="7" x2="18" y2="7"/>
+              </svg>
+            `;
+          }
+          if (role === 'tour_guide' || role === 'city_ops') {
+            return `
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                <line x1="4" y1="22" x2="4" y2="15"/>
+              </svg>
+            `;
+          }
+          // Default Jeep for Drivers
+          return `
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 11H20M4 11V15M4 11L5 7H19L20 11M20 11V15M5 15V17M19 15V17M7 17C7 18.1046 7.89543 19 9 19C10.1046 19 11 18.1046 11 17M15 17C15 18.1046 15.8954 19 17 19C18.1046 19 19 18.1046 19 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7 17H11M15 17H19M11 17H15" stroke="currentColor" stroke-width="2"/>
+              <circle cx="9" cy="17" r="2" stroke="currentColor" stroke-width="2"/>
+              <circle cx="17" cy="17" r="2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          `;
+        };
 
         const inner = document.createElement('div');
         inner.className = `driver-marker-inner ${hasSOS ? 'sos-pulse' : loc.isOnline ? 'online-pulse' : 'offline'}`;
-        inner.innerHTML = jeepSvg;
+        inner.innerHTML = getRoleIcon(driver.role);
         el.appendChild(inner);
 
         const marker = new maplibregl.Marker({ element: el, zIndexOffset: 1000 })
@@ -430,6 +451,9 @@ export const LiveTracking = () => {
           .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`
             <div class="driver-popup glass">
               <div class="driver-name">${driver.name}</div>
+              <div class="driver-role" style="font-size: 8px; font-weight: 900; color: #D4AF37; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.1em;">
+                ${driver.role?.replace('_', ' ') || 'Personnel'}
+              </div>
               <div class="driver-status ${hasSOS ? 'text-red-500' : ''}">${hasSOS ? '🆘 SOS ACTIVE' : loc.isOnline ? 'ONLINE' : 'OFFLINE'}</div>
               <div class="driver-meta">
                 <span>${Math.round(loc.speed || 0)} km/h</span>
@@ -604,91 +628,26 @@ export const LiveTracking = () => {
         <div className="flex-1 relative rounded-3xl overflow-hidden shadow-2xl bg-[#0D1612]">
           <div ref={mapContainer} className={`w-full h-full zoom-state-${Math.floor(currentZoom)} ${selectedParkId ? 'park-focus-mode' : ''}`} style={{ minHeight: '500px' }} />
 
-          {/* FOCUSED ASSET BADGE */}
-          {(selectedParkId || selectedDriver || selectedLodgeId || selectedGateId) && (
-            <div className="absolute top-6 right-20 z-10 animate-in fade-in slide-in-from-top-4 duration-500">
-               <div className="bg-safari-gold border border-black/10 rounded-xl px-4 py-2 flex items-center gap-3 shadow-2xl">
-                  <div className="w-8 h-8 bg-black/10 rounded-lg flex items-center justify-center">
-                    {selectedParkId && <Trees size={16} className="text-black" />}
-                    {selectedDriver && <User size={16} className="text-black" />}
-                    {selectedLodgeId && <span className="text-sm">🏨</span>}
-                    {selectedGateId && <span className="text-sm">🚧</span>}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase font-black text-black/40 leading-none mb-0.5 tracking-widest">
-                      {selectedParkId ? 'Focused Park' : selectedDriver ? 'Focused Driver' : selectedLodgeId ? 'Focused Lodge' : 'Focused Gate'}
-                    </span>
-                    <span className="text-sm text-black font-black font-playfair">
-                      {selectedParkId && KENYA_PARKS.find(p => p.id === selectedParkId)?.name}
-                      {selectedDriver && state.drivers.find(d => d.id === selectedDriver)?.name}
-                      {selectedLodgeId && KENYA_LODGES.find(l => l.id === selectedLodgeId)?.name}
-                      {selectedGateId && KENYA_GATES.find(g => g.id === selectedGateId)?.name}
-                      {!(selectedParkId || selectedDriver || selectedLodgeId || selectedGateId) && 'Selected Item'}
-                    </span>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      setSelectedParkId(null);
-                      setSelectedDriver(null);
-                      setSelectedLodgeId(null);
-                      setSelectedGateId(null);
-                    }}
-                    className="ml-2 p-1.5 hover:bg-black/10 rounded-full transition-colors group"
-                  >
-                    <X size={14} className="text-black group-hover:scale-110 transition-transform" />
-                  </button>
-               </div>
+          {/* OPS STATS STRIP & QUICK FOCUS */}
+          <div className="absolute bottom-6 left-0 right-0 px-6 z-10 flex flex-col gap-4">
+            <div className="flex gap-2 justify-center">
+              {[
+                { label: 'Mombasa Unit', center: [39.6672, -4.0435], zoom: 12 },
+                { label: 'Kilifi / Watamu', center: [39.8499, -3.2191], zoom: 11 },
+                { label: 'Malindi', center: [40.1169, -3.2192], zoom: 12 },
+                { label: 'Kwale / Diani', center: [39.518, -4.458], zoom: 12 },
+                { label: 'Nairobi HQ', center: [36.8219, -1.2921], zoom: 11 }
+              ].map(site => (
+                <button 
+                  key={site.label}
+                  onClick={() => handleFlyTo(site.center, site.zoom)}
+                  className="px-3 py-1.5 bg-black/60 hover:bg-safari-gold backdrop-blur-md border border-white/10 rounded-full text-[9px] font-black text-white hover:text-black uppercase tracking-widest transition-all"
+                >
+                  {site.label}
+                </button>
+              ))}
             </div>
-          )}
 
-          {/* LAYER TOGGLE PANEL */}
-          <div className="absolute top-6 left-6 z-10">
-            <div className="bg-[#111B15]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl w-56 glass">
-              <div className="flex items-center gap-2 mb-4">
-                <LayoutGrid className="text-safari-gold" size={16} />
-                <span className="text-white font-bold text-xs">Map Layers</span>
-              </div>
-              <div className="space-y-1.5 border-b border-white/10 pb-4 mb-4">
-                {[
-                  { id: 'parks', label: 'National Parks', icon: '🌿', state: showParks, setter: setShowParks },
-                  { id: 'lodges', label: 'Lodges & Camps', icon: '🏨', state: showLodges, setter: setShowLodges },
-                  { id: 'gates', label: 'Entry Gates', icon: '🚧', state: showGates, setter: setShowGates },
-                  { id: 'drivers', label: 'Live Drivers', icon: '📍', state: showDrivers, setter: setShowDrivers },
-                ].map(layer => (
-                  <button key={layer.id} onClick={() => layer.setter(!layer.state)} className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all ${layer.state ? 'bg-white/10 border border-white/10' : 'opacity-40 grayscale'}`}>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm">{layer.icon}</span>
-                      <span className="text-[10px] text-white/80 font-bold">{layer.label}</span>
-                    </div>
-                    <div className={`w-6 h-3 rounded-full relative transition-colors ${layer.state ? 'bg-safari-gold' : 'bg-white/20'}`}>
-                      <div className={`absolute top-0.5 h-2 w-2 rounded-full bg-white transition-all ${layer.state ? 'right-0.5' : 'left-0.5'}`} />
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              {/* MODE SELECTOR */}
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: 'dark', label: 'Dark', icon: '🌙' },
-                  { id: 'light', label: 'Light', icon: '☀️' },
-                  { id: 'satellite', label: 'Sat', icon: '🌍' },
-                ].map(mode => (
-                  <button 
-                    key={mode.id} 
-                    onClick={() => setMapType(mode.id)} 
-                    className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${mapType === mode.id ? 'bg-safari-gold border-safari-gold text-black' : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'}`}
-                  >
-                    <span className="text-xs">{mode.icon}</span>
-                    <span className="text-[8px] font-bold mt-1 uppercase">{mode.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* OPS STATS STRIP */}
-          <div className="absolute bottom-6 left-0 right-0 px-6 z-10">
             <div className="bg-safari-primary/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center justify-around shadow-2xl glass">
               <div className="flex flex-col items-center">
                 <span className="text-emerald-500 font-black text-lg leading-none">{stats.online}</span>

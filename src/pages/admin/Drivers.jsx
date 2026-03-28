@@ -376,7 +376,7 @@ const PendingApprovalsView = () => {
                   </p>
                 </div>
                 <Badge variant="gold" className="text-[10px] uppercase tracking-widest bg-safari-gold/10 text-safari-gold border-safari-gold/20">
-                  {driver?.role === 'safari_driver' ? 'Safari Driver' : driver?.role === 'porter' ? 'Porter Personnel' : 'City Ops'}
+                  {driver?.role === 'safari_driver' ? 'Safari Driver' : driver?.role === 'porter' ? 'Porter Logistics' : 'City Tour Guide'}
                 </Badge>
               </div>
               
@@ -723,7 +723,7 @@ export const Drivers = () => {
       {activeTab === 'ALL' && (
         <>
           <div className="flex gap-1.5 bg-white/50 dark:bg-dark-card/50 backdrop-blur-md p-1.5 rounded-2xl border border-gray-100 dark:border-dark-border shadow-sm w-full md:w-auto overflow-x-auto no-scrollbar mb-8 max-w-max">
-            {['All', 'Safari Guide', 'City Chauffeur', 'Transfer Driver'].map(type => (
+            {['All', 'Safari Guide', 'Porter', 'Transfer Driver', 'Tour Guide'].map(type => (
               <button
                 key={type}
                 onClick={() => setDriverTypeFilter(type)}
@@ -774,7 +774,7 @@ export const Drivers = () => {
             </div>
             
             <div className="grid grid-cols-2 gap-5">
-              <Input label="Full Full Name" name="name" defaultValue={editingDriver?.name} placeholder="e.g. Samuel Njenga" required />
+              <Input label="Full Name" name="name" defaultValue={editingDriver?.name} placeholder="e.g. Samuel Njenga" required />
               <Input label="Active Phone Number" name="phone" defaultValue={editingDriver?.phone} placeholder="+254..." required />
             </div>
             <Input label="Onboarding Email Address" name="email" type="email" defaultValue={editingDriver?.email} placeholder="samuel@easternvacations.com" required />
@@ -791,11 +791,12 @@ export const Drivers = () => {
             <div className="grid grid-cols-2 gap-5">
               <div className="space-y-2">
                  <label className="block text-xs font-black text-safari-primary dark:text-dark-text uppercase tracking-wider opacity-60">Personnel Role</label>
-                 <select name="type" defaultValue={editingDriver?.type || 'Safari Guide'} className="w-full px-4 py-3 bg-gray-50 dark:bg-dark-surface border border-gray-100 dark:border-dark-border rounded-xl outline-none focus:border-safari-gold focus:ring-4 focus:ring-safari-gold/5 transition-all text-sm font-medium" required>
-                   <option value="Safari Guide">Senior Safari Guide</option>
-                   <option value="City Chauffeur">Corporate Chauffeur</option>
-                   <option value="Transfer Driver">Airport Transfer Specialist</option>
-                 </select>
+                  <select name="type" defaultValue={editingDriver?.type || 'Safari Guide'} className="w-full px-4 py-3 bg-gray-50 dark:bg-dark-surface border border-gray-100 dark:border-dark-border rounded-xl outline-none focus:border-safari-gold focus:ring-4 focus:ring-safari-gold/5 transition-all text-sm font-medium" required>
+                    <option value="Safari Guide">Senior Safari Guide</option>
+                    <option value="Porter">Logistics Porter</option>
+                    <option value="Transfer Driver">Airport Transfer Specialist</option>
+                    <option value="Tour Guide">City Tour Guide</option>
+                  </select>
               </div>
               <Input label="DL Number" name="license" defaultValue={editingDriver?.license} placeholder="KRA-..." required />
             </div>

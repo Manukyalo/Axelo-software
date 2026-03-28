@@ -72,7 +72,7 @@ export const DataProvider = ({ children }) => {
       else if (type.includes('DRIVERLOCATION')) col = 'driverLocations';
       else if (type.includes('SOSALERT')) col = 'sosAlerts';
       else if (type.includes('TRIPUPDATE')) col = 'tripUpdates';
-      else if (type.includes('CHAT') || type.includes('DRIVER_MESSAGE')) col = 'driverMessages';
+      else if (type.includes('CHAT') || type.includes('DRIVERMESSAGE') || type.includes('DRIVER_MESSAGE')) col = 'driverMessages';
 
       if (!col) return;
 

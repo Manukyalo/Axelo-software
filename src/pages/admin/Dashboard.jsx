@@ -38,6 +38,9 @@ export const AdminDashboard = () => {
   const currentMonthRevenue = state.bookings
     .filter(b => b.status !== 'Cancelled')
     .reduce((acc, curr) => acc + curr.paidAmount, 0);
+  
+  const activePorters = (state.porters || []).filter(p => p.status === 'Active').length;
+  const totalPorterTrips = (state.porters || []).reduce((acc, curr) => acc + (curr.totalTrips || 0), 0);
 
   // Insurance Alerts
   const insuranceAlerts = state.vehicles.filter(v => {
@@ -105,6 +108,13 @@ export const AdminDashboard = () => {
           unit="KES " 
           change={8.2} 
           icon={Banknote} 
+        />
+        <StatCard 
+          title="Ground Ops" 
+          value={`${activePorters} Active`} 
+          change={totalPorterTrips} 
+          unit="Trips: "
+          icon={Activity} 
         />
       </div>
 

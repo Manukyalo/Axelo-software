@@ -128,6 +128,16 @@ export const ChatWindow = ({ chatId }) => {
     }
   };
 
+  const handleDeleteConversation = async () => {
+    if (!chatId) return;
+    try {
+      await dispatch({ type: 'DELETE_DRIVERMESSAGE', payload: chatId });
+      toast.success('Conversation purged from log');
+    } catch (err) {
+      toast.error('Failed to purge conversation');
+    }
+  };
+
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;

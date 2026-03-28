@@ -69,13 +69,25 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleDeleteOne = (e, id) => {
+    e.stopPropagation();
+    try {
+      dispatch({ type: 'DELETE_NOTIFICATION', payload: id });
+      toast.success('Signal purged');
+    } catch (err) {
+      toast.error('Failed to delete signal');
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-[100] overflow-hidden">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
-      <div className="absolute inset-y-0 right-0 w-full max-w-sm bg-white/95 dark:bg-[#111B15]/95 backdrop-blur-2xl shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col border-l border-white/10">
+    <div className="fixed inset-0 z-[999]" onClick={onClose}>
+      <div 
+        className="absolute top-16 right-4 w-[420px] max-h-[85vh] bg-white/95 dark:bg-[#0D1612]/98 backdrop-blur-2xl shadow-[0_30px_90px_-15px_rgba(0,0,0,0.5)] animate-in zoom-in-95 fade-in slide-in-from-top-6 duration-300 flex flex-col border border-gray-100 dark:border-white/10 rounded-[32px] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header */}
-        <div className="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
+        <div className="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-white/50 dark:bg-white/5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-safari-gold/10 rounded-xl flex items-center justify-center text-safari-gold shadow-lg shadow-safari-gold/5">
               <Bell size={20} />
@@ -150,26 +162,37 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
               myNotifications.map((n) => (
                 <div 
                   key={n.id} 
-                  className={`group p-5 rounded-[24px] border transition-all cursor-pointer ${n.read ? 'bg-transparent border-gray-100 dark:border-white/5 opacity-50' : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/5 shadow-xl shadow-safari-primary/5'}`}
+                  className={`group p-5 rounded-[24px] border transition-all cursor-pointer relative overflow-hidden ${n.read ? 'bg-transparent border-gray-100 dark:border-white/5 opacity-50' : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/5 shadow-xl shadow-safari-primary/5'}`}
                   onClick={() => markRead(n.id)}
                 >
                   <div className="flex gap-4">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${n.read ? 'bg-gray-100 dark:bg-white/5' : 'bg-safari-gold/10 text-safari-gold'}`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${n.read ? 'bg-gray-100 dark:bg-white/5' : 'bg-safari-gold/10 text-safari-gold shadow-sm'}`}>
                       {getIcon(n.type)}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 pr-12">
                       <div className="flex justify-between items-start mb-1">
-                        <p className={`text-sm font-black uppercase tracking-tight truncate pr-4 ${n.read ? 'text-gray-500' : 'text-safari-primary dark:text-white'}`}>{n.title}</p>
-                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest whitespace-nowrap">
+                        <p className={`text-[13px] font-black uppercase tracking-tight truncate pr-4 ${n.read ? 'text-gray-500' : 'text-safari-primary dark:text-white'}`}>{n.title}</p>
+                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest whitespace-nowrap pt-0.5">
                            {formatSafeDate(n.date)}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 font-medium leading-relaxed mb-3">{n.message}</p>
+                      <p className="text-[11px] text-gray-500 font-medium leading-relaxed mb-3">{n.message}</p>
                       <div className="flex items-center gap-2">
                          {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-safari-gold animate-pulse" />}
                          <Badge variant="outline" className="text-[8px] px-2 py-0 uppercase font-black tracking-[0.2em] border-gray-100 dark:border-white/10 text-gray-400">{n.type || 'SIGNAL'}</Badge>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Persistent Delete Button at the far end */}
+                  <div className="absolute top-0 bottom-0 right-0 w-12 flex items-center justify-center bg-transparent group-hover:bg-red-500/5 transition-all">
+                    <button 
+                      onClick={(e) => handleDeleteOne(e, n.id)}
+                      className="p-2 ml-1 rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-500/10 active:scale-90 transition-all"
+                      title="Purge Signal"
+                    >
+                       <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
               ))
