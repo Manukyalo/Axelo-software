@@ -92,7 +92,8 @@ export const ChatWindow = ({ chatId }) => {
         lastMessage: textSnapshot,
         lastTimestamp: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        unreadCount: 0
+        unreadCount: 0,
+        isDeleted: false
       });
 
     } catch (err) {
@@ -131,7 +132,7 @@ export const ChatWindow = ({ chatId }) => {
   const handleDeleteConversation = async () => {
     if (!chatId) return;
     try {
-      await dispatch({ type: 'DELETE_DRIVERMESSAGE', payload: chatId });
+      await dispatch({ type: 'UPDATE_DRIVERMESSAGE', payload: { id: chatId, isDeleted: true } });
       toast.success('Conversation purged from log');
     } catch (err) {
       toast.error('Failed to purge conversation');
@@ -161,7 +162,8 @@ export const ChatWindow = ({ chatId }) => {
         await updateDoc(doc(db, 'driverMessages', chatId), {
           lastMessage: '📷 Photo attachment',
           lastTimestamp: serverTimestamp(),
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
+          isDeleted: false
         });
       } catch (err) {
         console.error('Image upload failed:', err);

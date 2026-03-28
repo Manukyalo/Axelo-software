@@ -12,8 +12,8 @@ export const ChatList = ({ activeChatId, onSelectChat }) => {
   const chats = state.driverMessages || [];
   const drivers = state.drivers || [];
 
-  // Filter out any chats that don't have a valid driver
-  const processedChats = chats.map(chat => {
+  // Filter out any chats that don't have a valid driver or are deleted
+  const processedChats = chats.filter(c => !c.isDeleted).map(chat => {
     const driver = drivers.find(d => d.id === chat.id) || { name: chat.driverName || 'Unknown Driver' };
     return { ...chat, driver };
   }).sort((a, b) => {
@@ -25,7 +25,7 @@ export const ChatList = ({ activeChatId, onSelectChat }) => {
   const handleDeleteChat = async (e, id) => {
     e.stopPropagation();
     try {
-      await dispatch({ type: 'DELETE_DRIVERMESSAGE', payload: id });
+      await dispatch({ type: 'UPDATE_DRIVERMESSAGE', payload: { id, isDeleted: true } });
       toast.success('Conversation purged');
       setConfirmDelete(null);
       if (activeChatId === id) {
