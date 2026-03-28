@@ -10,19 +10,23 @@ import {
   CheckCheck,
   Loader2,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  X
 } from 'lucide-react';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 
 export const ChatWindow = ({ chatId }) => {
   const { user } = useAuth();
-  const { state } = useData();
+  const { state, dispatch } = useData();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
   const scrollRef = useRef();
 
   const chat = state.driverMessages?.find(c => c.id === chatId);
@@ -68,9 +72,12 @@ export const ChatWindow = ({ chatId }) => {
     if (!inputText.trim() || sending) return;
 
     setSending(true);
+    const textSnapshot = inputText;
+    setInputText(''); // Optimistic clear
+
     try {
       const messageData = {
-        text: inputText,
+        text: textSnapshot,
         senderId: user.uid,
         senderRole: 'admin',
         timestamp: serverTimestamp(),
@@ -82,16 +89,35 @@ export const ChatWindow = ({ chatId }) => {
       
       // Update last message in chat metadata
       await updateDoc(doc(db, 'driverMessages', chatId), {
-        lastMessage: inputText,
+        lastMessage: textSnapshot,
         lastTimestamp: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        unreadCount: 0
       });
 
-      setInputText('');
     } catch (err) {
       console.error('Failed to send message:', err);
+      setInputText(textSnapshot); // Restore on failure
+      toast.error('Failed to send signal');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleDeleteMessage = async (msgId) => {
+    try {
+      await deleteDoc(doc(db, 'driverMessages', chatId, 'messages', msgId));
+      toast.success('Message deleted');
+      setDeleteId(null);
+    } catch (err) {
+      toast.error('Delete failed');
     }
   };
 
@@ -122,6 +148,7 @@ export const ChatWindow = ({ chatId }) => {
         });
       } catch (err) {
         console.error('Image upload failed:', err);
+        toast.error('Image transmission failed');
       } finally {
         setSending(false);
       }
@@ -152,14 +179,16 @@ export const ChatWindow = ({ chatId }) => {
           <div>
             <h3 className="font-bold text-safari-primary dark:text-dark-text">{driver.name}</h3>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="text-[10px] uppercase font-black tracking-widest text-gray-400">Online</span>
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] uppercase font-black tracking-widest text-gray-400">Secure Signal Establishment</span>
             </div>
           </div>
         </div>
-        <button className="p-2.5 text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-colors">
-          <MoreVertical size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+           <button className="p-2.5 text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-colors">
+             <MoreVertical size={20} />
+           </button>
+        </div>
       </div>
 
       {/* Messages Area */}
@@ -173,11 +202,11 @@ export const ChatWindow = ({ chatId }) => {
           </div>
         ) : (
           messages.map((msg, i) => {
-            const isMe = msg.senderId === user.uid;
+            const isMe = msg.senderRole === 'admin';
             const showTime = i === 0 || (msg.timestamp?.seconds - messages[i-1].timestamp?.seconds > 300);
 
             return (
-              <div key={msg.id} className="space-y-2">
+              <div key={msg.id} className="space-y-2 group">
                 {showTime && msg.timestamp && (
                   <div className="text-center">
                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 bg-white dark:bg-dark-card px-3 py-1 rounded-full border border-gray-50 dark:border-white/5">
@@ -187,25 +216,35 @@ export const ChatWindow = ({ chatId }) => {
                 )}
                 <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[75%] lg:max-w-[60%] space-y-1 ${isMe ? 'items-end' : 'items-start'}`}>
-                    <div className={`
-                      p-4 rounded-3xl shadow-sm text-sm font-dm-sans leading-relaxed
-                      ${isMe 
-                        ? 'bg-safari-primary text-white rounded-tr-none' 
-                        : 'bg-white dark:bg-dark-bg border border-gray-100 dark:border-white/5 text-safari-primary dark:text-dark-text rounded-tl-none'}
-                    `}>
-                      {msg.type === 'image' ? (
-                        <img 
-                          src={msg.image} 
-                          alt="Attachment" 
-                          className="rounded-xl max-h-64 object-cover cursor-zoom-in hover:brightness-110 transition-all" 
-                        />
-                      ) : (
-                        msg.text
-                      )}
+                    <div className="relative flex items-center gap-2">
+                       {isMe && (
+                         <button 
+                           onClick={() => setDeleteId(msg.id)}
+                           className="opacity-0 group-hover:opacity-100 p-1 text-red-300 hover:text-red-500 transition-all rounded-lg"
+                         >
+                            <Trash2 size={12} />
+                         </button>
+                       )}
+                       <div className={`
+                        p-4 rounded-3xl shadow-sm text-sm font-dm-sans leading-relaxed
+                        ${isMe 
+                          ? 'bg-safari-primary text-white rounded-tr-none' 
+                          : 'bg-white dark:bg-dark-bg border border-gray-100 dark:border-white/5 text-safari-primary dark:text-dark-text rounded-tl-none'}
+                      `}>
+                        {msg.type === 'image' ? (
+                          <img 
+                            src={msg.image} 
+                            alt="Attachment" 
+                            className="rounded-xl max-h-64 object-cover cursor-zoom-in hover:brightness-110 transition-all" 
+                          />
+                        ) : (
+                          msg.text
+                        )}
+                      </div>
                     </div>
                     <div className={`flex items-center gap-1.5 px-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
                       <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
-                        {msg.timestamp ? format(msg.timestamp.seconds * 1000, 'HH:mm') : 'Sending...'}
+                        {msg.timestamp ? format(msg.timestamp.seconds * 1000, 'HH:mm') : 'Syncing...'}
                       </span>
                       {isMe && (
                         msg.status === 'read' 
@@ -235,7 +274,8 @@ export const ChatWindow = ({ chatId }) => {
             type="text" 
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Type a message..."
+            onKeyDown={handleKeyDown}
+            placeholder="Secure message to unit..."
             className="flex-1 bg-transparent border-none text-sm lg:text-base text-safari-primary dark:text-dark-text focus:ring-0 placeholder:text-gray-400 font-dm-sans"
           />
           <button 
@@ -252,6 +292,23 @@ export const ChatWindow = ({ chatId }) => {
           </button>
         </form>
       </div>
+
+      {/* Delete Confirmation Overlay */}
+      {deleteId && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-white/40 dark:bg-dark-bg/60 backdrop-blur-sm animate-in fade-in duration-200">
+           <div className="bg-white dark:bg-dark-card p-6 rounded-[24px] shadow-2xl border border-gray-100 dark:border-white/5 max-w-xs w-full text-center">
+              <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                 <Trash2 size={24} />
+              </div>
+              <h4 className="text-lg font-bold text-safari-primary dark:text-white mb-2">Delete Message?</h4>
+              <p className="text-xs text-gray-500 mb-6">This message will be removed for everyone in this conversation.</p>
+              <div className="flex gap-2">
+                 <Button variant="ghost" className="flex-1" onClick={() => setDeleteId(null)}>Keep</Button>
+                 <Button className="flex-1 bg-red-500 hover:bg-red-600 border-none text-white" onClick={() => handleDeleteMessage(deleteId)}>Delete</Button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

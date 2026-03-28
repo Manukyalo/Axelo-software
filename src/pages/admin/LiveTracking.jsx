@@ -27,7 +27,7 @@ import {
   X
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
-import { KENYA_PARKS } from '../../utils/parkBoundaries';
+import { KENYA_PARKS, KENYA_PARK_GEOJSON } from '../../utils/parkBoundaries';
 import { KENYA_LODGES } from '../../utils/lodgesData';
 import { KENYA_GATES } from '../../utils/gatesData';
 
@@ -171,7 +171,68 @@ export const LiveTracking = () => {
           pitch: 50
         });
 
-        // 1. Render Parks (Enhanced with Labels)
+        // Add Park Boundaries (GeoJSON)
+        map.current.addSource('park-boundaries', {
+          type: 'geojson',
+          data: KENYA_PARK_GEOJSON
+        });
+
+        // 0. Render Park Polygons (Fills)
+        map.current.addLayer({
+          id: 'park-fills',
+          type: 'fill',
+          source: 'park-boundaries',
+          layout: {},
+          paint: {
+            'fill-color': ['get', 'color'],
+            'fill-opacity': [
+              'case',
+              ['boolean', ['feature-state', 'hover'], false],
+              0.3,
+              0.15
+            ]
+          }
+        });
+
+        // 0. Render Park Outlines
+        map.current.addLayer({
+          id: 'park-outlines',
+          type: 'line',
+          source: 'park-boundaries',
+          layout: {},
+          paint: {
+            'line-color': ['get', 'color'],
+            'line-width': 2,
+            'line-dasharray': [2, 1],
+            'line-opacity': 0.6
+          }
+        });
+
+        // 0. Render Park Labels (Centered in Polygon)
+        map.current.addLayer({
+          id: 'park-poly-labels',
+          type: 'symbol',
+          source: 'park-boundaries',
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-size': 10,
+            'text-transform': 'uppercase',
+            'text-letter-spacing': 0.2,
+            'text-offset': [0, 0.6]
+          },
+          paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': '#111B15',
+            'text-halo-width': 2,
+            'text-opacity': [
+              'interpolate',
+              ['linear'], ['zoom'],
+              7, 0,
+              8, 1
+            ]
+          }
+        });
         KENYA_PARKS.forEach(park => {
           const el = document.createElement('div');
           el.className = `park-marker park-${park.id}`;
@@ -341,9 +402,20 @@ export const LiveTracking = () => {
       if (!markers.current[loc.driverId]) {
         const el = document.createElement('div');
         el.className = 'driver-marker-container';
+        
+        // Premium SVG Jeep Icon
+        const jeepSvg = `
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 11H20M4 11V15M4 11L5 7H19L20 11M20 11V15M5 15V17M19 15V17M7 17C7 18.1046 7.89543 19 9 19C10.1046 19 11 18.1046 11 17M15 17C15 18.1046 15.8954 19 17 19C18.1046 19 19 18.1046 19 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 17H11M15 17H19M11 17H15" stroke="currentColor" stroke-width="2"/>
+            <circle cx="9" cy="17" r="2" stroke="currentColor" stroke-width="2"/>
+            <circle cx="17" cy="17" r="2" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        `;
+
         const inner = document.createElement('div');
         inner.className = `driver-marker-inner ${hasSOS ? 'sos-pulse' : loc.isOnline ? 'online-pulse' : 'offline'}`;
-        inner.innerHTML = '<div class="marker-dot"></div>';
+        inner.innerHTML = jeepSvg;
         el.appendChild(inner);
 
         const marker = new maplibregl.Marker({ element: el, zIndexOffset: 1000 })

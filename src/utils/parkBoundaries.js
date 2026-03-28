@@ -506,3 +506,114 @@ export const KENYA_PARKS = [
     description: 'Remote northern marine reserve. Dugongs and green turtles.'
   }
 ]
+
+export const KENYA_PARK_GEOJSON = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      id: 'maasai_mara',
+      properties: { 
+        name: 'Maasai Mara', 
+        type: 'reserve',
+        color: '#2D6A4F'
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [34.8, -1.3], [35.3, -1.3], [35.4, -1.6], [35.1, -1.8], [34.7, -1.6], [34.8, -1.3]
+        ]]
+      }
+    },
+    {
+      type: 'Feature',
+      id: 'amboseli',
+      properties: { 
+        name: 'Amboseli', 
+        type: 'park',
+        color: '#2D6A4F'
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [37.1, -2.6], [37.4, -2.6], [37.5, -2.8], [37.1, -2.8], [37.1, -2.6]
+        ]]
+      }
+    },
+    {
+      type: 'Feature',
+      id: 'tsavo_east',
+      properties: { 
+        name: 'Tsavo East', 
+        type: 'park',
+        color: '#1B4332'
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [38.2, -2.5], [39.1, -2.5], [39.1, -3.4], [38.2, -3.4], [38.2, -2.5]
+        ]]
+      }
+    },
+    {
+      type: 'Feature',
+      id: 'tsavo_west',
+      properties: { 
+        name: 'Tsavo West', 
+        type: 'park',
+        color: '#1B4332'
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [37.6, -2.8], [38.2, -2.8], [38.5, -3.6], [37.8, -3.6], [37.6, -2.8]
+        ]]
+      }
+    },
+    {
+      type: 'Feature',
+      id: 'samburu',
+      properties: { 
+        name: 'Samburu', 
+        type: 'reserve',
+        color: '#40916C'
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [37.4, 0.7], [37.7, 0.7], [37.7, 0.5], [37.4, 0.5], [37.4, 0.7]
+        ]]
+      }
+    },
+    {
+      type: 'Feature',
+      id: 'lake_nakuru',
+      properties: { 
+        name: 'Lake Nakuru', 
+        type: 'park',
+        color: '#52B788'
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [36.0, -0.3], [36.2, -0.3], [36.2, -0.5], [36.0, -0.5], [36.0, -0.3]
+        ]]
+      }
+    },
+    {
+      type: 'Feature',
+      id: 'nairobi_np',
+      properties: { 
+        name: 'Nairobi NP', 
+        type: 'park',
+        color: '#74C69D'
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [36.8, -1.3], [36.95, -1.3], [36.95, -1.45], [36.8, -1.45], [36.8, -1.3]
+        ]]
+      }
+    }
+  ]
+};
