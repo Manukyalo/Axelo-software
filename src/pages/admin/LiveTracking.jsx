@@ -1,8 +1,8 @@
+import 'mapbox-gl/dist/mapbox-gl.css';
 import React, { useEffect, useRef, useState } from 'react';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { useData } from '../../contexts/DataContext';
 import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
 import { 
   Search, 
   Navigation, 
@@ -14,7 +14,9 @@ import {
   Battery,
   User,
   Compass,
-  Loader2
+  Loader2,
+  MapPin,
+  AlertCircle
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 
@@ -27,6 +29,7 @@ export const LiveTracking = () => {
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/dark-v11');
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState(null);
 
   const addParkLayers = () => {
     if (!map.current) return;
@@ -106,41 +109,68 @@ export const LiveTracking = () => {
     });
   };
 
+  // Force resize effect
+  useEffect(() => {
+    if (map.current && mapLoaded) {
+      console.log('Forcing map resize on mount/load');
+      map.current.resize();
+    }
+  }, [mapLoaded]);
+
   // Initialize Map
   useEffect(() => {
     if (map.current) return;
     if (!mapContainer.current) return;
     
     const token = import.meta.env.VITE_MAPBOX_TOKEN;
+    console.log('Mapbox token verification:', token ? `${token.substring(0, 20)}...` : 'MISSING');
+    
     if (!token) {
-      console.error('Mapbox token missing');
+      setMapError('Mapbox token is missing from environment variables.');
       return;
     }
     
     mapboxgl.accessToken = token;
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: mapStyle,
-      center: [36.8219, -1.2921],
-      zoom: 6,
-      pitch: 45
-    });
+    try {
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: mapStyle,
+        center: [36.8219, -1.2921], // Center on Kenya
+        zoom: 6,
+        pitch: 45
+      });
 
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      // Add initialization timeout [FIX 2]
+      const initTimeout = setTimeout(() => {
+        if (!mapLoaded) {
+          console.error('Map initialization timed out after 10 seconds');
+          setMapError('Map failed to initialize. Please check your network connection and token validity.');
+        }
+      }, 10000);
 
-    map.current.on('load', () => {
-      setMapLoaded(true);
-      addParkLayers();
-    });
+      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-    map.current.on('style.load', () => {
-      addParkLayers();
-    });
+      map.current.on('load', () => {
+        console.log('Map engine loaded successfully');
+        clearTimeout(initTimeout);
+        map.current.resize(); // Force resize on load [FIX 3]
+        setMapLoaded(true);
+        addParkLayers();
+      });
 
-    map.current.on('error', (e) => {
-      console.error('Mapbox error:', e);
-    });
+      map.current.on('style.load', () => {
+        addParkLayers();
+      });
+
+      map.current.on('error', (e) => {
+        console.error('Mapbox error event:', e.error);
+        setMapError(`Map Engine Error: ${e.error?.message || 'Unknown error occurred'}`);
+      });
+    } catch (err) {
+      console.error('Map initialization try-catch error:', err);
+      setMapError(`Critical Initialization Failure: ${err.message}`);
+    }
 
     return () => {
       if (map.current) {
@@ -294,11 +324,36 @@ export const LiveTracking = () => {
           />
           
           {/* Loading State Overlay */}
-          {!mapLoaded && (
+          {!mapLoaded && !mapError && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-safari-primary z-50">
-              <Loader2 className="w-8 h-8 text-safari-gold animate-spin mb-4" />
-              <p className="text-white font-medium animate-pulse">Initializing Map Engine...</p>
+              <Loader2 className="w-12 h-12 text-safari-gold animate-spin mb-4" />
+              <p className="text-white font-dm-sans font-medium animate-pulse">Initializing Map Engine...</p>
+              <p className="text-white/50 text-[10px] mt-2 uppercase tracking-widest">Establishing Secure Connection</p>
             </div>
+          )}
+
+          {/* Error State Overlay [FIX 7] */}
+          {mapError && (
+             <div className="absolute inset-0 flex flex-col items-center justify-center bg-safari-primary/95 backdrop-blur-md z-[60] p-8 text-center">
+                <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6">
+                   <AlertCircle className="text-red-500 w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2 font-playfair">Map Failed to Load</h3>
+                <p className="text-gray-300 max-w-md mb-8 font-dm-sans">
+                   {mapError}
+                </p>
+                <div className="flex gap-4">
+                   <button 
+                     onClick={() => window.location.reload()}
+                     className="bg-safari-gold text-safari-primary px-8 py-3 rounded-2xl font-bold hover:bg-white transition-all transform hover:scale-105 active:scale-95 shadow-xl shadow-safari-gold/20"
+                   >
+                     Retry Initialization
+                   </button>
+                </div>
+                <p className="mt-8 text-[10px] text-gray-500 uppercase tracking-[0.2em]">
+                   Eastern Vacations Systems Integrity Monitor
+                </p>
+             </div>
           )}
           
           {/* Map Style Controls */}

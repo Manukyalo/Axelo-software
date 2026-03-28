@@ -199,20 +199,10 @@ const PendingApprovalsView = () => {
               ...authDoc.data() 
             };
             
-            // Look up driver name from drivers collection by matching email stored in driverAuth
-            if (authData.email) {
-              const driverQuery = query(
-                collection(db, 'drivers'),
-                where('email', '==', authData.email)
-              );
-              const driverSnap = await getDocs(driverQuery);
-              if (!driverSnap.empty) {
-                const driverDoc = driverSnap.docs[0].data();
-                authData.name = driverDoc.name;
-                authData.phone = driverDoc.phone;
-                authData.driverDocId = driverSnap.docs[0].id;
-              }
-            }
+            // Note: Name and phone are now stored directly in driverAuth during registration
+            // Providing fallbacks for older records if they exist
+            authData.name = authData.name ?? authData.email ?? 'Unknown Driver';
+            authData.phone = authData.phone ?? 'No phone';
             
             return authData;
           })
