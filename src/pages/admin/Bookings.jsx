@@ -41,6 +41,32 @@ export const Bookings = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [bookingTypeFilter, setBookingTypeFilter] = useState('All');
   const [formBookingType, setFormBookingType] = useState('Safari');
+  const [migrationDone, setMigrationDone] = useState(false);
+
+  // One-time fix for 2026 Safari bookings
+  useEffect(() => {
+    if (!migrationDone && state.bookings.length > 0) {
+      const bookingsToUpdate = state.bookings.filter(b => 
+        (b.type || 'Safari') === 'Safari' && 
+        b.status === 'Pending' && 
+        b.date && b.date.includes('2026')
+      );
+
+      if (bookingsToUpdate.length > 0) {
+        bookingsToUpdate.forEach(b => {
+          dispatch({
+            type: 'UPDATE_BOOKING',
+            payload: { id: b.id, status: 'Confirmed' }
+          });
+        });
+        toast.success(`System: Migrated ${bookingsToUpdate.length} 2026 Safari bookings to Confirmed status.`, {
+          icon: '🔄',
+          duration: 4000
+        });
+      }
+      setMigrationDone(true);
+    }
+  }, [state.bookings, migrationDone, dispatch]);
 
   const isAdmin = user?.role === 'admin';
 

@@ -59,29 +59,40 @@ export const BookingDetailModal = ({ isOpen, onClose, booking }) => {
   if (!isOpen || !formData) return null;
 
   const handleUpdate = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setLoading(true);
     try {
+      // Prepare full payload
+      const payload = {
+        ...formData,
+        updatedAt: new Date().toISOString()
+      };
+
       await dispatch({
         type: 'UPDATE_BOOKING',
-        payload: { ...formData }
+        payload
       });
       
-      // If driver is assigned, update driver status (logic can be expanded)
+      // Update Driver status if newly assigned
       if (formData.driverId && formData.driverId !== booking.driverId) {
         const driver = state.drivers.find(d => d.id === formData.driverId);
         if (driver) {
           await dispatch({
             type: 'UPDATE_DRIVER',
-            payload: { id: driver.id, status: 'On Trip' }
+            payload: { 
+              id: driver.id, 
+              status: 'On Trip',
+              currentBookingId: formData.id 
+            }
           });
         }
       }
 
-      toast.success('Booking updated successfully');
+      toast.success('Booking recorded successfully');
       setIsEditing(false);
     } catch (err) {
-      toast.error('Failed to update booking');
+      console.error('Update error:', err);
+      toast.error('Failed to save changes');
     } finally {
       setLoading(false);
     }
@@ -325,13 +336,31 @@ export const BookingDetailModal = ({ isOpen, onClose, booking }) => {
                     value={formData.driverId || ''}
                     onChange={async (e) => {
                       const newId = e.target.value;
+                      const driver = state.drivers.find(d => d.id === newId);
                       setLoading(true);
                       try {
+                        const updatePayload = { 
+                          id: formData.id, 
+                          driverId: newId,
+                          driverName: driver?.name || 'Unassigned'
+                        };
+                        
                         await dispatch({
                           type: 'UPDATE_BOOKING',
-                          payload: { id: formData.id, driverId: newId }
+                          payload: updatePayload
                         });
-                        setFormData({...formData, driverId: newId});
+
+                        if (driver) {
+                          await dispatch({
+                            type: 'UPDATE_DRIVER',
+                            payload: { id: driver.id, status: 'On Trip' }
+                          });
+                        }
+
+                        setFormData({
+                          ...formData, 
+                          ...updatePayload
+                        });
                         toast.success('Driver assigned successfully');
                       } catch (err) {
                         toast.error('Assignment failed');
@@ -375,13 +404,25 @@ export const BookingDetailModal = ({ isOpen, onClose, booking }) => {
                     value={formData.vehicleId || ''}
                     onChange={async (e) => {
                       const newId = e.target.value;
+                      const vehicle = state.vehicles.find(v => v.id === newId);
                       setLoading(true);
                       try {
+                        const updatePayload = { 
+                          id: formData.id, 
+                          vehicleId: newId,
+                          vehiclePlate: vehicle?.plate || '',
+                          vehicleName: vehicle?.name || ''
+                        };
+
                         await dispatch({
                           type: 'UPDATE_BOOKING',
-                          payload: { id: formData.id, vehicleId: newId }
+                          payload: updatePayload
                         });
-                        setFormData({...formData, vehicleId: newId});
+                        
+                        setFormData({
+                          ...formData, 
+                          ...updatePayload
+                        });
                         toast.success('Vehicle allocated successfully');
                       } catch (err) {
                         toast.error('Allocation failed');
@@ -417,13 +458,18 @@ export const BookingDetailModal = ({ isOpen, onClose, booking }) => {
           {activeTab === 'payments' && (
             <div className="space-y-6 flex-1 overflow-y-auto pr-2 no-scrollbar">
               {/* Financial Stats */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="p-4 bg-safari-primary text-white rounded-2xl shadow-lg">
                   <div className="flex items-center justify-between mb-2">
                     <DollarSign size={16} className="text-safari-gold" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Total</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Total Cost</span>
                   </div>
-                  <p className="text-xl font-jetbrains font-bold">${formData.totalAmount?.toLocaleString()}</p>
+                  <input 
+                    type="number"
+                    className="bg-transparent border-b border-white/20 text-xl font-jetbrains font-bold w-full outline-none focus:border-safari-gold"
+                    value={formData.totalAmount || 0}
+                    onChange={(e) => setFormData({...formData, totalAmount: parseFloat(e.target.value) || 0})}
+                  />
                 </div>
                 <div className="p-4 bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-2xl">
                   <div className="flex items-center justify-between mb-2">
@@ -441,6 +487,28 @@ export const BookingDetailModal = ({ isOpen, onClose, booking }) => {
                     ${balance.toLocaleString()}
                   </p>
                 </div>
+                <div className="p-4 bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-2xl">
+                  <div className="flex items-center justify-between mb-2">
+                    <CreditCard size={16} className="text-safari-gold" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Status</span>
+                  </div>
+                  <select 
+                    className="w-full bg-transparent text-xs font-bold uppercase tracking-tighter outline-none"
+                    value={formData.paymentStatus}
+                    onChange={(e) => setFormData({...formData, paymentStatus: e.target.value})}
+                  >
+                    <option value="Unpaid">Unpaid</option>
+                    <option value="Partially Paid">Partially Paid</option>
+                    <option value="Fully Paid">Fully Paid</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={handleUpdate} size="sm" className="gap-2 bg-safari-primary hover:bg-safari-primary/90 text-[10px] h-8">
+                  <Save size={14} />
+                  Update Financials
+                </Button>
               </div>
 
               {/* Record Payment */}

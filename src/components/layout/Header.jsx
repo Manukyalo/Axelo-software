@@ -23,10 +23,15 @@ export const Header = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const myNotifications = state.notifications.filter(n => !n.targetRole || n.targetRole === user?.role);
+  // Null-safe notification filtering
+  const myNotifications = (state?.notifications || []).filter(n => {
+    if (!n) return false;
+    return !n.targetRole || n.targetRole === user?.role || n.targetRole === 'both';
+  });
+  
   const internalUnread = myNotifications.filter(n => !n.read).length;
-  const totalUnread = internalUnread + (user?.role === 'admin' ? criticalCount : 0);
-  const hasCritical = user?.role === 'admin' && criticalCount > 0;
+  const totalUnread = internalUnread + (user?.role === 'admin' ? (criticalCount || 0) : 0);
+  const hasCritical = user?.role === 'admin' && (criticalCount || 0) > 0;
 
   return (
     <header className="h-20 bg-white/80 dark:bg-dark-bg/80 backdrop-blur-md border-b border-gray-100 dark:border-dark-border px-8 flex items-center justify-between sticky top-0 z-30">

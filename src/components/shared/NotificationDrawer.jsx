@@ -15,12 +15,18 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const myNotifications = state.notifications.filter(n => !n.targetRole || n.targetRole === user?.role);
+  // Safer filtering
+  const myNotifications = (state?.notifications || []).filter(n => {
+    if (!n) return false;
+    return !n.targetRole || n.targetRole === user?.role || n.targetRole === 'both';
+  });
+
   const internalUnread = myNotifications.filter(n => !n.read).length;
-  const criticalAiAlerts = user?.role === 'admin' ? aiAlerts : [];
+  const criticalAiAlerts = (user?.role === 'admin' ? aiAlerts : []) || [];
   const totalUnread = internalUnread + criticalAiAlerts.length;
 
   const markRead = (id) => {
+    if (!id) return;
     dispatch({ type: 'MARK_NOTIFICATION_READ', payload: id });
   };
 
@@ -32,6 +38,19 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
       case 'WARNING': return <ShieldAlert className="text-safari-warning" size={18} />;
       case 'SUCCESS': return <CheckCircle className="text-safari-success" size={18} />;
       default: return <Info className="text-blue-500" size={18} />;
+    }
+  };
+
+  const formatSafeDate = (date) => {
+    if (!date) return 'Recently';
+    try {
+      // Handle Firestore Timestamp
+      if (date.toDate) return formatDistanceToNow(date.toDate(), { addSuffix: true });
+      // Handle ISO String
+      if (typeof date === 'string') return formatDistanceToNow(parseISO(date), { addSuffix: true });
+      return 'Recently';
+    } catch (e) {
+      return 'Recent';
     }
   };
 
@@ -69,7 +88,7 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
                        <div className="flex justify-between items-start mb-1">
                          <p className="text-sm font-bold text-safari-primary dark:text-dark-text leading-tight">{a.title}</p>
                          <span className="text-[9px] text-gray-400 font-medium whitespace-nowrap">
-                            {a.createdAt?.toDate ? formatDistanceToNow(a.createdAt.toDate(), { addSuffix: true }) : 'now'}
+                            {formatSafeDate(a.createdAt)}
                          </span>
                        </div>
                        <p className="text-[11px] text-gray-500 leading-relaxed mb-2 line-clamp-2">{a.message}</p>
@@ -104,13 +123,13 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
                       <div className="flex justify-between items-start mb-1">
                         <p className={`text-sm font-bold ${n.read ? 'text-gray-600' : 'text-safari-primary dark:text-dark-text'}`}>{n.title}</p>
                         <span className="text-[9px] text-gray-400 font-medium">
-                           {n.date ? formatDistanceToNow(parseISO(n.date), { addSuffix: true }) : ''}
+                           {formatSafeDate(n.date)}
                         </span>
                       </div>
                       <p className="text-xs text-gray-500 leading-relaxed mb-2">{n.message}</p>
                       <div className="flex items-center gap-2 mt-2">
                          {!n.read && <Badge variant="gold" className="text-[8px] px-1.5 py-0 uppercase font-black">New</Badge>}
-                         <Badge variant={n.type === 'CRITICAL' ? 'danger' : n.type === 'WARNING' ? 'warning' : 'info'} className="text-[10px] px-1.5 py-0 uppercase font-black tracking-widest bg-opacity-10 border-none px-2">{n.type}</Badge>
+                         <Badge variant={n.type === 'CRITICAL' ? 'danger' : n.type === 'WARNING' ? 'warning' : 'info'} className="text-[10px] px-1.5 py-0 uppercase font-black tracking-widest bg-opacity-10 border-none px-2">{n.type || 'INFO'}</Badge>
                       </div>
                     </div>
                   </div>
@@ -126,7 +145,10 @@ export const NotificationDrawer = ({ isOpen, onClose }) => {
         </div>
 
         <div className="p-4 border-t border-gray-100 dark:border-dark-border">
-          <Button variant="ghost" className="w-full text-xs uppercase font-bold tracking-widest text-safari-gold" onClick={() => toast.success('All notifications cleared')}>
+          <Button variant="ghost" className="w-full text-xs uppercase font-bold tracking-widest text-safari-gold" onClick={() => {
+            myNotifications.forEach(n => !n.read && markRead(n.id));
+            toast.success('All notifications cleared');
+          }}>
             Mark all as read
           </Button>
         </div>
