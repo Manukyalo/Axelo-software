@@ -571,19 +571,52 @@ export const KENYA_PARK_GEOJSON = {
       }
     },
     {
-      type: 'Feature',
-      id: 'samburu',
-      properties: { 
-        name: 'Samburu', 
-        type: 'reserve',
-        color: '#40916C'
-      },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [[
-          [37.4, 0.7], [37.7, 0.7], [37.7, 0.5], [37.4, 0.5], [37.4, 0.7]
-        ]]
-      }
+       type: 'Feature',
+       id: 'mount_kenya',
+       properties: { name: 'Mt. Kenya NP', type: 'park', color: '#004B23' },
+       geometry: {
+         type: 'Polygon',
+         coordinates: [[
+           [37.2, -0.05], [37.5, -0.05], [37.5, -0.25], [37.2, -0.25], [37.2, -0.05]
+         ]]
+       }
+    },
+    {
+       type: 'Feature',
+       id: 'aberdare',
+       properties: { name: 'Aberdare NP', type: 'park', color: '#081C15' },
+       geometry: {
+         type: 'Polygon',
+         coordinates: [[
+           [36.5, -0.3], [36.8, -0.3], [36.8, -0.6], [36.5, -0.6], [36.5, -0.3]
+         ]]
+       }
+    },
+    {
+       type: 'Feature',
+       id: 'meru',
+       properties: { name: 'Meru NP', type: 'park', color: '#2D6A4F' },
+       geometry: {
+         type: 'Polygon',
+         coordinates: [[
+           [38.0, 0.2], [38.4, 0.2], [38.4, -0.1], [38.0, -0.1], [38.0, 0.2]
+         ]]
+       }
+    },
+    {
+       type: 'Feature',
+       id: 'samburu',
+       properties: { 
+         name: 'Samburu', 
+         type: 'reserve',
+         color: '#40916C'
+       },
+       geometry: {
+         type: 'Polygon',
+         coordinates: [[
+           [37.4, 0.7], [37.7, 0.7], [37.7, 0.5], [37.4, 0.5], [37.4, 0.7]
+         ]]
+       }
     },
     {
       type: 'Feature',
@@ -599,6 +632,17 @@ export const KENYA_PARK_GEOJSON = {
           [36.0, -0.3], [36.2, -0.3], [36.2, -0.5], [36.0, -0.5], [36.0, -0.3]
         ]]
       }
+    },
+    {
+       type: 'Feature',
+       id: 'hell_gate',
+       properties: { name: "Hell's Gate", type: 'park', color: '#95D5B2' },
+       geometry: {
+         type: 'Polygon',
+         coordinates: [[
+           [36.25, -0.85], [36.4, -0.85], [36.4, -0.95], [36.25, -0.95], [36.25, -0.85]
+         ]]
+       }
     },
     {
       type: 'Feature',
@@ -617,3 +661,4 @@ export const KENYA_PARK_GEOJSON = {
     }
   ]
 };
+

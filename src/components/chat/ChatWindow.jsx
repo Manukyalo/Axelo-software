@@ -114,6 +114,13 @@ export const ChatWindow = ({ chatId }) => {
   const handleDeleteMessage = async (msgId) => {
     try {
       await deleteDoc(doc(db, 'driverMessages', chatId, 'messages', msgId));
+      
+      // Sync parent metadata if we want the sidebar to update
+      await updateDoc(doc(db, 'driverMessages', chatId), {
+        lastMessage: '🗑️ Content removed',
+        updatedAt: serverTimestamp()
+      });
+
       toast.success('Message deleted');
       setDeleteId(null);
     } catch (err) {

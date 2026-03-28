@@ -103,15 +103,13 @@ service cloud.firestore {
     match /driverMessages/{driverId} {
       // Chat Hub: Root metadata document
       allow read, write: if request.auth != null && (
-        request.auth.uid == driverId || 
-        request.auth.token.email.matches('.*@easternvacations.com')
+        request.auth.uid == driverId || isAgent()
       );
       
       match /messages/{messageId} {
         // Individual messages in the thread
         allow read, write: if request.auth != null && (
-          request.auth.uid == driverId ||
-          request.auth.token.email.matches('.*@easternvacations.com')
+          request.auth.uid == driverId || isAgent()
         );
       }
     }

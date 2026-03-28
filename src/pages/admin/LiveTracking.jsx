@@ -134,6 +134,66 @@ export const LiveTracking = () => {
     
   }, [showParks, showLodges, showGates, showDrivers, selectedParkId, mapLoaded]);
 
+  // --- 🗺️ Map Layer Helpers ---
+  const addParkBoundaries = (mapInstance) => {
+    if (!mapInstance) return;
+
+    // 1. Source
+    if (!mapInstance.getSource('park-boundaries')) {
+      mapInstance.addSource('park-boundaries', {
+        type: 'geojson',
+        data: KENYA_PARK_GEOJSON
+      });
+    }
+
+    // 2. Fills
+    if (!mapInstance.getLayer('park-fills')) {
+      mapInstance.addLayer({
+        id: 'park-fills',
+        type: 'fill',
+        source: 'park-boundaries',
+        paint: {
+          'fill-color': ['get', 'color'],
+          'fill-opacity': 0.15
+        }
+      });
+    }
+
+    // 3. Outlines
+    if (!mapInstance.getLayer('park-outlines')) {
+      mapInstance.addLayer({
+        id: 'park-outlines',
+        type: 'line',
+        source: 'park-boundaries',
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': 2,
+          'line-dasharray': [2, 1]
+        }
+      });
+    }
+
+    // 4. Labels
+    if (!mapInstance.getLayer('park-labels')) {
+      mapInstance.addLayer({
+        id: 'park-labels',
+        type: 'symbol',
+        source: 'park-boundaries',
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-size': 10,
+          'text-transform': 'uppercase',
+          'text-letter-spacing': 0.2
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': '#111B15',
+          'text-halo-width': 1
+        }
+      });
+    }
+  };
+
   // Initial Map Load
   useEffect(() => {
     if (map.current) return;
@@ -164,75 +224,14 @@ export const LiveTracking = () => {
         
         // Premium flyover
         map.current.flyTo({
-          center: [37.9062, -1.2863],
-          zoom: 6.5,
+          center: [37.2, -0.1], // Mt Kenya region
+          zoom: 7,
           duration: 3000,
-          essential: true,
-          pitch: 50
+          essential: true
         });
 
-        // Add Park Boundaries (GeoJSON)
-        map.current.addSource('park-boundaries', {
-          type: 'geojson',
-          data: KENYA_PARK_GEOJSON
-        });
+        addParkBoundaries(map.current);
 
-        // 0. Render Park Polygons (Fills)
-        map.current.addLayer({
-          id: 'park-fills',
-          type: 'fill',
-          source: 'park-boundaries',
-          layout: {},
-          paint: {
-            'fill-color': ['get', 'color'],
-            'fill-opacity': [
-              'case',
-              ['boolean', ['feature-state', 'hover'], false],
-              0.3,
-              0.15
-            ]
-          }
-        });
-
-        // 0. Render Park Outlines
-        map.current.addLayer({
-          id: 'park-outlines',
-          type: 'line',
-          source: 'park-boundaries',
-          layout: {},
-          paint: {
-            'line-color': ['get', 'color'],
-            'line-width': 2,
-            'line-dasharray': [2, 1],
-            'line-opacity': 0.6
-          }
-        });
-
-        // 0. Render Park Labels (Centered in Polygon)
-        map.current.addLayer({
-          id: 'park-poly-labels',
-          type: 'symbol',
-          source: 'park-boundaries',
-          layout: {
-            'text-field': ['get', 'name'],
-            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-            'text-size': 10,
-            'text-transform': 'uppercase',
-            'text-letter-spacing': 0.2,
-            'text-offset': [0, 0.6]
-          },
-          paint: {
-            'text-color': '#ffffff',
-            'text-halo-color': '#111B15',
-            'text-halo-width': 2,
-            'text-opacity': [
-              'interpolate',
-              ['linear'], ['zoom'],
-              7, 0,
-              8, 1
-            ]
-          }
-        });
         KENYA_PARKS.forEach(park => {
           const el = document.createElement('div');
           el.className = `park-marker park-${park.id}`;
@@ -375,6 +374,11 @@ export const LiveTracking = () => {
         setMapLoaded(true);
       });
 
+      // CRITICAL: Re-add layers when style changes
+      map.current.on('style.load', () => {
+        addParkBoundaries(map.current);
+      });
+
       map.current.on('error', (e) => setMapError(`Map Engine Error: ${e.error?.message || 'Unknown error'}`));
     } catch (err) {
       setMapError(`Critical Failure: ${err.message}`);
@@ -384,10 +388,13 @@ export const LiveTracking = () => {
   }, []); // Only init once
 
   // Handle Dynamic Style Changes
-  useEffect(() => {
-    if (!map.current || !mapLoaded) return;
-    map.current.setStyle(getStyleURL(mapType), { diff: false });
-  }, [mapType, mapLoaded]);
+  const toggleMapType = () => {
+    const nextType = mapType === 'dark' ? 'satellite' : 'dark';
+    setMapType(nextType);
+    if (map.current) {
+      map.current.setStyle(getStyleURL(nextType));
+    }
+  };
 
   // Driver Real-time updates
   useEffect(() => {
