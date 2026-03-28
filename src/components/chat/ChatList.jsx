@@ -5,16 +5,16 @@ import { formatDistanceToNow } from 'date-fns';
 
 export const ChatList = ({ activeChatId, onSelectChat }) => {
   const { state } = useData();
-  const chats = state.chats || [];
+  const chats = state.driverMessages || [];
   const drivers = state.drivers || [];
 
   // Filter out any chats that don't have a valid driver
   const processedChats = chats.map(chat => {
-    const driver = drivers.find(d => d.id === chat.driverId) || { name: chat.driverName || 'Unknown Driver' };
+    const driver = drivers.find(d => d.id === chat.id) || { name: chat.driverName || 'Unknown Driver' };
     return { ...chat, driver };
   }).sort((a, b) => {
-    const timeA = a.lastMessage?.timestamp?.seconds || 0;
-    const timeB = b.lastMessage?.timestamp?.seconds || 0;
+    const timeA = a.lastTimestamp?.seconds || 0;
+    const timeB = b.lastTimestamp?.seconds || 0;
     return timeB - timeA;
   });
 

@@ -25,8 +25,8 @@ export const ChatWindow = ({ chatId }) => {
   const [sending, setSending] = useState(false);
   const scrollRef = useRef();
 
-  const chat = state.chats?.find(c => c.id === chatId);
-  const driver = state.drivers?.find(d => d.id === chat?.driverId) || { name: chat?.driverName || 'Driver' };
+  const chat = state.driverMessages?.find(c => c.id === chatId);
+  const driver = state.drivers?.find(d => d.id === chatId) || { name: chat?.driverName || 'Driver' };
 
   // Real-time messages listener
   useEffect(() => {
@@ -34,7 +34,7 @@ export const ChatWindow = ({ chatId }) => {
     
     setLoading(true);
     const q = query(
-      collection(db, 'chats', chatId, 'messages'),
+      collection(db, 'driverMessages', chatId, 'messages'),
       orderBy('timestamp', 'asc')
     );
 
@@ -49,14 +49,14 @@ export const ChatWindow = ({ chatId }) => {
       }, 100);
 
       // Mark messages as read if sent by driver
-      const unread = msgs.filter(m => m.senderId !== user.uid && m.status !== 'read');
-      unread.forEach(m => {
-        updateDoc(doc(db, 'chats', chatId, 'messages', m.id), { status: 'read' });
-      });
-
-      // Update chat unreadCount
+      const unread = msgs.filter(m => m.senderRole !== 'admin' && !m.read);
       if (unread.length > 0) {
-        updateDoc(doc(db, 'chats', chatId), { unreadCount: 0 });
+        unread.forEach(m => {
+          updateDoc(doc(db, 'driverMessages', chatId, 'messages', m.id), { read: true });
+        });
+
+        // Update chat unreadCount
+        updateDoc(doc(db, 'driverMessages', chatId), { unreadCount: 0 });
       }
     });
 
@@ -78,15 +78,12 @@ export const ChatWindow = ({ chatId }) => {
         type: 'text'
       };
 
-      await addDoc(collection(db, 'chats', chatId, 'messages'), messageData);
+      await addDoc(collection(db, 'driverMessages', chatId, 'messages'), messageData);
       
       // Update last message in chat metadata
-      await updateDoc(doc(db, 'chats', chatId), {
-        lastMessage: {
-          text: inputText,
-          senderId: user.uid,
-          timestamp: new Date()
-        },
+      await updateDoc(doc(db, 'driverMessages', chatId), {
+        lastMessage: inputText,
+        lastTimestamp: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
 
@@ -116,14 +113,11 @@ export const ChatWindow = ({ chatId }) => {
           type: 'image'
         };
 
-        await addDoc(collection(db, 'chats', chatId, 'messages'), messageData);
+        await addDoc(collection(db, 'driverMessages', chatId, 'messages'), messageData);
         
-        await updateDoc(doc(db, 'chats', chatId), {
-          lastMessage: {
-            text: '📷 Photo sent',
-            senderId: user.uid,
-            timestamp: new Date()
-          },
+        await updateDoc(doc(db, 'driverMessages', chatId), {
+          lastMessage: '📷 Photo attachment',
+          lastTimestamp: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
       } catch (err) {

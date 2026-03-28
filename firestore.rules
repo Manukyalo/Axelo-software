@@ -100,6 +100,19 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    match /driverMessages/{driverId} {
+      // Chat Hub: Root metadata document
+      allow read: if isAdmin() || isOwner(driverId);
+      allow write: if isAdmin() || isOwner(driverId);
+      
+      match /messages/{messageId} {
+        // Individual messages in the thread
+        allow read: if isAdmin() || isOwner(driverId);
+        allow create: if isAdmin() || isOwner(driverId);
+        allow update: if isAdmin() || isOwner(driverId); // Required for read receipts
+      }
+    }
+
     // --- 🔒 DEFAULT DENY ---
     match /{document=**} {
       allow read, write: if isAdmin();

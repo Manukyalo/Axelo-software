@@ -23,7 +23,7 @@ export const DataProvider = ({ children }) => {
     driverLocations: [],
     sosAlerts: [],
     tripUpdates: [],
-    chats: []
+    driverMessages: []
   });
 
   // Attach asynchronous remote Firestore synchronizers dynamically
@@ -31,7 +31,7 @@ export const DataProvider = ({ children }) => {
     if (!user) return; // Disconnect polling if unauthenticated
 
     const unsubs = [];
-    const collections = ['bookings', 'vehicles', 'drivers', 'packages', 'notifications', 'driverAuth', 'porters', 'driverLocations', 'sosAlerts', 'tripUpdates', 'chats'];
+    const collections = ['bookings', 'vehicles', 'drivers', 'packages', 'notifications', 'driverAuth', 'porters', 'driverLocations', 'sosAlerts', 'tripUpdates', 'driverMessages'];
 
     collections.forEach(col => {
       const q = collection(db, col);
@@ -72,7 +72,7 @@ export const DataProvider = ({ children }) => {
       else if (type.includes('DRIVERLOCATION')) col = 'driverLocations';
       else if (type.includes('SOSALERT')) col = 'sosAlerts';
       else if (type.includes('TRIPUPDATE')) col = 'tripUpdates';
-      else if (type.includes('CHAT')) col = 'chats';
+      else if (type.includes('CHAT') || type.includes('DRIVER_MESSAGE')) col = 'driverMessages';
 
       if (!col) return;
 
