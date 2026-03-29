@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useData } from '../../contexts/DataContext';
-import { Search, User, MessageCircle, Trash2, AlertCircle } from 'lucide-react';
+import { Search, MessageCircle, Trash2, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '../ui/Button';
+import { deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 import toast from 'react-hot-toast';
 
 export const ChatList = ({ activeChatId, onSelectChat }) => {
@@ -25,13 +27,14 @@ export const ChatList = ({ activeChatId, onSelectChat }) => {
   const handleDeleteChat = async (e, id) => {
     e.stopPropagation();
     try {
-      await dispatch({ type: 'UPDATE_DRIVERMESSAGE', payload: { id, isDeleted: true } });
+      await deleteDoc(doc(db, 'driverMessages', id));
       toast.success('Conversation purged');
       setConfirmDelete(null);
       if (activeChatId === id) {
         onSelectChat(null);
       }
     } catch (err) {
+      console.error('Delete failed:', err);
       toast.error('Failed to delete conversation');
     }
   };

@@ -132,9 +132,10 @@ export const ChatWindow = ({ chatId }) => {
   const handleDeleteConversation = async () => {
     if (!chatId) return;
     try {
-      await dispatch({ type: 'UPDATE_DRIVERMESSAGE', payload: { id: chatId, isDeleted: true } });
+      await deleteDoc(doc(db, 'driverMessages', chatId));
       toast.success('Conversation purged from log');
     } catch (err) {
+      console.error('Delete failed:', err);
       toast.error('Failed to purge conversation');
     }
   };

@@ -42,6 +42,13 @@ export const Bookings = () => {
   const [bookingTypeFilter, setBookingTypeFilter] = useState('All');
   const [formBookingType, setFormBookingType] = useState('Safari');
   const [migrationDone, setMigrationDone] = useState(false);
+  const [selectedPorters, setSelectedPorters] = useState([]);
+
+  const togglePorter = (porterId) => {
+    setSelectedPorters(prev =>
+      prev.includes(porterId) ? prev.filter(id => id !== porterId) : [...prev, porterId]
+    );
+  };
 
   // One-time fix for 2026 Safari bookings
   useEffect(() => {
@@ -173,6 +180,7 @@ export const Bookings = () => {
         clientName, clientEmail, totalAmount, paidAmount,
         destinations, durationText, location, date, timeOfPickup,
         packageId, packageName, driverId, vehicleId,
+        porterIds: formBookingType !== 'Safari' ? selectedPorters : [],
         id: nextId,
         type: formBookingType,
         pax: { adults, children, infants: 0 },
@@ -206,6 +214,7 @@ export const Bookings = () => {
       toast.success(`Booking ${nextId} created!`);
       setIsModalOpen(false);
       setFormBookingType('Safari');
+      setSelectedPorters([]);
     } catch(err) {
       toast.error(err.message);
     }
@@ -444,18 +453,63 @@ export const Bookings = () => {
           )}
 
           {formBookingType !== 'Safari' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <Input label="Time of Pickup" name="timeOfPickup" type="time" required />
-               <div className="space-y-1.5">
-                 <label className="block text-sm font-medium text-safari-primary dark:text-dark-text font-dm-sans">Allocate Driver</label>
-                 <select name="driverId" className="w-full px-4 py-2.5 bg-white dark:bg-dark-surface border-2 border-gray-100 dark:border-dark-border rounded-input outline-none focus:border-safari-gold focus:ring-4 focus:ring-safari-gold/5 transition-all text-sm">
-                   <option value="">Auto-Assign Later</option>
-                   {state.drivers.filter(d => d.status === 'Available').map(d => (
-                     <option key={d.id} value={d.id}>{d.name} ({d.trips} trips)</option>
-                   ))}
-                 </select>
-               </div>
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <Input label="Time of Pickup" name="timeOfPickup" type="time" required />
+                 <div className="space-y-1.5">
+                   <label className="block text-sm font-medium text-safari-primary dark:text-dark-text font-dm-sans">Allocate Driver</label>
+                   <select name="driverId" className="w-full px-4 py-2.5 bg-white dark:bg-dark-surface border-2 border-gray-100 dark:border-dark-border rounded-input outline-none focus:border-safari-gold focus:ring-4 focus:ring-safari-gold/5 transition-all text-sm">
+                     <option value="">Auto-Assign Later</option>
+                     {state.drivers.filter(d => d.status === 'Available').map(d => (
+                       <option key={d.id} value={d.id}>{d.name} ({d.trips} trips)</option>
+                     ))}
+                   </select>
+                 </div>
+              </div>
+
+              {/* Porters Section */}
+              {state.porters?.filter(p => p.status === 'Active').length > 0 && (
+                <div className="space-y-3 border border-gray-100 dark:border-dark-border rounded-2xl p-4 bg-gray-50/50 dark:bg-white/[0.02]">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-bold text-safari-primary dark:text-dark-text font-dm-sans">
+                      Assign Porters
+                    </label>
+                    {selectedPorters.length > 0 && (
+                      <span className="text-[10px] font-black uppercase tracking-widest text-safari-gold bg-safari-gold/10 px-2 py-0.5 rounded-full">
+                        {selectedPorters.length} Selected
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {state.porters.filter(p => p.status === 'Active').map(porter => {
+                      const isSelected = selectedPorters.includes(porter.id);
+                      return (
+                        <button
+                          key={porter.id}
+                          type="button"
+                          onClick={() => togglePorter(porter.id)}
+                          className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                            isSelected
+                              ? 'border-safari-gold bg-safari-gold/5 text-safari-primary dark:text-white'
+                              : 'border-gray-100 dark:border-dark-border text-gray-500 hover:border-safari-gold/40'
+                          }`}
+                        >
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black shrink-0 transition-all ${
+                            isSelected ? 'bg-safari-gold text-white' : 'bg-gray-100 dark:bg-white/10 text-gray-400'
+                          }`}>
+                            {porter.name?.[0] || 'P'}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold truncate">{porter.name}</p>
+                            <p className="text-[9px] uppercase tracking-widest text-gray-400 font-medium">{porter.totalTrips || 0} missions</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
           )}
           <div className="grid grid-cols-3 gap-4">
              <Input label="Adults" name="adults" type="number" min="1" defaultValue="1" required />
