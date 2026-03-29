@@ -44,6 +44,21 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
   return R * c; 
 };
 
+// Helper for checking if a driver is currently active/online
+const isDriverActive = (loc) => {
+  if (!loc || !loc.isOnline) return false;
+  if (!loc.lastUpdated) return true; // Assume active if syncing
+  
+  // Calculate age of last update
+  const timestamp = loc.lastUpdated?.toMillis 
+    ? loc.lastUpdated.toMillis() 
+    : (loc.lastUpdated?.seconds ? loc.lastUpdated.seconds * 1000 : Date.now());
+    
+  // If no update for 15 minutes, consider them offline/stale
+  return (Date.now() - timestamp) < 15 * 60 * 1000;
+};
+
+
 export const LiveTracking = () => {
   const { state } = useData();
   const mapContainer = useRef(null);
@@ -100,7 +115,7 @@ export const LiveTracking = () => {
 
   const stats = useMemo(() => {
     return {
-      online: state.driverLocations?.filter(l => l.isOnline).length || 0,
+      online: state.driverLocations?.filter(isDriverActive).length || 0,
       sos: state.sosAlerts?.filter(s => s.status === 'Active').length || 0
     };
   }, [state.driverLocations, state.sosAlerts]);
@@ -401,7 +416,7 @@ export const LiveTracking = () => {
     if (!map.current || !mapLoaded) return;
     const currentLocations = state.driverLocations || [];
     
-    currentLocations.filter(l => l.isOnline).forEach(loc => {
+    currentLocations.filter(isDriverActive).forEach(loc => {
       const driver = state.drivers.find(d => d.id === loc.driverId);
       if (!driver) return;
       const hasSOS = state.sosAlerts?.some(s => s.driverId === loc.driverId && s.status === 'Active');
@@ -475,7 +490,7 @@ export const LiveTracking = () => {
 
     Object.keys(markers.current).forEach(id => {
       const loc = currentLocations.find(l => l.driverId === id);
-      if (!loc || !loc.isOnline) {
+      if (!isDriverActive(loc)) {
         markers.current[id].remove();
         delete markers.current[id];
       }
@@ -495,6 +510,7 @@ export const LiveTracking = () => {
       lodges: KENYA_LODGES.filter(l => l.name.toLowerCase().includes(q)).slice(0, 5),
       gates: KENYA_GATES.filter(g => g.name.toLowerCase().includes(q)).slice(0, 3),
       drivers: (state.driverLocations || []).filter(l => {
+        if (!isDriverActive(l)) return false;
         const d = state.drivers.find(dr => dr.id === l.driverId);
         return d?.name.toLowerCase().includes(q);
       }).slice(0, 5)
@@ -638,7 +654,7 @@ export const LiveTracking = () => {
 
           {/* DRIVER LIST */}
           <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
-             {(state.driverLocations || []).filter(l => l.isOnline).map(loc => {
+             {(state.driverLocations || []).filter(isDriverActive).map(loc => {
                const driver = state.drivers.find(d => d.id === loc.driverId);
                const hasSOS = state.sosAlerts?.some(s => s.driverId === loc.driverId && s.status === 'Active');
                return (
