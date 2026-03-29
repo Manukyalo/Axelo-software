@@ -439,11 +439,11 @@ export const Bookings = () => {
                  <Input label="Duration (Days/Nights)" name="durationText" placeholder="e.g. 7 Days, 6 Nights" />
               </div>
               <div className="grid grid-cols-1 gap-4 mt-4">
-                 <div className="space-y-1.5">
+                  <div className="space-y-1.5">
                    <label className="block text-sm font-medium text-safari-primary dark:text-dark-text font-dm-sans">Allocate Driver</label>
                    <select name="driverId" className="w-full px-4 py-2.5 bg-white dark:bg-dark-surface border-2 border-gray-100 dark:border-dark-border rounded-input outline-none focus:border-safari-gold focus:ring-4 focus:ring-safari-gold/5 transition-all text-sm">
                      <option value="">Auto-Assign Later</option>
-                     {state.drivers.filter(d => d.status === 'Available').map(d => (
+                     {state.drivers.filter(d => d.status === 'Available' && d.role === 'safari_driver').map(d => (
                        <option key={d.id} value={d.id}>{d.name} ({d.trips} trips)</option>
                      ))}
                    </select>

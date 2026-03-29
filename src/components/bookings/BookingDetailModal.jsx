@@ -476,7 +476,20 @@ export const BookingDetailModal = ({ isOpen, onClose, booking }) => {
                     <TrendingUp size={16} className="text-green-500" />
                     <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Paid</span>
                   </div>
-                  <p className="text-xl font-jetbrains font-bold text-green-500">${formData.paidAmount?.toLocaleString()}</p>
+                  <input
+                    type="number"
+                    className="bg-transparent border-b border-green-500/30 text-xl font-jetbrains font-bold w-full outline-none focus:border-green-500 text-green-500"
+                    value={formData.paidAmount || 0}
+                    onChange={(e) => {
+                      const newPaid = parseFloat(e.target.value) || 0;
+                      const total = formData.totalAmount || 0;
+                      let newStatus = 'Unpaid';
+                      if (newPaid >= total && total > 0) newStatus = 'Fully Paid';
+                      else if (newPaid > 0) newStatus = 'Partially Paid';
+                      setFormData({ ...formData, paidAmount: newPaid, paymentStatus: newStatus });
+                    }}
+                  />
+                  <p className="text-[9px] text-gray-400 mt-1 font-bold uppercase tracking-widest">Click to correct</p>
                 </div>
                 <div className="p-4 bg-white dark:bg-dark-card border border-gray-100 dark:border-dark-border rounded-2xl">
                   <div className="flex items-center justify-between mb-2">
