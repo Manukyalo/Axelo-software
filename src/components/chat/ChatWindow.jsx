@@ -14,7 +14,7 @@ import {
   Trash2,
   X
 } from 'lucide-react';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -78,7 +78,7 @@ export const ChatWindow = ({ chatId }) => {
     try {
       const messageData = {
         text: textSnapshot,
-        senderId: user.uid,
+        senderId: user.id,
         senderRole: 'admin',
         timestamp: serverTimestamp(),
         status: 'sent',
@@ -87,14 +87,14 @@ export const ChatWindow = ({ chatId }) => {
 
       await addDoc(collection(db, 'driverMessages', chatId, 'messages'), messageData);
       
-      // Update last message in chat metadata
-      await updateDoc(doc(db, 'driverMessages', chatId), {
+      // Use setDoc with merge so it creates the parent doc if it doesn't exist yet
+      await setDoc(doc(db, 'driverMessages', chatId), {
         lastMessage: textSnapshot,
         lastTimestamp: serverTimestamp(),
         updatedAt: serverTimestamp(),
         unreadCount: 0,
         isDeleted: false
-      });
+      }, { merge: true });
 
     } catch (err) {
       console.error('Failed to send message:', err);
@@ -150,7 +150,7 @@ export const ChatWindow = ({ chatId }) => {
         setSending(true);
         const messageData = {
           image: base64,
-          senderId: user.uid,
+          senderId: user.id,
           senderRole: 'admin',
           timestamp: serverTimestamp(),
           status: 'sent',
@@ -159,12 +159,12 @@ export const ChatWindow = ({ chatId }) => {
 
         await addDoc(collection(db, 'driverMessages', chatId, 'messages'), messageData);
         
-        await updateDoc(doc(db, 'driverMessages', chatId), {
+        await setDoc(doc(db, 'driverMessages', chatId), {
           lastMessage: '📷 Photo attachment',
           lastTimestamp: serverTimestamp(),
           updatedAt: serverTimestamp(),
           isDeleted: false
-        });
+        }, { merge: true });
       } catch (err) {
         console.error('Image upload failed:', err);
         toast.error('Image transmission failed');
