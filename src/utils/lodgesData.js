@@ -993,6 +993,17 @@ export const KENYA_LODGES = [
     phone: '+254 62 31000'
   },
   {
+    id: 'fairmont_mount_kenya',
+    name: 'Fairmont Mount Kenya Safari Club',
+    type: 'lodge',
+    parkId: 'mount_kenya',
+    parkName: 'Mount Kenya',
+    center: [37.0667, -0.0500],
+    stars: 5,
+    description: 'Legendary colonial estate. William Holden founded in 1959.',
+    phone: '+254 62 31000'
+  },
+  {
     id: 'serena_mountain_lodge',
     name: 'Serena Mountain Lodge',
     type: 'lodge',
@@ -1270,6 +1281,39 @@ export const KENYA_LODGES = [
     center: [37.4500, 0.2167],
     stars: 5,
     description: 'Luxury tents on Lewa Downs. Rhino and wild dog territory.',
+    phone: '+254 64 31405'
+  },
+  {
+    id: 'sirikoi_lodge',
+    name: 'Sirikoi Lodge',
+    type: 'lodge',
+    parkId: 'lewa',
+    parkName: 'Lewa Conservancy',
+    center: [37.4000, 0.2333],
+    stars: 5,
+    description: 'Exclusive use lodge in Lewa. All rooms have private pools.',
+    phone: '+254 64 31405'
+  },
+  {
+    id: 'lewa_house',
+    name: 'Lewa House',
+    type: 'lodge',
+    parkId: 'lewa',
+    parkName: 'Lewa Conservancy',
+    center: [37.4667, 0.2000],
+    stars: 5,
+    description: 'Private family house in Lewa. Exclusive use rental.',
+    phone: '+254 64 31405'
+  },
+  {
+    id: 'kifaru_house',
+    name: 'Kifaru House',
+    type: 'lodge',
+    parkId: 'lewa',
+    parkName: 'Lewa Conservancy',
+    center: [37.4333, 0.2500],
+    stars: 5,
+    description: 'Exclusive use house. Named after rhino — Swahili for rhino.',
     phone: '+254 64 31405'
   },
 
@@ -2128,6 +2172,32 @@ export const KENYA_LODGES = [
     center: [36.0833, -2.0167],
     stars: 4,
     description: 'Intimate tented camp in Shompole wilderness.',
+    phone: '+254 722 509830'
+  },
+
+  // ═══════════════════════════════════════
+  // KIMANA SANCTUARY
+  // ═══════════════════════════════════════
+  {
+    id: 'kimana_sanctuary_camp',
+    name: 'Kimana Sanctuary Tented Camp',
+    type: 'tented_camp',
+    parkId: 'kimana',
+    parkName: 'Kimana Sanctuary',
+    center: [37.5167, -2.7833],
+    stars: 3,
+    description: 'Community sanctuary camp. Elephant corridor to Amboseli.',
+    phone: '+254 722 509830'
+  },
+  {
+    id: 'eselenkei_camp',
+    name: 'Eselenkei Camp',
+    type: 'tented_camp',
+    parkId: 'kimana',
+    parkName: 'Kimana / Amboseli ecosystem',
+    center: [36.9833, -2.5333],
+    stars: 4,
+    description: 'Maasai community camp in Amboseli ecosystem.',
     phone: '+254 722 509830'
   },
 
