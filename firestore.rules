@@ -114,6 +114,33 @@ service cloud.firestore {
       }
     }
 
+    // --- ☁️ WEATHER INTELLIGENCE MODULE ---
+
+    match /weatherData/{parkId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /weatherAdvisories/{parkId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /weatherAlerts/{doc} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /weatherHistory/{parkId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /parks/{parkId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
     // --- 🔒 DEFAULT DENY ---
     match /{document=**} {
       allow read, write: if isAdmin();

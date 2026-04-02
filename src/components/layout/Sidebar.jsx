@@ -21,7 +21,8 @@ import {
   Map,
   ShieldAlert,
   Activity,
-  MessageSquare
+  MessageSquare,
+  CloudSun
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -110,6 +111,7 @@ export const Sidebar = ({ role }) => {
     { to: 'https://eastern-vacations-staff.vercel.app/', icon: ShieldCheck, label: 'Staff Portal', external: true },
     { to: '/admin/packages', icon: Package, label: 'Tour Packages', disabled: true },
     { to: '/admin/ai-manager', icon: Zap, label: 'AI Manager' },
+    { to: '/admin/weather', icon: CloudSun, label: 'Weather Intel' },
     { to: '/admin/reports', icon: BarChart3, label: 'Reports' },
     { to: '/admin/settings', icon: Settings, label: 'Settings' },
   ];
@@ -120,6 +122,7 @@ export const Sidebar = ({ role }) => {
     { to: '/reservations/my-bookings', icon: Briefcase, label: 'My Bookings' },
     { to: '/reservations/all-bookings', icon: CalendarDays, label: 'All Bookings' },
     { to: '/reservations/upcoming-safaris', icon: MapPin, label: 'Upcoming Safaris' },
+    { to: '/reservations/weather', icon: CloudSun, label: 'Weather Intel' },
     { to: '/reservations/vehicles', icon: Car, label: 'Vehicles' },
     { to: '/reservations/drivers', icon: Users, label: 'Drivers' },
     { to: 'https://eastern-vacations-staff.vercel.app/', icon: ShieldCheck, label: 'Staff Portal', external: true },

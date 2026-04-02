@@ -43,6 +43,7 @@ import { UpcomingSafaris } from './pages/UpcomingSafaris';
 import { AIManager } from './pages/AIManager';
 import { AIActivityLog } from './pages/AIActivityLog';
 import { requestFirebaseToken, onMessageListener } from './utils/fcmUtils';
+import { WeatherIntelligence } from './pages/shared/WeatherIntelligence';
 
 
 import { ReservationsDashboard } from './pages/reservations/Dashboard';
@@ -170,6 +171,11 @@ function App() {
             <Layout><Messages /></Layout>
           </ProtectedRoute>
         } />
+        <Route path="/admin/weather" element={
+          <ProtectedRoute allowedRole="admin" title="Weather Intelligence">
+            <Layout><WeatherIntelligence /></Layout>
+          </ProtectedRoute>
+        } />
 
         {/* Reservations Routes */}
         <Route path="/reservations" element={
@@ -210,6 +216,11 @@ function App() {
         <Route path="/reservations/profile" element={
           <ProtectedRoute allowedRole="res_agent" title="Profile">
             <Layout><Profile /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/reservations/weather" element={
+          <ProtectedRoute allowedRole="res_agent" title="Weather Intelligence">
+            <Layout><WeatherIntelligence /></Layout>
           </ProtectedRoute>
         } />
 
