@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "eastern-vacations-system"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }

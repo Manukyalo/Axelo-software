@@ -4,15 +4,6 @@ export const KENYA_PARKS = [
   // NATIONAL PARKS
   // ═══════════════════════════════
   {
-    id: 'maasai_mara',
-    name: 'Maasai Mara National Reserve',
-    type: 'reserve',
-    center: [35.1500, -1.5833],
-    zoom: 9,
-    color: '#2D6A4F',
-    description: 'Worlds most famous wildlife reserve. Home of the Great Migration.'
-  },
-  {
     id: 'amboseli',
     name: 'Amboseli National Park',
     type: 'park',
@@ -34,7 +25,7 @@ export const KENYA_PARKS = [
     id: 'tsavo_west',
     name: 'Tsavo West National Park',
     type: 'park',
-    center: [37.5833, -3.2333],
+    center: [37.95, -3.2],
     zoom: 8,
     color: '#2D6A4F',
     description: 'Volcanic landscapes, Mzima Springs and diverse wildlife.'
@@ -187,6 +178,15 @@ export const KENYA_PARKS = [
   // ═══════════════════════════════
   // NATIONAL RESERVES
   // ═══════════════════════════════
+  {
+    id: 'maasai_mara',
+    name: 'Maasai Mara National Reserve',
+    type: 'reserve',
+    center: [35.1500, -1.5833],
+    zoom: 9,
+    color: '#2D6A4F',
+    description: 'Worlds most famous wildlife reserve. Home of the Great Migration.'
+  },
   {
     id: 'samburu',
     name: 'Samburu National Reserve',

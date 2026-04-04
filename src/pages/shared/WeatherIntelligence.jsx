@@ -8,9 +8,8 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
-import { db } from '../../config/firebase';
-import { doc, onSnapshot, collection, getDocs } from 'firebase/firestore';
-import { syncWeatherData } from '../../utils/weatherSyncEngine';
+import { doc, onSnapshot, collection, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Card, CardContent, CardHeader } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -19,22 +18,43 @@ import { format } from 'date-fns';
 import { getWeatherLabel, getSeasonBadge } from '../../utils/weatherUtils';
 
 // ----------- HELPER: Weather Icon by Code -----------
-const WeatherIcon = ({ code, size = 24, className = '' }) => {
-  if (code >= 95) return <CloudLightning size={size} className={className} />;
-  if ([80, 81, 82, 61, 63, 65].includes(code)) return <CloudRain size={size} className={className} />;
-  if ([51, 53, 55].includes(code)) return <Droplets size={size} className={className} />;
-  if ([45, 48].includes(code)) return <Eye size={size} className={className} />;
-  if ([1, 2, 3].includes(code)) return <Cloud size={size} className={className} />;
+const WeatherIcon = ({ icon, code, size = 24, className = '' }) => {
+  // If we have an OWM icon string
+  if (typeof icon === 'string') {
+    if (icon.startsWith('11')) return <CloudLightning size={size} className={className} />;
+    if (icon.startsWith('09') || icon.startsWith('10')) return <CloudRain size={size} className={className} />;
+    if (icon.startsWith('13')) return <CloudSnow size={size} className={className} />;
+    if (icon.startsWith('50')) return <Eye size={size} className={className} />;
+    if (icon.startsWith('02') || icon.startsWith('03') || icon.startsWith('04')) return <Cloud size={size} className={className} />;
+    if (icon.startsWith('01')) return <Sun size={size} className={className} />;
+  }
+
+  // Fallback to legacy numeric codes (Open-Meteo)
+  const c = Number(code);
+  if (c >= 95) return <CloudLightning size={size} className={className} />;
+  if ([80, 81, 82, 61, 63, 65].includes(c)) return <CloudRain size={size} className={className} />;
+  if ([51, 53, 55].includes(c)) return <Droplets size={size} className={className} />;
+  if ([45, 48].includes(c)) return <Eye size={size} className={className} />;
+  if ([1, 2, 3].includes(c)) return <Cloud size={size} className={className} />;
   return <Sun size={size} className={className} />;
 };
 
 // ----------- HELPER: Code to vibrant color -----------
-const codeToColor = (code) => {
-  if (code >= 95) return '#9333ea';
-  if ([80, 81, 82, 61, 63, 65].includes(code)) return '#3b82f6';
-  if ([51, 53, 55].includes(code)) return '#60a5fa';
-  if ([45, 48].includes(code)) return '#94a3b8';
-  if ([1, 2, 3].includes(code)) return '#C9A84C';
+const codeToColor = (icon, code) => {
+  if (typeof icon === 'string') {
+    if (icon.startsWith('11')) return '#9333ea'; // Purple
+    if (icon.startsWith('09') || icon.startsWith('10')) return '#3b82f6'; // Blue
+    if (icon.startsWith('50')) return '#94a3b8'; // Slate
+    if (icon.startsWith('02') || icon.startsWith('03') || icon.startsWith('04')) return '#C9A84C'; // Gold
+    return '#f59e0b'; // Amber
+  }
+  
+  const c = Number(code);
+  if (c >= 95) return '#9333ea';
+  if ([80, 81, 82, 61, 63, 65].includes(c)) return '#3b82f6';
+  if ([51, 53, 55].includes(c)) return '#60a5fa';
+  if ([45, 48].includes(c)) return '#94a3b8';
+  if ([1, 2, 3].includes(c)) return '#C9A84C';
   return '#f59e0b';
 };
 
@@ -89,25 +109,25 @@ const LiveDot = ({ updatedAt }) => {
 
 // ----------- Forecast Day Card -----------
 const ForecastCard = ({ day }) => {
-  const accentColor = codeToColor(day.weathercode);
+  const accentColor = codeToColor(day.icon, day.code);
   return (
     <div
       className="flex-shrink-0 flex flex-col items-center gap-2 p-4 rounded-2xl border border-gray-100 dark:border-dark-border bg-white dark:bg-dark-surface min-w-[100px] hover:shadow-md transition-all"
       style={{ borderTop: `3px solid ${accentColor}` }}
     >
       <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
-        {format(new Date(day.date + 'T00:00:00'), 'EEE dd')}
+        {format(new Date(day.date), 'EEE dd')}
       </p>
-      <WeatherIcon code={day.weathercode} size={28} className="my-1" style={{ color: accentColor }} />
-      <p className="text-[10px] text-center text-gray-500 font-medium leading-tight">{day.weatherLabel}</p>
+      <WeatherIcon icon={day.icon} code={day.code} size={28} className="my-1" style={{ color: accentColor }} />
+      <p className="text-[10px] text-center text-gray-500 font-medium leading-tight">{day.condition}</p>
       <div className="flex gap-1 items-center text-xs font-bold text-safari-primary dark:text-dark-text">
-        <span>{day.high}°</span>
+        <span>{Math.round(day.max)}°</span>
         <span className="text-gray-300">/</span>
-        <span className="text-gray-400 font-normal">{day.low}°</span>
+        <span className="text-gray-400 font-normal">{Math.round(day.min)}°</span>
       </div>
       <div className="flex items-center gap-1 text-[10px] text-blue-500">
         <Droplets size={10} />
-        <span>{day.precipitation} mm</span>
+        <span>{Math.round(day.pop)}%</span>
       </div>
     </div>
   );
@@ -126,9 +146,9 @@ const ParkMiniCard = ({ park, weatherData, alerts }) => {
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="font-bold text-sm text-safari-primary dark:text-dark-text">{park.name}</p>
-          {data?.seasonBadge && (
-            <span className={`inline-block mt-1 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${seasonStyles[data.seasonBadge.type]}`}>
-              {data.seasonBadge.label}
+          {data?.season && (
+            <span className={`inline-block mt-1 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${seasonStyles[data.season.type || 'info']}`}>
+              {data.season.label}
             </span>
           )}
         </div>
@@ -136,10 +156,10 @@ const ParkMiniCard = ({ park, weatherData, alerts }) => {
       </div>
       {data ? (
         <div className="flex items-center gap-3">
-          <WeatherIcon code={data.current.weathercode} size={32} className="text-safari-gold" />
+          <WeatherIcon icon={data.current.icon} code={data.current.code} size={32} className="text-safari-gold" />
           <div>
-            <p className="text-2xl font-bold text-safari-primary dark:text-dark-text">{data.current.temp}°C</p>
-            <p className="text-xs text-gray-500">{data.current.weatherLabel}</p>
+            <p className="text-2xl font-bold text-safari-primary dark:text-dark-text">{Math.round(data.current.temp)}°C</p>
+            <p className="text-xs text-gray-500 capitalize">{data.current.description}</p>
           </div>
         </div>
       ) : (
@@ -156,29 +176,22 @@ export const WeatherIntelligence = () => {
   const [parks, setParks] = useState([]);
   const [selectedPark, setSelectedPark] = useState(null);
   const [weatherData, setWeatherData] = useState(null);
-  const [advisory, setAdvisory] = useState(null);
+  const [syncStats, setSyncStats] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [history, setHistory] = useState(null);
   const [allParksWeather, setAllParksWeather] = useState({});
   const [dismissedAlerts, setDismissedAlerts] = useState(new Set());
   const [showHistory, setShowHistory] = useState(false);
   const [loadingWeather, setLoadingWeather] = useState(true);
-  const [loadingAdvisory, setLoadingAdvisory] = useState(true);
 
   const [isSyncing, setIsSyncing] = useState(false);
   const unsubs = useRef([]);
 
-  // 0. Trigger Client-Side Sync
+  // Listen for sync stats
   useEffect(() => {
-    const runSync = async () => {
-      setIsSyncing(true);
-      try {
-        await syncWeatherData();
-      } finally {
-        setIsSyncing(false);
-      }
-    };
-    runSync();
+    return onSnapshot(doc(db, 'weather_sync_stats', 'latest'), snap => {
+      if (snap.exists()) setSyncStats(snap.data());
+    });
   }, []);
 
   // Fetch parks list once
@@ -208,26 +221,19 @@ export const WeatherIntelligence = () => {
     unsubs.current = [];
 
     setLoadingWeather(true);
-    setLoadingAdvisory(true);
     setWeatherData(null);
-    setAdvisory(null);
     setHistory(null);
 
-    const w = onSnapshot(doc(db, 'weatherData', selectedPark), snap => {
+    const unsub = onSnapshot(doc(db, 'weather_intelligence', selectedPark), snap => {
       setWeatherData(snap.exists() ? snap.data() : null);
       setLoadingWeather(false);
     }, () => setLoadingWeather(false));
-
-    const a = onSnapshot(doc(db, 'weatherAdvisories', selectedPark), snap => {
-      setAdvisory(snap.exists() ? snap.data() : null);
-      setLoadingAdvisory(false);
-    }, () => setLoadingAdvisory(false));
 
     const h = onSnapshot(doc(db, 'weatherHistory', selectedPark), snap => {
       setHistory(snap.exists() ? snap.data() : null);
     });
 
-    unsubs.current = [w, a, h];
+    unsubs.current = [unsub, h];
     return () => { unsubs.current.forEach(fn => fn()); };
   }, [selectedPark]);
 
@@ -235,7 +241,7 @@ export const WeatherIntelligence = () => {
   useEffect(() => {
     if (parks.length === 0) return;
     const subs = parks.map(park =>
-      onSnapshot(doc(db, 'weatherData', park.id), snap => {
+      onSnapshot(doc(db, 'weather_intelligence', park.id), snap => {
         if (snap.exists()) {
           setAllParksWeather(prev => ({ ...prev, [park.id]: snap.data() }));
         }
@@ -255,12 +261,34 @@ export const WeatherIntelligence = () => {
       title="Weather Intelligence"
       subtitle={
         <div className="flex items-center gap-4">
-          <LiveDot updatedAt={weatherData?.updatedAt} />
-          {isSyncing && (
-            <div className="flex items-center text-[10px] text-amber-500 font-bold uppercase tracking-wider animate-pulse border border-amber-500/20 bg-amber-500/5 px-2 py-0.5 rounded-full">
+          <LiveDot updatedAt={weatherData?.lastUpdated} />
+          {isSyncing ? (
+            <div className="flex items-center text-[10px] text-amber-500 font-bold uppercase tracking-wider animate-pulse border border-amber-500/20 bg-amber-500/5 px-3 py-1 rounded-full">
               <RefreshCw size={10} className="mr-1.5 animate-spin" />
               Syncing Live Data...
             </div>
+          ) : (
+            <button
+              onClick={async () => {
+                setIsSyncing(true);
+                try {
+                  const functions = getFunctions();
+                  const manualSync = httpsCallable(functions, 'manualWeatherSync');
+                  await manualSync();
+                } catch (err) {
+                  console.error("Sync failed:", err);
+                } finally {
+                  setIsSyncing(false);
+                }
+              }}
+              className="group flex items-center text-[10px] text-safari-gold font-bold uppercase tracking-wider border border-safari-gold/20 hover:border-safari-gold/50 bg-safari-gold/5 px-3 py-1 rounded-full transition-all active:scale-95"
+            >
+              <RefreshCw size={10} className="mr-1.5 group-hover:rotate-180 transition-transform duration-500" />
+              Sync Now
+            </button>
+          )}
+          {syncStats && (
+            <span className="text-[10px] text-gray-400 opacity-60">Engine: {syncStats.engine}</span>
           )}
         </div>
       }
@@ -338,13 +366,14 @@ export const WeatherIntelligence = () => {
                   </p>
                   <div className="flex items-center gap-4 mb-6">
                     <WeatherIcon
-                      code={weatherData.current.weathercode}
+                      icon={weatherData.current.icon}
+                      code={weatherData.current.code}
                       size={64}
                       className="text-safari-gold drop-shadow-lg"
                     />
                     <div>
-                      <p className="text-5xl font-bold font-playfair">{weatherData.current.temp}°C</p>
-                      <p className="text-sm text-white/70 mt-1">{weatherData.current.weatherLabel}</p>
+                      <p className="text-5xl font-bold font-playfair">{Math.round(weatherData.current.temp)}°C</p>
+                      <p className="text-sm text-white/70 mt-1">{weatherData.current.description}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
@@ -356,12 +385,12 @@ export const WeatherIntelligence = () => {
                     <div className="bg-white/10 backdrop-blur rounded-xl p-3 text-center">
                       <Wind size={16} className="mx-auto mb-1 text-teal-300" />
                       <p className="text-xs text-white/60">Wind</p>
-                      <p className="text-sm font-bold">{weatherData.current.windspeed} km/h</p>
+                      <p className="text-sm font-bold">{Math.round(weatherData.current.windSpeed)} km/h</p>
                     </div>
                     <div className="bg-white/10 backdrop-blur rounded-xl p-3 text-center">
-                      <CloudRain size={16} className="mx-auto mb-1 text-sky-300" />
-                      <p className="text-xs text-white/60">Rainfall</p>
-                      <p className="text-sm font-bold">{weatherData.current.precipitation} mm</p>
+                      <Gauge size={16} className="mx-auto mb-1 text-sky-300" />
+                      <p className="text-xs text-white/60">UV Index</p>
+                      <p className="text-sm font-bold">{weatherData.current.uvIndex}</p>
                     </div>
                   </div>
                 </>
@@ -384,10 +413,10 @@ export const WeatherIntelligence = () => {
             <CardContent className="flex flex-col gap-4 flex-1">
               {loadingWeather ? (
                 <Skeleton className="h-24" />
-              ) : weatherData?.seasonBadge ? (
+              ) : weatherData?.season ? (
                 <>
-                  <div className={`p-5 rounded-2xl border ${seasonStyles[weatherData.seasonBadge.type]} text-center`}>
-                    <p className="text-2xl font-bold font-playfair mb-1">{weatherData.seasonBadge.label}</p>
+                  <div className={`p-5 rounded-2xl border ${seasonStyles[weatherData.season.type || 'info']} text-center`}>
+                    <p className="text-2xl font-bold font-playfair mb-1">{weatherData.season.label}</p>
                     <p className="text-xs opacity-70">Currently Active Season</p>
                   </div>
                   <div className="text-[11px] text-gray-500 dark:text-gray-400 space-y-1 px-1">
@@ -416,22 +445,34 @@ export const WeatherIntelligence = () => {
               )}
             </CardHeader>
             <CardContent className="flex-1 flex flex-col justify-between">
-              {loadingAdvisory ? (
+              {loadingWeather ? (
                 <div className="space-y-2">
                   {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-4" />)}
                 </div>
-              ) : advisory?.advisory ? (
+              ) : weatherData?.advisory ? (
                 <>
-                  <div className="bg-safari-gold/5 border border-safari-gold/15 rounded-2xl p-4 flex-1">
-                    <p className="text-[10px] uppercase tracking-widest font-bold text-safari-gold mb-3">
-                      AI-Generated · Claude
-                    </p>
+                  <div className={`border rounded-2xl p-4 flex-1 transition-colors ${
+                    weatherData.status === 'Caution' ? 'bg-red-500/5 border-red-500/20' : 
+                    weatherData.status === 'Ideal' ? 'bg-emerald-500/5 border-emerald-500/20' : 
+                    'bg-safari-gold/5 border-safari-gold/15'
+                  }`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[10px] uppercase tracking-widest font-bold text-safari-gold">
+                        Safari Intelligence · LIVE
+                      </p>
+                      <Badge variant={
+                        weatherData.status === 'Caution' ? 'destructive' : 
+                        weatherData.status === 'Ideal' ? 'success' : 'warning'
+                      }>
+                        {weatherData.status}
+                      </Badge>
+                    </div>
                     <p className="text-sm leading-relaxed text-safari-primary dark:text-dark-text italic">
-                      "{advisory.advisory}"
+                      "{weatherData.advisory}"
                     </p>
                   </div>
                   <p className="text-[10px] text-gray-400 mt-3">
-                    Generated {format(advisory.generatedAt.toDate(), 'MMM dd, HH:mm')}
+                    Verified {weatherData.lastUpdated ? format(weatherData.lastUpdated.toDate(), 'MMM dd, HH:mm') : '—'}
                   </p>
                 </>
               ) : (

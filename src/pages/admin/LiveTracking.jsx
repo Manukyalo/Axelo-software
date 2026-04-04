@@ -115,10 +115,13 @@ export const LiveTracking = () => {
 
   const stats = useMemo(() => {
     return {
-      online: state.driverLocations?.filter(isDriverActive).length || 0,
-      sos: state.sosAlerts?.filter(s => s.status === 'Active').length || 0
+      online: (state.driverLocations || []).filter(isDriverActive).length,
+      sos: (state.sosAlerts || []).filter(s => s.status === 'Active').length,
+      lodges: KENYA_LODGES.length,
+      parks: KENYA_PARKS.length,
+      gates: KENYA_GATES.length
     };
-  }, [state.driverLocations, state.sosAlerts]);
+  }, [state.driverLocations, state.sosAlerts, state.drivers]);
 
   // Sync Markers Visibility
   useEffect(() => {
@@ -146,7 +149,52 @@ export const LiveTracking = () => {
 
     // Drivers
     Object.values(markers.current).forEach(m => showDrivers ? m.addTo(map.current) : m.remove());
-    
+
+    // --- 🎯 Focus Mode Filtering ---
+    if (selectedParkId) {
+      // 1. Center & Zoom
+      const park = KENYA_PARKS.find(p => p.id === selectedParkId);
+      if (park) {
+        map.current.flyTo({
+          center: park.center,
+          zoom: park.zoom || 11,
+          essential: true,
+          duration: 2000
+        });
+      }
+
+      // 2. Hide other boundaries
+      KENYA_PARKS.forEach(p => {
+        const boundaryLayer = `park-boundary-${p.id}`;
+        if (map.current.getLayer(boundaryLayer)) {
+          map.current.setLayoutProperty(boundaryLayer, 'visibility', p.id === selectedParkId ? 'visible' : 'none');
+        }
+      });
+
+      // 3. Filter Global Layers (Fills, Outlines, Labels)
+      const filter = ['==', ['id'], selectedParkId];
+      if (map.current.getLayer('park-fills')) map.current.setFilter('park-fills', filter);
+      if (map.current.getLayer('park-outlines')) map.current.setFilter('park-outlines', filter);
+      if (map.current.getLayer('park-labels')) map.current.setFilter('park-labels', filter);
+    } else {
+      // Restore all boundaries
+      KENYA_PARKS.forEach(p => {
+        const boundaryLayer = `park-boundary-${p.id}`;
+        if (map.current.getLayer(boundaryLayer)) {
+          map.current.setLayoutProperty(boundaryLayer, 'visibility', showParks ? 'visible' : 'none');
+        }
+      });
+
+      // Clear Global Filters
+      if (map.current.getLayer('park-fills')) map.current.setFilter('park-fills', null);
+      if (map.current.getLayer('park-outlines')) map.current.setFilter('park-outlines', null);
+      if (map.current.getLayer('park-labels')) map.current.setFilter('park-labels', null);
+
+      // Reset View if needed
+      if (mapLoaded && !selectedDriver && !selectedLodgeId && !selectedGateId) {
+        map.current.flyTo({ center: [37.9062, -0.0236], zoom: 6.5, duration: 1500 });
+      }
+    }
   }, [showParks, showLodges, showGates, showDrivers, selectedParkId, mapLoaded]);
 
   // --- 🗺️ Map Layer Helpers ---

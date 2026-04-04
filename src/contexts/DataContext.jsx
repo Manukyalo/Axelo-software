@@ -89,7 +89,7 @@ export const DataProvider = ({ children }) => {
       // ---- Cloud Execution Engine ----
       if (isAdd) {
          const payload = { ...action.payload };
-         if (!payload.createdById) payload.createdById = user.role;
+         if (!payload.createdById) payload.createdById = user.username;
          delete payload.id; // Allow Google Firestore to strictly auto-generate UUIDs natively
          
          await addDoc(collection(db, col), payload);

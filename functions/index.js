@@ -1,4 +1,5 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const { Anthropic } = require("@anthropic-ai/sdk");
 const axios = require("axios");
@@ -35,237 +36,181 @@ function getSeasonBadge(month) {
 /**
  * weatherSync triggers every 10 minutes to fetch current conditions and evaluates alerts
  */
+const PARKS = [
+  { name: "Aberdare", id: "aberdare", lat: -0.3167, lon: 36.6333 },
+  { name: "Amboseli", id: "amboseli", lat: -2.6527, lon: 37.2606 },
+  { name: "Lake Nakuru", id: "lake_nakuru", lat: -0.3667, lon: 36.0833 },
+  { name: "Maasai Mara", id: "maasai_mara", lat: -1.5031, lon: 35.1431 },
+  { name: "Meru", id: "meru", lat: 0.1833, lon: 38.2000 },
+  { name: "Mount Kenya", id: "mount_kenya", lat: -0.1511, lon: 37.3084 },
+  { name: "Nairobi", id: "nairobi", lat: -1.3725, lon: 36.8533 },
+  { name: "Samburu", id: "samburu", lat: 0.6358, lon: 37.5458 },
+  { name: "Tsavo East", id: "tsavo_east", lat: -2.7758, lon: 38.6833 },
+  { name: "Tsavo West", id: "tsavo_west", lat: -3.2333, lon: 37.9500 }
+];
+
+/**
+ * weatherSync triggers every 3 hours to fetch OpenWeatherMap 3.0 data
+ */
 exports.weatherSync = onSchedule(
   {
-    schedule: "every 10 minutes",
+    schedule: "every 3 hours",
     timeZone: "Africa/Nairobi",
     memory: "512MiB",
     timeoutSeconds: 300,
   },
   async (event) => {
+    console.log("--- 🌥️ Weather Intelligence Sync Started (OWM) ---");
+    const OPENWEATHER_API_KEY = "122ff9ebf4bcfbeb6e401bb09fa101c4";
+
+    for (const park of PARKS) {
+      try {
+        console.log(`Syncing ${park.name}...`);
+        const url = `https://api.openweathermap.org/data/3.0/onecall?lat=${park.lat}&lon=${park.lon}&exclude=minutely,hourly&units=metric&appid=${OPENWEATHER_API_KEY}`;
+        const response = await axios.get(url);
+        const data = response.data;
+
+        // Generate Safari Intelligence
+        let advisory = "Perfect conditions for early morning and evening game drives. Standard precautions apply.";
+        let status = "Ideal";
+        const rainChance = data.daily[0].pop * 100;
+        const condition = data.current.weather[0].main.toLowerCase();
+
+        if (rainChance > 50 || condition.includes("rain") || condition.includes("storm")) {
+          advisory = "Expect muddy tracks and reduced visibility. 4x4 vehicles mandatory. Heavy rain may impact river crossings.";
+          status = "Caution";
+        } else if (data.current.temp > 32) {
+          advisory = "High temperatures detected. Wildlife likely congregating at permanent water sources. Carry extra fluids.";
+          status = "Fair";
+        }
+
+        const weatherIntelligenceDoc = {
+          parkId: park.id,
+          parkName: park.name,
+          current: {
+            temp: data.current.temp,
+            feelsLike: data.current.feels_like,
+            humidity: data.current.humidity,
+            condition: data.current.weather[0].main,
+            description: data.current.weather[0].description,
+            icon: data.current.weather[0].icon,
+            windSpeed: data.current.wind_speed,
+            uvIndex: data.current.uvi,
+          },
+          forecast: data.daily.slice(1, 8).map(d => ({
+            date: new Date(d.dt * 1000).toISOString(),
+            max: d.temp.max,
+            min: d.temp.min,
+            condition: d.weather[0].main,
+            icon: d.weather[0].icon,
+            pop: d.pop * 100
+          })),
+          advisory,
+          status,
+          lastUpdated: admin.firestore.Timestamp.now(),
+          season: getSeasonBadge(new Date().getMonth())
+        };
+
+        await db.collection("weather_intelligence").doc(park.id).set(weatherIntelligenceDoc);
+
+        // Map back to legacy weatherData structure for existing UI components
+        await db.collection("weatherData").doc(park.id).set({
+          parkName: park.name,
+          temp: data.current.temp,
+          condition: data.current.weather[0].main,
+          updatedAt: admin.firestore.Timestamp.now(),
+        }, { merge: true });
+
+      } catch (err) {
+        console.error(`Failed to sync ${park.name}:`, err.message);
+      }
+    }
+
+    await db.collection("weather_sync_stats").doc("latest").set({
+      lastSync: admin.firestore.Timestamp.now(),
+      status: "success",
+      engine: "OpenWeatherMap 3.0 One Call"
+    });
+
+    console.log("--- 🌥️ Weather Intelligence Sync Completed ---");
+  }
+);
+
+/**
+ * manualWeatherSync - Callable function to trigger a refresh from the dashboard
+ */
+exports.manualWeatherSync = onCall(
+  {
+    memory: "512MiB",
+    timeoutSeconds: 300,
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
     try {
-      console.log("Starting weatherSync loop...");
-      
-      // Step 1: Fetch all parks where latitude and longitude exist
-      const parksSnapshot = await db.collection("parks").get();
-      const parks = [];
-      parksSnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.latitude && data.longitude) {
-          parks.push({ id: doc.id, name: data.name, lat: data.latitude, lon: data.longitude });
+      console.log(`Manual weather sync triggered by ${request.auth.token.email}`);
+      const OPENWEATHER_API_KEY = "122ff9ebf4bcfbeb6e401bb09fa101c4";
+
+      for (const park of PARKS) {
+        const url = `https://api.openweathermap.org/data/3.0/onecall?lat=${park.lat}&lon=${park.lon}&exclude=minutely,hourly&units=metric&appid=${OPENWEATHER_API_KEY}`;
+        const response = await axios.get(url);
+        const data = response.data;
+
+        let advisory = "Perfect conditions for early morning and evening game drives. Standard precautions apply.";
+        let status = "Ideal";
+        const rainChance = data.daily[0].pop * 100;
+        const condition = data.current.weather[0].main.toLowerCase();
+
+        if (rainChance > 50 || condition.includes("rain") || condition.includes("storm")) {
+          advisory = "Expect muddy tracks and reduced visibility. 4x4 vehicles mandatory. Heavy rain may impact river crossings.";
+          status = "Caution";
+        } else if (data.current.temp > 32) {
+          advisory = "High temperatures detected. Wildlife likely congregating at permanent water sources. Carry extra fluids.";
+          status = "Fair";
         }
-      });
 
-      console.log(`Found ${parks.length} parks with coordinates.`);
+        const weatherIntelligenceDoc = {
+          parkId: park.id,
+          parkName: park.name,
+          current: {
+            temp: data.current.temp,
+            feelsLike: data.current.feels_like,
+            humidity: data.current.humidity,
+            condition: data.current.weather[0].main,
+            description: data.current.weather[0].description,
+            icon: data.current.weather[0].icon,
+            windSpeed: data.current.wind_speed,
+            uvIndex: data.current.uvi,
+          },
+          forecast: data.daily.slice(1, 8).map(d => ({
+            date: new Date(d.dt * 1000).toISOString(),
+            max: d.temp.max,
+            min: d.temp.min,
+            condition: d.weather[0].main,
+            icon: d.weather[0].icon,
+            pop: d.pop * 100
+          })),
+          advisory,
+          status,
+          lastUpdated: admin.firestore.Timestamp.now(),
+          season: getSeasonBadge(new Date().getMonth())
+        };
 
-      // Step 2 & 3: Fetch weather and write to Firestore
-      const newAlerts = [];
-      const promises = parks.map(async (park) => {
-        try {
-          const url = `https://api.open-meteo.com/v1/forecast?latitude=${park.lat}&longitude=${park.lon}&current=temperature_2m,precipitation,windspeed_10m,weathercode,relative_humidity_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode,windspeed_10m_max&timezone=Africa%2FNairobi&forecast_days=7`;
-          const response = await axios.get(url);
-          const data = response.data;
-
-          const current = {
-            temp: data.current.temperature_2m,
-            precipitation: data.current.precipitation,
-            windspeed: data.current.windspeed_10m,
-            humidity: data.current.relative_humidity_2m,
-            weathercode: data.current.weathercode,
-            weatherLabel: getWeatherLabel(data.current.weathercode),
-          };
-
-          const forecast = data.daily.time.map((dateStr, idx) => ({
-            date: dateStr,
-            high: data.daily.temperature_2m_max[idx],
-            low: data.daily.temperature_2m_min[idx],
-            precipitation: data.daily.precipitation_sum[idx],
-            windspeed: data.daily.windspeed_10m_max[idx],
-            weathercode: data.daily.weathercode[idx],
-            weatherLabel: getWeatherLabel(data.daily.weathercode[idx]),
-          }));
-
-          const updatedDoc = {
-            parkId: park.id,
-            parkName: park.name,
-            updatedAt: admin.firestore.Timestamp.now(),
-            current,
-            forecast,
-            seasonBadge: getSeasonBadge(new Date().getMonth()),
-          };
-
-          await db.collection("weatherData").doc(park.id).set(updatedDoc);
-
-          // Step 4 - Evaluate dangerous weather alerts
-          if (current.weathercode >= 95) {
-            newAlerts.push({
-              parkId: park.id,
-              parkName: park.name,
-              alertType: "thunderstorm",
-              severity: "danger",
-              message: `Thunderstorm detected at ${park.name}. Game drives not advised.`,
-              detectedAt: admin.firestore.Timestamp.now(),
-              active: true,
-            });
-          } else if (current.precipitation > 20) {
-            newAlerts.push({
-              parkId: park.id,
-              parkName: park.name,
-              alertType: "heavy_rain",
-              severity: "warning",
-              message: `Heavy rain detected at ${park.name}. Expect poor visibility and muddy tracks.`,
-              detectedAt: admin.firestore.Timestamp.now(),
-              active: true,
-            });
-          } else if (current.windspeed > 50) {
-            newAlerts.push({
-              parkId: park.id,
-              parkName: park.name,
-              alertType: "high_wind",
-              severity: "warning",
-              message: `High winds detected at ${park.name}. Drives may be uncomfortable.`,
-              detectedAt: admin.firestore.Timestamp.now(),
-              active: true,
-            });
-          } else if (current.weathercode === 45 || current.weathercode === 48) {
-            newAlerts.push({
-              parkId: park.id,
-              parkName: park.name,
-              alertType: "fog",
-              severity: "warning",
-              message: `Fog detected at ${park.name}. Expect poor visibility early morning.`,
-              detectedAt: admin.firestore.Timestamp.now(),
-              active: true,
-            });
-          }
-        } catch (e) {
-          console.error(`Failed to fetch weather for park ${park.name}:`, e.message);
-        }
-      });
-
-      await Promise.all(promises);
-
-      // Overwrite the current active alerts collection document
-      await db.collection("weatherAlerts").doc("current").set({
-        alerts: newAlerts,
-        updatedAt: admin.firestore.Timestamp.now()
-      });
-
-      // Step 5: Send FCM push notifications for NEW alerts
-      // To determine "new", we ideally compare against the old document.
-      // This requires fetching the document BEFORE overwriting it.
-      // Let's assume we do that here (this is simplified logic to show the structure)
-      
-      const previousDoc = await db.collection("weatherAlerts").doc("current").get();
-      const oldAlerts = previousDoc.exists && previousDoc.data().alerts ? previousDoc.data().alerts : [];
-      
-      // Find truly new alerts (not present in oldAlerts by parkId + alertType)
-      const newlyDetected = newAlerts.filter(na => 
-        !oldAlerts.find(oa => oa.parkId === na.parkId && oa.alertType === na.alertType)
-      );
-
-      if (newlyDetected.length > 0) {
-        // Find users with roles driver/guide and tokens
-        const usersSnap = await db.collection("users").where("role", "in", ["driver", "guide"]).get();
-        const tokens = [];
-        usersSnap.forEach(user => {
-          const fcmToken = user.data().fcmToken;
-          if (fcmToken) {
-            tokens.push(fcmToken);
-          }
-        });
-
-        if (tokens.length > 0) {
-          for (const alert of newlyDetected) {
-            const message = {
-              notification: {
-                title: `⚠️ Weather Alert — ${alert.parkName}`,
-                body: alert.message
-              },
-              data: {
-                parkId: alert.parkId,
-                alertType: alert.alertType
-              },
-              tokens: tokens // Multicast
-            };
-            
-            try {
-              const response = await messaging.sendEachForMulticast(message);
-              console.log(`Sent ${response.successCount} messages for alert in ${alert.parkName}`);
-            } catch (err) {
-              console.error(`FCM multicast failed for ${alert.parkName}:`, err);
-            }
-          }
-        }
+        await db.collection("weather_intelligence").doc(park.id).set(weatherIntelligenceDoc);
       }
 
-      // Step 6: Generate AI advisories with Claude (Batched)
-      const threeHoursAgo = Date.now() - (3 * 60 * 60 * 1000);
-      const parksNeedingAdvisory = [];
+      await db.collection("weather_sync_stats").doc("latest").set({
+        lastSync: admin.firestore.Timestamp.now(),
+        status: "success",
+        engine: "OpenWeatherMap 3.0 (Manual Trigger)"
+      });
 
-      for (const park of parks) {
-        const advisoryDoc = await db.collection("weatherAdvisories").doc(park.id).get();
-        let needsUpdate = false;
-        
-        if (!advisoryDoc.exists) {
-          needsUpdate = true;
-        } else {
-          const generatedAt = advisoryDoc.data().generatedAt?.toMillis();
-          if (!generatedAt || generatedAt < threeHoursAgo) {
-            needsUpdate = true;
-          }
-        }
-
-        if (needsUpdate) {
-            // we will need the weather context
-            const weatherDocRaw = await db.collection("weatherData").doc(park.id).get();
-            if (weatherDocRaw.exists) {
-                parksNeedingAdvisory.push({ park, current: weatherDocRaw.data().current });
-            }
-        }
-      }
-
-      const BATCH_SIZE = 3;
-      for (let i = 0; i < parksNeedingAdvisory.length; i += BATCH_SIZE) {
-        const batch = parksNeedingAdvisory.slice(i, i + BATCH_SIZE);
-        
-        await Promise.all(batch.map(async ({ park, current }) => {
-            try {
-                if (!process.env.CLAUDE_API_KEY) {
-                    // Skip if no API key is provided
-                    console.log("Skipping Claude API call due to missing CLAUDE_API_KEY");
-                    return;
-                }
-                const response = await anthropic.messages.create({
-                    model: "claude-3-5-sonnet-20241022",
-                    max_tokens: 200,
-                    system: "You are a Kenyan safari expert and meteorologist. Given real-time weather data for a national park, generate a concise 2-3 sentence advisory for safari operators. Cover: current game drive conditions, visibility, road accessibility, and any warnings. Be specific and practical. No fluff.",
-                    messages: [{
-                      role: "user",
-                      content: `Park: ${park.name}\nCurrent temp: ${current.temp}°C\nConditions: ${current.weatherLabel}\nWind: ${current.windspeed} km/h\nHumidity: ${current.humidity}%\nPrecipitation: ${current.precipitation}mm\nGenerate a safari advisory.`
-                    }]
-                });
-
-                const advisoryText = response.content[0].text;
-                await db.collection("weatherAdvisories").doc(park.id).set({
-                    parkId: park.id,
-                    parkName: park.name,
-                    advisory: advisoryText,
-                    generatedAt: admin.firestore.Timestamp.now()
-                });
-            } catch(err) {
-                console.error(`Claude generation failed for ${park.name}:`, err.message);
-            }
-        }));
-
-        if (i + BATCH_SIZE < parksNeedingAdvisory.length) {
-          await new Promise(r => setTimeout(r, 1000)); // 1 second delay between batches
-        }
-      }
-
-      console.log("weatherSync loop completed.");
-    } catch (error) {
-      console.error("weatherSync error:", error);
+      return { success: true, message: "Weather intelligence synchronized successfully." };
+    } catch (err) {
+      console.error("Manual sync failed:", err.message);
+      throw new HttpsError("internal", err.message);
     }
   }
 );

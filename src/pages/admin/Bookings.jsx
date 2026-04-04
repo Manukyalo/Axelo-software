@@ -186,7 +186,7 @@ export const Bookings = () => {
         pax: { adults, children, infants: 0 },
         status: 'Pending',
         paymentStatus,
-        createdById: user.role,
+        createdById: user.username,
         paymentLog: paidAmount > 0 ? [{
           amount: paidAmount,
           method: 'Initial Deposit',

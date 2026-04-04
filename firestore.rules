@@ -9,15 +9,15 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Admin mapping based on AuthContext logic
       return isAuthenticated() && (
-        request.auth.token.email == 'admin@easternvacations.com' ||
-        request.auth.token.email == 'manu@easternvacations.com'
+        request.auth.token.email.lower() == 'admin@easternvacations.com' ||
+        request.auth.token.email.lower() == 'manu@easternvacations.com' ||
+        request.auth.token.email.lower() == 'reservations@easternvacations.com'
       );
     }
 
     function isAgent() {
-      return isAuthenticated() && request.auth.token.email.matches('.*@easternvacations.com');
+      return isAuthenticated() && request.auth.token.email.lower().matches('.*@easternvacations.com');
     }
 
     function isOwner(userId) {
@@ -29,7 +29,8 @@ service cloud.firestore {
     match /bookings/{bookingId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
-      allow update, delete: if isAdmin() || (resource.data.createdById == request.auth.token.email);
+      allow update: if isAdmin() || (resource.data.createdById == request.auth.token.email) || (resource.data.createdById == request.auth.uid);
+      allow delete: if isAdmin();
     }
 
     match /vehicles/{vehicleId} {
@@ -37,23 +38,19 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // UPDATED: Allow authorized users to link their newly created UID to their personnel record
     match /drivers/{driverId} {
-      allow read: if true; 
+      allow read: if isAuthenticated(); 
       allow create: if isAuthenticated() && request.auth.uid == driverId;
       allow update: if isAdmin() || (isAuthenticated() && (
         request.auth.token.email.lower() == resource.data.get('email', '').lower() ||
         request.auth.token.email.lower() == resource.data.get('personalEmail', '').lower() ||
-        !('uid' in resource.data) ||
-        resource.data.uid == "" ||
-        resource.data.uid == request.auth.uid ||
-        request.auth.uid == driverId
+        resource.data.uid == request.auth.uid
       ));
       allow delete: if isAdmin();
     }
 
     match /packages/{packageId} {
-      allow read: if true; // Publicly viewable for booking
+      allow read: if true;
       allow write: if isAdmin();
     }
 
@@ -61,10 +58,9 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
 
-    // --- 🚛 FLEET MANAGEMENT EXTENSION (STAFF PWA) ---
+    // --- 🚛 FLEET MANAGEMENT ---
 
     match /driverAuth/{driverId} {
-      // Drivers can read/write their own registration profile
       allow read: if isAdmin() || isOwner(driverId);
       allow create: if isAuthenticated(); 
       allow update: if isAdmin() || isOwner(driverId);
@@ -72,7 +68,6 @@ service cloud.firestore {
     }
 
     match /porters/{porterId} {
-      // Admins and Drivers can manage assigned porters
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
       allow update: if isAdmin() || (resource.data.driverId == request.auth.uid);
@@ -80,60 +75,66 @@ service cloud.firestore {
     }
 
     match /driverLocations/{driverId} {
-      // Real-time location tracking: Driver writes, Admin reads
-      allow read: if isAdmin();
-      allow write: if isOwner(driverId);
+      allow read: if isAuthenticated(); // Allow fleet visibility for all authenticated staff
+      allow write: if isOwner(driverId) || isAdmin();
     }
 
     match /sosAlerts/{alertId} {
-      // SOS flow: Driver triggers, Admin acknowledges/resolves
-      allow read: if isAdmin() || (resource.data.driverId == request.auth.uid);
+      allow read: if isAuthenticated(); 
       allow create: if isAuthenticated();
       allow update: if isAdmin(); 
       allow delete: if isAdmin();
     }
 
     match /tripUpdates/{updateId} {
-      // Operational logging
-      allow read: if isAdmin();
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated();
       allow update, delete: if isAdmin();
     }
 
     match /driverMessages/{driverId} {
-      // Chat Hub: Root metadata document
-      allow read, write: if request.auth != null && (
-        request.auth.uid == driverId || isAgent()
+      allow read, write: if isAuthenticated() && (
+        request.auth.uid == driverId || isAgent() || isAdmin()
       );
       
       match /messages/{messageId} {
-        // Individual messages in the thread
-        allow read, write: if request.auth != null && (
-          request.auth.uid == driverId || isAgent()
+        allow read, write: if isAuthenticated() && (
+          request.auth.uid == driverId || isAgent() || isAdmin()
         );
       }
     }
 
     // --- ☁️ WEATHER INTELLIGENCE MODULE ---
 
+    match /weather_intelligence/{parkId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /weather_sync_stats/{doc} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Legacy Weather Collections (Backwards Compatibility)
     match /weatherData/{parkId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     match /weatherAdvisories/{parkId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     match /weatherAlerts/{doc} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     match /weatherHistory/{parkId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     match /parks/{parkId} {
@@ -145,5 +146,8 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if isAdmin();
     }
+  }
+}
+
   }
 }

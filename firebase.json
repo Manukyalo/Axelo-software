@@ -31,5 +31,10 @@
       "firebase-debug.log",
       "firebase-debug.*.log"
     ]
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true
+    }
   }
 }
