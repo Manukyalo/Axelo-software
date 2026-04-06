@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Cloud, Sun, CloudRain, CloudLightning, Wind, Droplets,
   Thermometer, Eye, AlertTriangle, X, RefreshCw, ChevronRight,
-  AlertCircle, CloudSnow, Gauge, TrendingUp
+  AlertCircle, CloudSnow, Gauge, TrendingUp, Lock, Clock
 } from 'lucide-react';
 import { 
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -83,16 +83,32 @@ const seasonStyles = {
   warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
 };
 
+// ----------- HELPERS: Safe Date/Millis -----------
+const safeMillis = (ts) => {
+  if (!ts) return null;
+  if (typeof ts.toMillis === 'function') return ts.toMillis();
+  if (ts.seconds) return ts.seconds * 1000;
+  if (ts instanceof Date) return ts.getTime();
+  if (typeof ts === 'number') return ts;
+  const d = new Date(ts);
+  return isNaN(d.getTime()) ? null : d.getTime();
+};
+
+const safeDate = (ts) => {
+  const ms = safeMillis(ts);
+  return ms ? new Date(ms) : null;
+};
+
 // ----------- Live Dot -----------
 const LiveDot = ({ updatedAt }) => {
   if (!updatedAt) return null;
   
-  // Safe Millis logic inline for the helper component
-  const tsMillis = updatedAt?.toMillis?.() || (updatedAt?.seconds ? updatedAt.seconds * 1000 : null);
+  const tsMillis = safeMillis(updatedAt);
   if (!tsMillis) return null;
 
   const diffMinutes = (Date.now() - tsMillis) / 60000;
-  const isLive = diffMinutes < 20;
+  const isLive = diffMinutes < 25;
+  const dateObj = safeDate(updatedAt);
 
   return (
     <div className="flex items-center gap-2">
@@ -106,7 +122,7 @@ const LiveDot = ({ updatedAt }) => {
         {isLive ? 'Live' : 'Delayed'}
       </span>
       <span className="text-[10px] text-gray-400">
-        Updated {updatedAt ? format(updatedAt.toDate(), 'HH:mm') : '—'}
+        Updated {dateObj ? format(dateObj, 'HH:mm') : '—'}
       </span>
     </div>
   );
@@ -180,7 +196,10 @@ const ParkMiniCard = ({ park, weatherData, alerts }) => {
 };
 
 // ----------- MAIN PAGE -----------
-export const WeatherIntelligence = () => {
+export // Emergency Toggle: Set to true to hide the interface during maintenance/billing updates
+const UNDER_CONSTRUCTION = true;
+
+const WeatherIntelligence = () => {
   const { isDarkMode } = useTheme();
 
   const [parks, setParks] = useState([]);
@@ -260,11 +279,7 @@ export const WeatherIntelligence = () => {
     return () => subs.forEach(fn => fn());
   }, [parks]);
 
-  const selectedParkObj = parks.find(p => p.id === selectedPark);
   const threeHoursAgo = Date.now() - 3 * 60 * 60 * 1000;
-  
-  // Safe Millis Helper to prevent .toMillis() crashes on deserialized objects
-  const safeMillis = (ts) => ts?.toMillis?.() || (ts?.seconds ? ts.seconds * 1000 : null);
   
   const advisoryNearExpiry = weatherData?.lastAdvisoryAt && (safeMillis(weatherData.lastAdvisoryAt) < (threeHoursAgo - 30 * 60 * 1000));
 
@@ -486,7 +501,7 @@ export const WeatherIntelligence = () => {
                     </p>
                   </div>
                   <p className="text-[10px] text-gray-400 mt-3">
-                    Verified {weatherData.lastUpdated ? format(weatherData.lastUpdated.toDate(), 'MMM dd, HH:mm') : '—'}
+                    Verified {weatherData.lastUpdated ? format(safeDate(weatherData.lastUpdated), 'MMM dd, HH:mm') : '—'}
                   </p>
                 </>
               ) : (
