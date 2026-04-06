@@ -10,6 +10,7 @@ import {
   runTransaction, 
   serverTimestamp 
 } from 'firebase/firestore';
+import { getWeatherLabel } from './weatherUtils';
 
 const SYNC_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
 

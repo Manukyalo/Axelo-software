@@ -109,25 +109,30 @@ const LiveDot = ({ updatedAt }) => {
 
 // ----------- Forecast Day Card -----------
 const ForecastCard = ({ day }) => {
-  const accentColor = codeToColor(day.icon, day.code);
+  const accentColor = codeToColor(day?.icon, day?.code);
+  let dateLabel = '—';
+  try {
+    if (day?.date) dateLabel = format(new Date(day.date), 'EEE dd');
+  } catch (e) { console.warn("Invalid date in forecast", day?.date); }
+
   return (
     <div
       className="flex-shrink-0 flex flex-col items-center gap-2 p-4 rounded-2xl border border-gray-100 dark:border-dark-border bg-white dark:bg-dark-surface min-w-[100px] hover:shadow-md transition-all"
       style={{ borderTop: `3px solid ${accentColor}` }}
     >
       <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
-        {format(new Date(day.date), 'EEE dd')}
+        {dateLabel}
       </p>
-      <WeatherIcon icon={day.icon} code={day.code} size={28} className="my-1" style={{ color: accentColor }} />
-      <p className="text-[10px] text-center text-gray-500 font-medium leading-tight">{day.condition}</p>
+      <WeatherIcon icon={day?.icon} code={day?.code} size={28} className="my-1" style={{ color: accentColor }} />
+      <p className="text-[10px] text-center text-gray-500 font-medium leading-tight">{day?.condition || 'N/A'}</p>
       <div className="flex gap-1 items-center text-xs font-bold text-safari-primary dark:text-dark-text">
-        <span>{Math.round(day.max)}°</span>
+        <span>{Math.round(day?.max || 0)}°</span>
         <span className="text-gray-300">/</span>
-        <span className="text-gray-400 font-normal">{Math.round(day.min)}°</span>
+        <span className="text-gray-400 font-normal">{Math.round(day?.min || 0)}°</span>
       </div>
       <div className="flex items-center gap-1 text-[10px] text-blue-500">
         <Droplets size={10} />
-        <span>{Math.round(day.pop)}%</span>
+        <span>{Math.round(day?.pop || 0)}%</span>
       </div>
     </div>
   );
@@ -154,16 +159,16 @@ const ParkMiniCard = ({ park, weatherData, alerts }) => {
         </div>
         {hasAlert && <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />}
       </div>
-      {data ? (
+      {data?.current ? (
         <div className="flex items-center gap-3">
           <WeatherIcon icon={data.current.icon} code={data.current.code} size={32} className="text-safari-gold" />
           <div>
-            <p className="text-2xl font-bold text-safari-primary dark:text-dark-text">{Math.round(data.current.temp)}°C</p>
-            <p className="text-xs text-gray-500 capitalize">{data.current.description}</p>
+            <p className="text-2xl font-bold text-safari-primary dark:text-dark-text">{Math.round(data.current.temp || 0)}°C</p>
+            <p className="text-xs text-gray-500 capitalize">{data.current.description || 'No conditions'}</p>
           </div>
         </div>
       ) : (
-        <Skeleton className="h-12" />
+        <div className="py-2 text-[10px] text-gray-400 italic">Awaiting Sync...</div>
       )}
     </div>
   );
@@ -252,7 +257,11 @@ export const WeatherIntelligence = () => {
 
   const selectedParkObj = parks.find(p => p.id === selectedPark);
   const threeHoursAgo = Date.now() - 3 * 60 * 60 * 1000;
-  const advisoryNearExpiry = weatherData?.lastAdvisoryAt && weatherData.lastAdvisoryAt.toMillis() < (threeHoursAgo - 30 * 60 * 1000);
+  
+  // Safe Millis Helper to prevent .toMillis() crashes on deserialized objects
+  const safeMillis = (ts) => ts?.toMillis?.() || (ts?.seconds ? ts.seconds * 1000 : null);
+  
+  const advisoryNearExpiry = weatherData?.lastAdvisoryAt && (safeMillis(weatherData.lastAdvisoryAt) < (threeHoursAgo - 30 * 60 * 1000));
 
   const visibleAlerts = alerts.filter(a => !dismissedAlerts.has(`${a.parkId}-${a.alertType}`));
 
@@ -366,31 +375,31 @@ export const WeatherIntelligence = () => {
                   </p>
                   <div className="flex items-center gap-4 mb-6">
                     <WeatherIcon
-                      icon={weatherData.current.icon}
-                      code={weatherData.current.code}
+                      icon={weatherData.current?.icon}
+                      code={weatherData.current?.code}
                       size={64}
                       className="text-safari-gold drop-shadow-lg"
                     />
                     <div>
-                      <p className="text-5xl font-bold font-playfair">{Math.round(weatherData.current.temp)}°C</p>
-                      <p className="text-sm text-white/70 mt-1">{weatherData.current.description}</p>
+                      <p className="text-5xl font-bold font-playfair">{Math.round(weatherData.current?.temp || 0)}°C</p>
+                      <p className="text-sm text-white/70 mt-1">{weatherData.current?.description || 'N/A'}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="bg-white/10 backdrop-blur rounded-xl p-3 text-center">
                       <Droplets size={16} className="mx-auto mb-1 text-blue-300" />
                       <p className="text-xs text-white/60">Humidity</p>
-                      <p className="text-sm font-bold">{weatherData.current.humidity}%</p>
+                      <p className="text-sm font-bold">{weatherData.current?.humidity || 0}%</p>
                     </div>
                     <div className="bg-white/10 backdrop-blur rounded-xl p-3 text-center">
                       <Wind size={16} className="mx-auto mb-1 text-teal-300" />
                       <p className="text-xs text-white/60">Wind</p>
-                      <p className="text-sm font-bold">{Math.round(weatherData.current.windSpeed)} km/h</p>
+                      <p className="text-sm font-bold">{Math.round(weatherData.current?.windSpeed || 0)} km/h</p>
                     </div>
                     <div className="bg-white/10 backdrop-blur rounded-xl p-3 text-center">
                       <Gauge size={16} className="mx-auto mb-1 text-sky-300" />
                       <p className="text-xs text-white/60">UV Index</p>
-                      <p className="text-sm font-bold">{weatherData.current.uvIndex}</p>
+                      <p className="text-sm font-bold">{weatherData.current?.uvIndex || '—'}</p>
                     </div>
                   </div>
                 </>
