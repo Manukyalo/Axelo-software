@@ -252,7 +252,7 @@ export const WeatherIntelligence = () => {
 
   const selectedParkObj = parks.find(p => p.id === selectedPark);
   const threeHoursAgo = Date.now() - 3 * 60 * 60 * 1000;
-  const advisoryNearExpiry = advisory?.generatedAt && advisory.generatedAt.toMillis() < threeHoursAgo - 30 * 60 * 1000;
+  const advisoryNearExpiry = weatherData?.lastAdvisoryAt && weatherData.lastAdvisoryAt.toMillis() < (threeHoursAgo - 30 * 60 * 1000);
 
   const visibleAlerts = alerts.filter(a => !dismissedAlerts.has(`${a.parkId}-${a.alertType}`));
 

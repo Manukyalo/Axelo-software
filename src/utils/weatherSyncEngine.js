@@ -87,47 +87,76 @@ export const syncWeatherData = async (force = false) => {
     for (const park of parks) {
       console.log(`📡 Fetching weather for ${park.name}...`);
       
-      // 2. Fetch Open-Meteo
-      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${park.latitude}&longitude=${park.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Africa%2FNairobi`;
+      // 2. Fetch Open-Meteo (with UV Index)
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${park.latitude}&longitude=${park.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,uv_index_max&timezone=Africa%2FNairobi`;
       const weatherRes = await axios.get(weatherUrl);
-      const weatherData = weatherRes.data;
+      const rawData = weatherRes.data;
 
-      // 3. Save Weather Data
-      await setDoc(doc(db, 'weatherData', park.id), {
-        ...weatherData,
-        updatedAt: serverTimestamp()
-      });
+      // 3. Map to Frontend Flattened Schema
+      const current = rawData.current;
+      const daily = rawData.daily;
+      
+      const weatherDoc = {
+        id: park.id,
+        name: park.name,
+        lastUpdated: serverTimestamp(),
+        current: {
+          temp: current.temperature_2m,
+          humidity: current.relative_humidity_2m,
+          windSpeed: current.wind_speed_10m,
+          uvIndex: daily.uv_index_max[0] || 'N/A',
+          code: current.weather_code,
+          description: getWeatherLabel(current.weather_code),
+          precip: current.precipitation,
+          isDay: current.is_day
+        },
+        forecast: daily.time.map((t, i) => ({
+          date: t,
+          code: daily.weather_code[i],
+          max: daily.temperature_2m_max[i],
+          min: daily.temperature_2m_min[i],
+          precip: daily.precipitation_sum[i],
+          condition: getWeatherLabel(daily.weather_code[i])
+        }))
+      };
 
       // 4. Handle Alerts
-      const parkAlerts = evaluateWeatherAlerts(park.name, weatherData.current);
+      const parkAlerts = evaluateWeatherAlerts(park.name, current);
       allAlerts.push(...parkAlerts);
 
       // 5. Generate AI Advisory (Claude)
-      // Only run every 3 hours to save credits if the advisory exists
-      const advisoryRef = doc(db, 'weatherAdvisories', park.id);
-      const advSnap = await getDoc(advisoryRef);
-      const lastAdv = advSnap.exists() ? advSnap.data().updatedAt?.toMillis?.() || 0 : 0;
+      const intelligenceRef = doc(db, 'weather_intelligence', park.id);
+      const intelSnap = await getDoc(intelligenceRef);
+      const existingData = intelSnap.exists() ? intelSnap.data() : {};
+      const lastAdvAt = existingData.lastAdvisoryAt?.toMillis?.() || 0;
       
-      if (force || (Date.now() - lastAdv > 3 * 60 * 60 * 1000)) {
+      let advisory = existingData.advisory || 'Synchronizing Advisory...';
+      let status = existingData.status || 'Checking...';
+
+      if (force || (Date.now() - lastAdvAt > 3 * 60 * 60 * 1000)) {
         try {
           const response = await anthropic.messages.create({
             model: "claude-3-5-sonnet-latest",
             max_tokens: 250,
             messages: [{
               role: "user",
-              content: `As a safari operations expert, provide a 2-sentence safari advisory for ${park.name}. Current conditions: WMO code ${weatherData.current.weather_code}, Temp ${weatherData.current.temperature_2m}°C, Rain ${weatherData.current.precipitation}mm. Focus on road conditions and wildlife viewing probability. Keep it professional and helpful.`
+              content: `As a safari operations expert, provide a 2-sentence safari advisory for ${park.name}. Current conditions: WMO code ${current.weather_code}, Temp ${current.temperature_2m}°C, Rain ${current.precipitation}mm. Focus on road conditions and wildlife viewing probability. Keep it professional and helpful.`
             }]
           });
-
-          await setDoc(advisoryRef, {
-            parkId: park.id,
-            advisory: response.content[0].text,
-            updatedAt: serverTimestamp()
-          });
+          advisory = response.content[0].text;
+          status = current.temperature_2m > 30 ? 'Caution (Heat)' : current.precipitation > 5 ? 'Caution (Rain)' : 'Ideal';
+          weatherDoc.lastAdvisoryAt = serverTimestamp();
         } catch (aiErr) {
           console.error(`❌ Claude AI Error for ${park.name}:`, aiErr);
         }
       }
+
+      await setDoc(intelligenceRef, {
+        ...weatherDoc,
+        advisory,
+        status,
+        lastAdvisoryAt: weatherDoc.lastAdvisoryAt || (existingData.lastAdvisoryAt || serverTimestamp())
+      });
     }
 
     // 6. Update Global Alerts
