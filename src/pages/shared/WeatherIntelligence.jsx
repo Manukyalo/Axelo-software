@@ -196,10 +196,10 @@ const ParkMiniCard = ({ park, weatherData, alerts }) => {
 };
 
 // ----------- MAIN PAGE -----------
-export // Emergency Toggle: Set to true to hide the interface during maintenance/billing updates
+// Emergency Toggle: Set to true to hide the interface during maintenance/billing updates
 const UNDER_CONSTRUCTION = true;
 
-const WeatherIntelligence = () => {
+export const WeatherIntelligence = () => {
   const { isDarkMode } = useTheme();
 
   const [parks, setParks] = useState([]);
