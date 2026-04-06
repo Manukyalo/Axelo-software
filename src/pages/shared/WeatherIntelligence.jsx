@@ -86,7 +86,12 @@ const seasonStyles = {
 // ----------- Live Dot -----------
 const LiveDot = ({ updatedAt }) => {
   if (!updatedAt) return null;
-  const diffMinutes = (Date.now() - updatedAt.toMillis()) / 60000;
+  
+  // Safe Millis logic inline for the helper component
+  const tsMillis = updatedAt?.toMillis?.() || (updatedAt?.seconds ? updatedAt.seconds * 1000 : null);
+  if (!tsMillis) return null;
+
+  const diffMinutes = (Date.now() - tsMillis) / 60000;
   const isLive = diffMinutes < 20;
 
   return (
