@@ -68,10 +68,17 @@ export const ImportModal = ({ isOpen, onClose }) => {
         try {
           const result = await mammoth.extractRawText({ arrayBuffer });
           const text = result.value;
+          
+          if (!text || text.trim().length < 10) {
+            toast.error('The Word document seems to have very little or no readable text.');
+            return;
+          }
+
           setExtractedText(text);
           setStep('ai_processing');
           await handleSmartExtract(text);
         } catch (err) {
+          console.error('Word Parse Error:', err);
           toast.error('Failed to read Word document. Ensure it is a valid .docx file.');
         }
       };
@@ -151,17 +158,35 @@ export const ImportModal = ({ isOpen, onClose }) => {
       });
 
       const content = response.content[0].text;
+      
+      // Safer JSON extraction
+      let results = [];
       const jsonStart = content.indexOf('[');
       const jsonEnd = content.lastIndexOf(']') + 1;
-      const jsonStr = content.substring(jsonStart, jsonEnd);
       
-      const results = JSON.parse(jsonStr);
+      if (jsonStart !== -1 && jsonEnd > jsonStart) {
+        const jsonStr = content.substring(jsonStart, jsonEnd);
+        try {
+          results = JSON.parse(jsonStr);
+        } catch (parseErr) {
+          console.error('JSON Parse Error:', parseErr, 'Raw Content:', content);
+          throw new Error('AI returned invalid data format.');
+        }
+      } else {
+        console.error('No JSON array found in AI response:', content);
+        throw new Error('AI could not find any structured bookings in this document.');
+      }
+      
+      if (!Array.isArray(results) || results.length === 0) {
+        throw new Error('No bookings were identified in the document.');
+      }
+
       setParsedBookings(results);
       setStep('preview');
       toast.success(`AI identified ${results.length} bookings!`, { icon: '✨' });
     } catch (err) {
       console.error('AI Extraction Error:', err);
-      toast.error('AI failed to parse the document. Please use Excel/CSV for strict formatting.');
+      toast.error(err.message || 'AI failed to parse the document.');
       reset();
     } finally {
       setIsProcessing(false);
