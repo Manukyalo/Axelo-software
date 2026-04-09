@@ -4,6 +4,7 @@ import {
   Search, 
   Filter, 
   Download, 
+  Upload,
   Eye, 
   Trash2, 
   MoreVertical,
@@ -22,6 +23,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { BookingDetailModal } from '../../components/bookings/BookingDetailModal';
+import { ImportModal } from '../../components/bookings/ImportModal';
 import { PrintBooking } from '../../components/bookings/PrintBooking';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -35,6 +37,7 @@ export const Bookings = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   
   const [search, setSearch] = useState('');
@@ -226,10 +229,19 @@ export const Bookings = () => {
       subtitle={`Manage and track all tour reservations (${state.bookings.length})`}
       actions={
         <div className="flex gap-2 mb-4 md:mb-0">
-          {isAdmin && (
-            <Button variant="outline" className="gap-2">
-              <Download size={18} /> Export CSV
-            </Button>
+          {(isAdmin || user?.role === 'res_agent') && (
+            <>
+              <Button 
+                variant="outline" 
+                className="gap-2"
+                onClick={() => setIsImportModalOpen(true)}
+              >
+                <Upload size={18} /> Bulk Import
+              </Button>
+              <Button variant="outline" className="gap-2">
+                <Download size={18} /> Export CSV
+              </Button>
+            </>
           )}
           <Button 
              onClick={() => {
@@ -391,6 +403,12 @@ export const Bookings = () => {
 
       {/* Invisible Print View Holder */}
       {isPrinting && <PrintBooking booking={selectedBooking} state={state} />}
+
+      {/* Bulk Import Modal */}
+      <ImportModal 
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+      />
 
       {/* New Reservation Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Reservation">

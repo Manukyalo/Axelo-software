@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from './AuthContext';
 import { checkRateLimit } from '../utils/rateLimit';
@@ -58,6 +58,7 @@ export const DataProvider = ({ children }) => {
     try {
       const type = action.type;
       const isAdd = type.startsWith('ADD_');
+      const isBatchAdd = type.startsWith('BATCH_ADD_');
       const isUpdate = type.startsWith('UPDATE_');
       const isDelete = type.startsWith('DELETE_');
 
@@ -94,6 +95,18 @@ export const DataProvider = ({ children }) => {
          
          await addDoc(collection(db, col), payload);
          logger.info(`Firestore Document Synthesized in [${col}]`);
+      } 
+      else if (isBatchAdd) {
+         const batch = writeBatch(db);
+         action.payload.forEach(item => {
+           const payload = { ...item };
+           if (!payload.createdById) payload.createdById = user.username;
+           delete payload.id;
+           const newDocRef = doc(collection(db, col));
+           batch.set(newDocRef, payload);
+         });
+         await batch.commit();
+         logger.info(`Firestore Batch Operation Committed in [${col}] with ${action.payload.length} records.`);
       } 
       else if (isUpdate) {
          const { id, ...payload } = action.payload;
