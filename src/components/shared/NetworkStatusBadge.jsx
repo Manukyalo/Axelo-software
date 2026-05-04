@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../../config/firebase';
 
 export function NetworkStatusBadge({ driverId }) {
   const [network, setNetwork] = useState(null);
