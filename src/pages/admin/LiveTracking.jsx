@@ -27,6 +27,7 @@ import {
   X
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
+import { NetworkStatusBadge } from '../../components/shared/NetworkStatusBadge';
 import { KENYA_PARKS, KENYA_PARK_GEOJSON } from '../../utils/parkBoundaries';
 import { KENYA_LODGES } from '../../utils/lodgesData';
 import { KENYA_GATES } from '../../utils/gatesData';
@@ -74,7 +75,7 @@ export const LiveTracking = () => {
   const [selectedLodgeId, setSelectedLodgeId] = useState(null);
   const [selectedGateId, setSelectedGateId] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(6.5);
-  const [mapType, setMapType] = useState('dark');
+  const [mapType, setMapType] = useState('satellite');
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(null);
 
@@ -295,52 +296,8 @@ export const LiveTracking = () => {
 
         addParkBoundaries(map.current);
 
-        KENYA_PARKS.forEach(park => {
-          const el = document.createElement('div');
-          el.className = `park-marker park-${park.id}`;
-          el.style.cssText = 'display: flex; align-items: center; gap: 8px; cursor: pointer; transform-origin: left center; transition: transform 0.2s ease;';
-          
-          el.innerHTML = `
-            <div style="width: 10px; height: 10px; border-radius: 50%; background: ${park.color}; border: 1.5px solid #fff; box-shadow: 0 0 8px ${park.color}60;"></div>
-            <div class="park-label" style="background: rgba(17, 27, 21, 0.85); backdrop-filter: blur(4px); padding: 3px 10px; border-radius: 8px; border: 1px solid ${park.color}40; white-space: nowrap;">
-              <span style="color: #fff; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'DM Sans', sans-serif;">${park.name}</span>
-            </div>
-          `;
-          
-          el.addEventListener('mouseenter', () => el.style.transform = 'scale(1.1)');
-          el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)');
-          
-          const popup = new maplibregl.Popup({ offset: 15, closeButton: false })
-            .setHTML(`
-              <div style="background: #111B15; color: white; padding: 12px; border-radius: 12px; border: 1px solid ${park.color}60; font-family: 'DM Sans', sans-serif;">
-                <div style="color: ${park.color}; font-weight: 800; font-size: 14px;">${park.name}</div>
-                <div style="font-size: 10px; opacity: 0.5; margin-bottom: 4px;">NATIONAL ${park.type.toUpperCase()}</div>
-                <p style="font-size: 11px; line-height: 1.4; margin: 0;">${park.description}</p>
-                <div style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); pt-2;">
-                   <button id="focus-${park.id}" style="width: 100%; padding: 6px; border-radius: 6px; background: ${park.color}; color: white; border: none; font-size: 10px; font-weight: 800; cursor: pointer; margin-top: 8px;">FOCUS THIS PARK</button>
-                </div>
-              </div>
-            `);
-
-          popup.on('open', () => {
-            const btn = document.getElementById(`focus-${park.id}`);
-            if (btn) btn.addEventListener('click', () => {
-              setSelectedParkId(park.id);
-              setSelectedDriver(null);
-              setSelectedLodgeId(null);
-              setSelectedGateId(null);
-              handleFlyTo(park.center, 10.5);
-              popup.remove();
-            });
-          });
-
-          const marker = new maplibregl.Marker({ element: el })
-            .setLngLat(park.center)
-            .setPopup(popup);
-          
-          parkMarkers.current[park.id] = marker;
-          marker.addTo(map.current);
-        });
+        // Park Markers removed as per request to clear "dots" from map
+        // Boundaries and labels are retained via addParkBoundaries() function
 
         // 2. Render Lodges & Camps (Enhanced with Labels)
         KENYA_LODGES.forEach(lodge => {
@@ -388,47 +345,7 @@ export const LiveTracking = () => {
         });
 
         // 3. Render Entry Gates (Enhanced with Labels)
-        KENYA_GATES.forEach(gate => {
-          const el = document.createElement('div');
-          el.className = `gate-marker park-${gate.parkId}`;
-          el.style.cssText = 'display: flex; align-items: center; gap: 6px; cursor: pointer; transform-origin: left center; transition: transform 0.2s ease;';
-          
-          el.innerHTML = `
-            <span style="font-size: 16px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🚧</span>
-            <div class="gate-label" style="background: rgba(10, 20, 15, 0.85); backdrop-filter: blur(6px); padding: 3px 10px; border-radius: 8px; border: 1px solid #4ade8030; white-space: nowrap;">
-              <span style="color: #4ade80; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'DM Sans', sans-serif;">${gate.name}</span>
-            </div>
-          `;
-          
-          el.addEventListener('mouseenter', () => el.style.transform = 'scale(1.2)');
-          el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)');
-          
-          const m = new maplibregl.Marker({ element: el })
-            .setLngLat(gate.center)
-            .setPopup(new maplibregl.Popup({ offset: 15, closeButton: false })
-            .setHTML(`
-            <div class="p-3 bg-white border border-black/10 rounded-xl text-black font-dm-sans min-w-[140px] shadow-2xl">
-              <div class="text-[9px] uppercase font-black text-emerald-500 mb-0.5">Entry Gate</div>
-              <div class="text-xs font-black text-black">${gate.name}</div>
-              <button id="focus-gate-${gate.id}" class="w-full mt-2 py-1.5 bg-emerald-500 text-white text-[9px] font-black uppercase rounded-lg hover:bg-black transition-all">Focus this Gate</button>
-            </div>
-          `));
-
-          m.on('open', () => {
-            setTimeout(() => {
-              document.getElementById(`focus-gate-${gate.id}`)?.addEventListener('click', () => {
-                handleFlyTo(gate.center, 15);
-                setSelectedGateId(gate.id);
-                setSelectedParkId(null);
-                setSelectedDriver(null);
-                setSelectedLodgeId(null);
-              });
-            }, 0);
-          });
-          
-          gateMarkers.current[gate.id] = m;
-          m.addTo(map.current);
-        });
+        // Gate Markers removed as per request to clear map clutter
 
         map.current.on('zoom', () => {
           setCurrentZoom(map.current.getZoom());
@@ -452,7 +369,7 @@ export const LiveTracking = () => {
 
   // Handle Dynamic Style Changes
   const toggleMapType = () => {
-    const nextType = mapType === 'dark' ? 'satellite' : 'dark';
+    const nextType = mapType === 'satellite' ? 'dark' : 'satellite';
     setMapType(nextType);
     if (map.current) {
       map.current.setStyle(getStyleURL(nextType));
@@ -735,6 +652,11 @@ export const LiveTracking = () => {
                            <Activity size={8} className="text-safari-gold"/> {Math.round(loc.speed || 0)}km/h
                          </span>
                       </div>
+                      {loc.driverId && (
+                        <div className="mt-2">
+                          <NetworkStatusBadge driverId={loc.driverId} />
+                        </div>
+                      )}
                     </div>
                  </button>
                );

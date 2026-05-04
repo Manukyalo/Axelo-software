@@ -42,7 +42,7 @@ export const BookingDetailModal = ({ isOpen, onClose, booking }) => {
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [paymentRef, setPaymentRef] = useState('');
 
-  const isAdmin = user?.role === 'admin';
+  const canEdit = user?.role === 'admin' || user?.role === 'res_agent';
 
   useEffect(() => {
     if (booking) {
@@ -194,7 +194,7 @@ export const BookingDetailModal = ({ isOpen, onClose, booking }) => {
             <Car size={18} />
             <span className="font-bold text-sm">Fleet Allocation</span>
           </button>
-          {isAdmin && (
+          {canEdit && (
             <button 
               onClick={() => setActiveTab('payments')}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'payments' ? 'bg-safari-gold text-white shadow-lg shadow-safari-gold/20' : 'hover:bg-gray-100 dark:hover:bg-dark-card'}`}
@@ -209,7 +209,7 @@ export const BookingDetailModal = ({ isOpen, onClose, booking }) => {
               <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-2">Booking Status</p>
               <div className="flex items-center justify-between">
                 {getStatusBadge(formData.status)}
-                {isAdmin && getPaymentBadge(formData.paymentStatus)}
+                {canEdit && getPaymentBadge(formData.paymentStatus)}
               </div>
             </div>
           </div>

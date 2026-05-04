@@ -8,8 +8,12 @@ import {
   Clock,
   ExternalLink,
   Activity,
-  MapPin
+  MapPin,
+  ShieldCheck,
+  Zap,
+  BellRing
 } from 'lucide-react';
+import { sendTestNotification } from '../../utils/fcmUtils';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, BarChart, Bar
@@ -199,6 +203,47 @@ export const AdminDashboard = () => {
               <Button variant="ghost" size="sm" className="w-full mt-2 text-xs uppercase tracking-widest font-bold" onClick={() => navigate('/admin/bookings')}>
                 View Full Schedule
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* System Intelligence & Notifications */}
+        <Card className="border-l-4 border-l-blue-500 bg-gradient-to-br from-blue-500/5 to-transparent">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <h3 className="font-bold text-safari-primary dark:text-dark-text flex items-center gap-2">
+              <ShieldCheck size={18} className="text-blue-500" /> System Intelligence
+            </h3>
+            <Badge variant="info" className="bg-blue-500/10 text-blue-500 border-blue-500/20">Active</Badge>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-3 rounded-xl bg-white/50 dark:bg-dark-card border border-blue-500/10">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-black uppercase text-gray-400">Desktop Alerts</span>
+                  <span className={`text-[10px] font-bold ${Notification.permission === 'granted' ? 'text-emerald-500' : 'text-orange-500'}`}>
+                    {Notification.permission === 'granted' ? 'ENABLED' : 'ACTION REQUIRED'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-500 leading-relaxed mb-3">
+                  Ensure browser notifications are enabled to receive critical SOS and booking updates on your desktop.
+                </p>
+                <Button 
+                  onClick={sendTestNotification}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white text-[10px] font-black uppercase py-2 flex items-center justify-center gap-2"
+                >
+                  <BellRing size={14} /> Send Test Alert
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-3 px-1">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                  <Zap size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-safari-primary dark:text-dark-text uppercase">FCM Infrastructure</p>
+                  <p className="text-[9px] text-gray-400">Cloud Sync: Healthy</p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -55,3 +55,28 @@ export const onMessageListener = () =>
       resolve(payload);
     });
   });
+export const sendTestNotification = async () => {
+  if (!("Notification" in window)) {
+    toast.error("This browser does not support desktop notifications");
+    return;
+  }
+
+  if (Notification.permission === "granted") {
+    new Notification("Eastern Vacations System", {
+      body: "This is a test notification. System status is healthy! 🦁",
+      icon: "/safari-favicon.png" // Assuming this exists or using a fallback
+    });
+    toast.success("Test notification sent!");
+  } else if (Notification.permission !== "denied") {
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      new Notification("Eastern Vacations System", {
+        body: "Permissions granted! You will now receive system alerts.",
+        icon: "/safari-favicon.png"
+      });
+      toast.success("Permissions granted and test sent!");
+    }
+  } else {
+    toast.error("Notification permissions are blocked. Please enable them in browser settings.");
+  }
+};
