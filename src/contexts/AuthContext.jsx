@@ -12,14 +12,14 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // 🔗 Permanent Server Synchronization Webhook
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@easternvacations.com';
-        
-        // Strict mapping attribution since firestore roles aren't deployed yet
-        const role = firebaseUser.email === adminEmail ? 'admin' : 'res_agent';
+        // Fetch custom claims to get the role assigned by the backend
+        const tokenResult = await firebaseUser.getIdTokenResult(true);
+        const role = tokenResult.claims.role || 'agent'; // Default to agent if no role set
 
         setUser({
+          uid: firebaseUser.uid, // Using uid consistently
           id: firebaseUser.uid,
           username: firebaseUser.email,
           role: role,
@@ -59,18 +59,8 @@ export const AuthProvider = ({ children }) => {
     // 🥶 LOCAL OVERLAY: Prevent excessive API calls to Google Identity servers
     checkRateLimit('login_attempt', 50, 5 * 60 * 1000);
 
-    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@easternvacations.com';
-    const resEmail = import.meta.env.VITE_RES_EMAIL || 'reservations@easternvacations.com';
-
-    // UI Tab Restrictors
-    if (role === 'admin' && username !== adminEmail) {
-       logger.warn('UI Traversal Blocked', { username, targetRole: role });
-       throw new Error('Please log in via the Agent Reservations portal.');
-    }
-    if (role === 'res_agent' && username !== resEmail && username !== 'reservations@toursco') {
-       logger.warn('UI Traversal Blocked', { username, targetRole: role });
-       throw new Error('Please log in via the Administrative portal.');
-    }
+    // UI checks are now handled dynamically via ProtectedRoute and Custom Claims.
+    // The login function should focus on authentication signature issuance.
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, username, password);

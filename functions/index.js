@@ -3,10 +3,50 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const { Anthropic } = require("@anthropic-ai/sdk");
 const axios = require("axios");
+const { format, differenceInDays, parseISO, startOfDay, addDays } = require("date-fns");
 
 admin.initializeApp();
 const db = admin.firestore();
+const auth = admin.auth();
 const messaging = admin.messaging();
+
+/**
+ * RBAC: Sets custom claims for a user (admin/agent/driver)
+ */
+exports.setRole = onCall(
+  {
+    memory: "256MiB",
+  },
+  async (request) => {
+    // Only existing admins can set roles
+    if (!request.auth || request.auth.token.role !== 'admin') {
+      // Emergency bootstrap: allow first admin to be set if email matches hardcoded list
+      const allowedAdmins = ['admin@easternvacations.com', 'manu@easternvacations.com', 'reservations@easternvacations.com'];
+      const userEmail = (request.auth.token.email || '').toLowerCase();
+      if (!request.auth || !allowedAdmins.includes(userEmail)) {
+        throw new HttpsError("permission-denied", "Only administrators can assign roles.");
+      }
+    }
+
+    const { uid, role } = request.data;
+    if (!uid || !['admin', 'agent', 'driver'].includes(role)) {
+      throw new HttpsError("invalid-argument", "Valid UID and role (admin/agent/driver) are required.");
+    }
+
+    try {
+      await auth.setCustomUserClaims(uid, { role });
+      console.log(`Role '${role}' assigned to user ${uid}`);
+      
+      // Update user document for visibility in UI
+      await db.collection("users").doc(uid).set({ role }, { merge: true });
+      
+      return { success: true, message: `Role '${role}' assigned successfully.` };
+    } catch (err) {
+      console.error("Error setting custom claims:", err);
+      throw new HttpsError("internal", err.message);
+    }
+  }
+);
 
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY || "dummy",
@@ -291,3 +331,194 @@ exports.weatherHistorySync = onSchedule(
         }
     }
 );
+
+/**
+ * 🤖 manualOperationsSweep - Callable function to trigger a refresh of operational intelligence
+ */
+exports.manualOperationsSweep = onCall(
+  {
+    memory: "1GiB",
+    timeoutSeconds: 540,
+  },
+  async (request) => {
+    if (!request.auth || request.auth.token.role !== 'admin') {
+      throw new HttpsError("permission-denied", "Only administrators can trigger a manual sweep.");
+    }
+
+    try {
+      console.log(`Manual operations sweep triggered by ${request.auth.token.email}`);
+      
+      // Extract the core sweep logic into a reusable function if needed, 
+      // but for now we can just copy the logic or call a helper.
+      // Since it's a small block, I'll just keep it direct or call the same logic.
+      
+      // For simplicity in this edit, I'll just expose the internal logic 
+      // but let's make sure we don't duplicate too much.
+      // I'll wrap the logic in a helper.
+      
+      await performOperationsSweep();
+      
+      return { success: true, message: "Operations sweep completed successfully." };
+    } catch (err) {
+      console.error("Manual sweep failed:", err.message);
+      throw new HttpsError("internal", err.message);
+    }
+  }
+);
+
+async function performOperationsSweep() {
+  const bookingsSnap = await db.collection("bookings").get();
+  const vehiclesSnap = await db.collection("vehicles").get();
+  const driversSnap = await db.collection("drivers").get();
+
+  const bookings = bookingsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const vehicles = vehiclesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const drivers = driversSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  let alertsGenerated = 0;
+  const today = startOfDay(new Date());
+
+  // --- MODULE: Booking Reminders ---
+  for (const b of bookings) {
+    if (b.status !== 'Confirmed' && b.status !== 'Pending') continue;
+    const departureDate = parseISO(b.date);
+    const daysUntil = differenceInDays(departureDate, today);
+
+    if (daysUntil === 7) {
+      alertsGenerated += await createAIAlert({
+        title: '7-Day Safari Reminder',
+        message: `${b.clientName}'s safari to ${b.destinations || b.location} departs in 7 days.`,
+        type: 'INFO',
+        category: 'booking',
+        entityId: b.id,
+        entityType: 'booking',
+        moduleSource: 'BookingReminders'
+      });
+    } else if (daysUntil === 3) {
+      const issues = [];
+      if (!b.driverId) issues.push('No driver assigned');
+      if (!b.vehicleId) issues.push('No vehicle assigned');
+      if (b.paymentStatus !== 'Fully Paid') issues.push('Payment incomplete');
+
+      if (issues.length > 0) {
+        alertsGenerated += await createAIAlert({
+          title: `3-Day Departure Alert — ${b.clientName}`,
+          message: `Safari departs in 3 days. Issues: ${issues.join(', ')}.`,
+          type: 'HIGH',
+          category: 'booking',
+          entityId: b.id,
+          entityType: 'booking',
+          moduleSource: 'BookingReminders'
+        });
+      }
+    } else if (daysUntil === 1) {
+      alertsGenerated += await createAIAlert({
+        title: `🚨 DEPARTURE TOMORROW — ${b.clientName}`,
+        message: `Safari to ${b.destinations || b.location} departs tomorrow at ${b.timeOfPickup || 'TBD'}.`,
+        type: 'CRITICAL',
+        category: 'booking',
+        entityId: b.id,
+        entityType: 'booking',
+        moduleSource: 'BookingReminders'
+      });
+    }
+  }
+
+  // --- MODULE: Insurance Watchdog ---
+  for (const v of vehicles) {
+    if (!v.insuranceExpiry) continue;
+    const expiry = v.insuranceExpiry.toDate ? v.insuranceExpiry.toDate() : parseISO(v.insuranceExpiry);
+    const daysUntil = differenceInDays(expiry, today);
+
+    if (daysUntil <= 0) {
+      alertsGenerated += await createAIAlert({
+        title: `🚨 EXPIRED INSURANCE — ${v.plate}`,
+        message: `Vehicle ${v.name} (${v.plate}) insurance EXPIRED on ${format(expiry, 'MMM dd')}.`,
+        type: 'CRITICAL',
+        category: 'vehicle',
+        entityId: v.id,
+        entityType: 'vehicle',
+        moduleSource: 'InsuranceWatchdog',
+        targetRole: 'admin'
+      });
+    } else if (daysUntil <= 7) {
+      alertsGenerated += await createAIAlert({
+        title: `Insurance Expiring Soon — ${v.plate}`,
+        message: `Vehicle ${v.name} (${v.plate}) insurance expires in ${daysUntil} days.`,
+        type: 'HIGH',
+        category: 'vehicle',
+        entityId: v.id,
+        entityType: 'vehicle',
+        moduleSource: 'InsuranceWatchdog',
+        targetRole: 'admin'
+      });
+    }
+  }
+
+  await db.collection("aiLogs").add({
+    timestamp: admin.firestore.Timestamp.now(),
+    module: "Watchdog",
+    message: `Sweep complete. ${alertsGenerated} alerts generated.`
+  });
+
+  return alertsGenerated;
+}
+
+/**
+ * 🤖 Operations Watchdog: Scheduled intelligence sweep (Every 15 mins)
+ */
+exports.operationsWatchdog = onSchedule(
+  {
+    schedule: "every 15 minutes",
+    timeZone: "Africa/Nairobi",
+    memory: "1GiB",
+    timeoutSeconds: 540,
+  },
+  async (event) => {
+    console.log("🤖 Operations Watchdog: Sweep started...");
+    try {
+      const alertsGenerated = await performOperationsSweep();
+      console.log(`✅ Intelligence sweep complete. Generated ${alertsGenerated} alerts.`);
+    } catch (err) {
+      console.error("❌ Operations Watchdog Error:", err);
+    }
+  }
+);
+
+
+/**
+ * Utility: Deduplication and Alert Creation
+ */
+async function createAIAlert(alert) {
+  const q = db.collection('aiAlerts')
+    .where('entityId', '==', alert.entityId)
+    .where('moduleSource', '==', alert.moduleSource)
+    .where('resolved', '==', false)
+    .where('createdAt', '>', admin.firestore.Timestamp.fromMillis(Date.now() - 24 * 60 * 60 * 1000));
+  
+  const snapshot = await q.get();
+  if (!snapshot.empty) return 0;
+
+  const alertData = {
+    ...alert,
+    createdAt: admin.firestore.Timestamp.now(),
+    resolved: false,
+    read: false
+  };
+
+  await db.collection('aiAlerts').add(alertData);
+
+  // High priority notifications
+  if (['CRITICAL', 'HIGH'].includes(alert.type)) {
+    await db.collection('notifications').add({
+      title: alert.title,
+      message: alert.message,
+      date: new Date().toISOString(),
+      read: false,
+      type: alert.type,
+      targetRole: alert.targetRole || 'both'
+    });
+  }
+
+  return 1;
+}

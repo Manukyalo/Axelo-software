@@ -85,6 +85,8 @@ const ProtectedRoute = ({ children, allowedRole, title }) => {
   return children;
 };
 
+import { KillSwitchGuard } from './components/shared/KillSwitchGuard';
+
 function App() {
   const { user } = useAuth();
 
@@ -98,8 +100,9 @@ function App() {
 
   return (
     <BrowserRouter>
-      <SeedInitializer />
-      <Routes>
+      <KillSwitchGuard>
+        <SeedInitializer />
+        <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Navigate to="/admin/login" />} />
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -179,47 +182,47 @@ function App() {
 
         {/* Reservations Routes */}
         <Route path="/reservations" element={
-          <ProtectedRoute allowedRole="res_agent" title="Agent Dashboard">
+          <ProtectedRoute allowedRole="agent" title="Agent Dashboard">
             <Layout><ResDashboard /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/reservations/new-booking" element={
-          <ProtectedRoute allowedRole="res_agent" title="New Booking">
+          <ProtectedRoute allowedRole="agent" title="New Booking">
             <Layout><NewBooking /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/reservations/my-bookings" element={
-          <ProtectedRoute allowedRole="res_agent" title="My Bookings">
+          <ProtectedRoute allowedRole="agent" title="My Bookings">
             <Layout><MyBookings /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/reservations/all-bookings" element={
-          <ProtectedRoute allowedRole="res_agent" title="All Bookings">
+          <ProtectedRoute allowedRole="agent" title="All Bookings">
             <Layout><AllBookings /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/reservations/vehicles" element={
-          <ProtectedRoute allowedRole="res_agent" title="Vehicles">
+          <ProtectedRoute allowedRole="agent" title="Vehicles">
             <Layout><ResVehicles /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/reservations/drivers" element={
-          <ProtectedRoute allowedRole="res_agent" title="Drivers">
+          <ProtectedRoute allowedRole="agent" title="Drivers">
             <Layout><ResDrivers /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/reservations/upcoming-safaris" element={
-          <ProtectedRoute allowedRole="res_agent" title="Upcoming Safaris">
+          <ProtectedRoute allowedRole="agent" title="Upcoming Safaris">
             <Layout><UpcomingSafaris /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/reservations/profile" element={
-          <ProtectedRoute allowedRole="res_agent" title="Profile">
+          <ProtectedRoute allowedRole="agent" title="Profile">
             <Layout><Profile /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/reservations/weather" element={
-          <ProtectedRoute allowedRole="res_agent" title="Weather Intelligence">
+          <ProtectedRoute allowedRole="agent" title="Weather Intelligence">
             <Layout><WeatherIntelligence /></Layout>
           </ProtectedRoute>
         } />
@@ -227,6 +230,7 @@ function App() {
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      </KillSwitchGuard>
     </BrowserRouter>
   );
 }

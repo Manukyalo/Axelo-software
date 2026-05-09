@@ -14,7 +14,7 @@ import {
 import { db } from '../config/firebase';
 import { useAuth } from './AuthContext';
 import { useData } from './DataContext';
-import { aiEngine } from '../engine/AIManagerEngine';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { differenceInSeconds, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -61,7 +61,7 @@ export const AIManagerProvider = ({ children }) => {
   // 2. Sync AI Alerts (Real-time)
   useEffect(() => {
     // 🛡️ Silent Guard: Stop if no user or restricted role
-    if (!user || (user.role !== 'admin' && user.role !== 'res_agent')) {
+    if (!user || (user.role !== 'admin' && user.role !== 'agent')) {
       setLoading(false);
       return;
     }
@@ -108,30 +108,23 @@ export const AIManagerProvider = ({ children }) => {
     }
   }, [user]);
 
-  // 3. Start/Update Engine Loop
+  // 3. AI Engine loop removed (migrated to Cloud Functions)
   useEffect(() => {
-    if (!user || !dataState) {
-      aiEngine.stop();
-      return;
-    }
-
-    // Pass live data to engine and start/update
-    if (dataState.bookings && dataState.vehicles && dataState.drivers) {
-      aiEngine.start(dataState.bookings, dataState.vehicles, dataState.drivers);
-    }
-
-    return () => aiEngine.stop();
-  }, [user, dataState]);
+    setLoading(false);
+  }, []);
 
   // --- Actions ---
 
   const runManualScan = async () => {
-    toast.loading('AI Engine running deep scan...', { id: 'ai-scan' });
+    const toastId = toast.loading('AI Engine running deep scan...');
     try {
-      await aiEngine.runLoop(dataState.bookings, dataState.vehicles, dataState.drivers);
-      toast.success('AI scan complete!', { id: 'ai-scan' });
+      const functions = getFunctions();
+      const sweep = httpsCallable(functions, 'manualOperationsSweep');
+      await sweep();
+      toast.success('AI scan complete!', { id: toastId });
     } catch (err) {
-      toast.error('AI scan failed', { id: 'ai-scan' });
+      console.error('AI manual sweep error:', err);
+      toast.error('AI scan failed: ' + (err.message || 'Unknown error'), { id: toastId });
     }
   };
 

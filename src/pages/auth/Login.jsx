@@ -68,8 +68,8 @@ const UnifiedLogin = ({ initialRole }) => {
                   </button>
                   <button 
                      type="button"
-                     onClick={() => setRole('res_agent')} 
-                     className={`flex-1 py-2.5 text-sm font-bold rounded-md transition-all ${role === 'res_agent' ? 'bg-white dark:bg-dark-surface shadow-sm text-safari-primary dark:text-safari-gold' : 'text-gray-400 hover:text-gray-600'}`}>
+                     onClick={() => setRole('agent')} 
+                     className={`flex-1 py-2.5 text-sm font-bold rounded-md transition-all ${role === 'agent' ? 'bg-white dark:bg-dark-surface shadow-sm text-safari-primary dark:text-safari-gold' : 'text-gray-400 hover:text-gray-600'}`}>
                      Reservations Portal
                   </button>
               </div>
@@ -115,4 +115,4 @@ const UnifiedLogin = ({ initialRole }) => {
 };
 
 export const AdminLogin = () => <UnifiedLogin initialRole="admin" />;
-export const ReservationsLogin = () => <UnifiedLogin initialRole="res_agent" />;
+export const ReservationsLogin = () => <UnifiedLogin initialRole="agent" />;

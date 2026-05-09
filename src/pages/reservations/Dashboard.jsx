@@ -21,7 +21,7 @@ export const ReservationsDashboard = () => {
   const navigate = useNavigate();
 
   // My bookings
-  const myBookings = state.bookings.filter(b => b.createdById === 'res_agent');
+  const myBookings = state.bookings.filter(b => b.createdById === 'agent');
   const pendingBookings = myBookings.filter(b => b.status === 'Pending');
   const confirmedBookings = myBookings.filter(b => ['Confirmed', 'On Trip', 'Completed'].includes(b.status));
 

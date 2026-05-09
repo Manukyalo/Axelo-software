@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Shield, 
   Settings as SettingsIcon, 
@@ -12,7 +12,10 @@ import {
   RefreshCw,
   Eye,
   EyeOff,
-  Download
+  Download,
+  AlertTriangle,
+  Zap,
+  ShieldAlert
 } from 'lucide-react';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Card, CardContent, CardHeader } from '../../components/ui/Card';
@@ -20,11 +23,63 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { useTheme } from '../../contexts/ThemeContext';
+import { db } from '../../config/firebase';
+import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
 export const Settings = () => {
   const [activeTab, setActiveTab] = useState('General');
   const { accentColor, setAccentColor, isDarkMode, toggleDarkMode } = useTheme();
+  const [isSystemLocked, setIsSystemLocked] = useState(false);
+  const [loadingLock, setLoadingLock] = useState(true);
+
+  // Sync with Firestore for Kill Switch status
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'system_config', 'emergency'), (snap) => {
+      if (snap.exists()) {
+        setIsSystemLocked(snap.data().locked === true);
+      }
+      setLoadingLock(false);
+    }, (err) => {
+      console.error('Failed to sync lock status:', err);
+      setLoadingLock(false);
+    });
+    return () => unsub();
+  }, []);
+
+  const toggleSystemLock = async () => {
+    const action = isSystemLocked ? 'RECOVERY' : 'LOCKDOWN';
+    const confirmMsg = isSystemLocked 
+      ? "Are you sure you want to RESTORE system access? This will allow agents and drivers to log in again."
+      : "CRITICAL: This will instantly DISCONNECT all users and block all database access except for Admins. Use only in case of an active breach. Proceed?";
+
+    if (window.confirm(confirmMsg)) {
+      try {
+        const lockRef = doc(db, 'system_config', 'emergency');
+        await setDoc(lockRef, {
+          locked: !isSystemLocked,
+          updatedAt: serverTimestamp(),
+          updatedBy: 'Admin (UI)',
+          actionType: action
+        }, { merge: true });
+
+        // Log to local audit as well
+        const audit = JSON.parse(localStorage.getItem('security_audit') || '[]');
+        audit.push({
+          action: `${action} TRIGGERED`,
+          timestamp: new Date().toLocaleString(),
+          ip: 'System Internal',
+          role: 'SUPER_ADMIN'
+        });
+        localStorage.setItem('security_audit', JSON.stringify(audit));
+
+        toast.success(isSystemLocked ? 'System restored successfully' : 'SYSTEM LOCKED DOWN');
+      } catch (err) {
+        console.error('Lockdown failed:', err);
+        toast.error('Failed to trigger lockdown. Check permissions.');
+      }
+    }
+  };
 
   const auditLog = JSON.parse(localStorage.getItem('security_audit') || '[]');
 
@@ -121,6 +176,41 @@ export const Settings = () => {
                 </CardContent>
               </Card>
 
+              <Card className={`border-2 transition-all ${isSystemLocked ? 'border-red-500 bg-red-50/50 dark:bg-red-950/20' : 'border-transparent'}`}>
+                <CardContent className="pt-8 space-y-4">
+                   <div className="flex items-center justify-between">
+                     <div className="flex items-center gap-3">
+                       <div className={`p-2 rounded-lg ${isSystemLocked ? 'bg-red-500 text-white' : 'bg-safari-gold/10 text-safari-gold'}`}>
+                         <ShieldAlert size={24} />
+                       </div>
+                       <div>
+                         <h3 className="font-bold text-safari-primary dark:text-dark-text">Nuclear Lockdown</h3>
+                         <p className="text-xs text-gray-500 italic">Emergency kill-switch to stop active breaches</p>
+                       </div>
+                     </div>
+                     <Badge variant={isSystemLocked ? 'danger' : 'success'} className="animate-pulse">
+                       {isSystemLocked ? 'SYSTEM LOCKED' : 'SYSTEM ACTIVE'}
+                     </Badge>
+                   </div>
+                   
+                   <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                     Activating lockdown will instantly disconnect all Agents and Drivers. Database access will be restricted to authorized Admin accounts only. Use this if you suspect a hacker has compromised the system.
+                   </p>
+
+                   <div className="pt-2">
+                     <Button 
+                       variant={isSystemLocked ? 'primary' : 'danger'} 
+                       className="w-full gap-2 py-6 text-lg font-bold shadow-xl"
+                       onClick={toggleSystemLock}
+                       disabled={loadingLock}
+                     >
+                       {isSystemLocked ? <RefreshCw size={20} /> : <Zap size={20} />}
+                       {isSystemLocked ? 'RESTORE SYSTEM ACCESS' : 'TRIGGER EMERGENCY LOCKDOWN'}
+                     </Button>
+                   </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <h3 className="font-bold text-safari-primary dark:text-dark-text flex items-center gap-2">
@@ -186,18 +276,78 @@ export const Settings = () => {
               <CardContent className="pt-8 space-y-6">
                 <div className="flex items-center justify-between mb-4">
                    <h3 className="font-bold text-safari-primary dark:text-dark-text flex items-center gap-2">
-                     <Users size={18} className="text-safari-gold" /> User Management
+                     <Users size={18} className="text-safari-gold" /> User Role Management
                    </h3>
-                   <Button className="gap-2 text-sm px-4 py-2">Add New User</Button>
                 </div>
-                <div className="p-8 text-center border-2 border-dashed border-gray-100 dark:border-dark-border rounded-xl">
-                   <Users size={48} className="text-gray-300 dark:text-dark-border mx-auto mb-4" />
-                   <h4 className="font-bold text-safari-primary dark:text-dark-text mb-2">User Directory</h4>
-                   <p className="text-sm text-gray-500 max-w-sm mx-auto">The centralized user management module is currently being provisioned. This will allow you to assign roles and manage agent access.</p>
+                
+                <div className="bg-safari-gold/5 border border-safari-gold/10 p-4 rounded-xl mb-6">
+                  <p className="text-sm text-safari-earthy flex items-center gap-2">
+                    <Shield size={16} /> Use this tool to promote users to Admin or Agent status. This updates their security claims in real-time.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2">
+                      <Input 
+                        label="Firebase User UID" 
+                        placeholder="e.g. 8xK7yL... (Get from Auth console)"
+                        id="role-uid"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-safari-primary dark:text-dark-text mb-1.5">Target Role</label>
+                      <select 
+                        id="role-select"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-dark-surface border-2 border-gray-100 dark:border-dark-border rounded-input outline-none focus:border-safari-gold transition-all text-sm"
+                      >
+                        <option value="admin">Administrator</option>
+                        <option value="agent">Reservations Agent</option>
+                        <option value="driver">Driver / Staff</option>
+                      </select>
+                    </div>
+                  </div>
+                  <Button 
+                    className="w-full gap-2"
+                    onClick={async () => {
+                      const uid = document.getElementById('role-uid').value;
+                      const role = document.getElementById('role-select').value;
+                      if (!uid) return toast.error('UID is required');
+                      
+                      const setRole = httpsCallable(functions, 'setRole');
+                      const loadToast = toast.loading('Updating security claims...');
+                      try {
+                        await setRole({ uid, role });
+                        toast.success(`User successfully updated to ${role}`, { id: loadToast });
+                        document.getElementById('role-uid').value = '';
+                      } catch (err) {
+                        toast.error(err.message, { id: loadToast });
+                      }
+                    }}
+                  >
+                    <ShieldCheck size={18} /> Update User Security Claims
+                  </Button>
+                </div>
+
+                <div className="pt-8 mt-8 border-t border-gray-100 dark:border-dark-border">
+                  <h4 className="text-sm font-bold text-safari-primary dark:text-dark-text mb-4">Quick Migration Links</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-50 dark:bg-dark-card rounded-xl border border-gray-100 dark:border-dark-border">
+                      <p className="text-xs font-bold mb-1">Primary Admin</p>
+                      <p className="text-[10px] text-gray-500 mb-2 truncate">admin@easternvacations.com</p>
+                      <Badge variant="success">Auto-Assigned</Badge>
+                    </div>
+                    <div className="p-4 bg-gray-50 dark:bg-dark-card rounded-xl border border-gray-100 dark:border-dark-border">
+                      <p className="text-xs font-bold mb-1">System Reservations</p>
+                      <p className="text-[10px] text-gray-500 mb-2 truncate">reservations@easternvacations.com</p>
+                      <Badge variant="info">Agent Access</Badge>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           )}
+
 
           {activeTab === 'Data' && (
             <div className="space-y-6">
