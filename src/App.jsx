@@ -2,8 +2,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
-import { SeedInitializer } from './utils/SeedInitializer';
-
 import { AdminLogin, ReservationsLogin } from './pages/auth/Login';
 
 import { Sidebar } from './components/layout/Sidebar';
@@ -101,7 +99,6 @@ function App() {
   return (
     <BrowserRouter>
       <KillSwitchGuard>
-        <SeedInitializer />
         <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Navigate to="/admin/login" />} />

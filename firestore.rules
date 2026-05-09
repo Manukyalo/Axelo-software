@@ -19,7 +19,6 @@ service cloud.firestore {
     }
 
     // --- 🚨 KILL SWITCH LOGIC ---
-    // If 'locked' is true in system_config/emergency, only Admins can read/write anything.
     function isSystemLocked() {
       return get(/databases/$(database)/documents/system_config/emergency).data.locked == true;
     }
@@ -42,11 +41,12 @@ service cloud.firestore {
 
     match /bookings/{bookingId} {
       allow read: if canAccess();
-      allow create: if canAccess();
-      allow update: if isAdmin() || (canAccess() && (
+      // Only Admins and Agents can create bookings
+      allow create: if canAccess() && (isAdmin() || isAgent());
+      allow update: if isAdmin() || (canAccess() && (isAgent() && (
         resource.data.createdById == request.auth.token.email || 
         resource.data.createdById == request.auth.uid
-      ));
+      )));
       allow delete: if isAdmin();
     }
 
@@ -56,20 +56,20 @@ service cloud.firestore {
     }
 
     match /drivers/{driverId} {
-      // FIXED: Was 'allow read: if true' (PUBLIC LEAK)
-      allow read: if canAccess(); 
-      allow create: if canAccess();
+      // Prevent drivers from listing all other drivers. Agents and Admins can see all.
+      allow read: if canAccess() && (isAdmin() || isAgent() || isOwner(driverId)); 
+      allow create: if canAccess() && (isAdmin() || isAgent());
       allow update: if isAdmin() || (canAccess() && (
+        isOwner(driverId) ||
         request.auth.token.email.lower() == resource.data.get('email', '').lower() ||
-        request.auth.token.email.lower() == resource.data.get('personalEmail', '').lower() ||
-        resource.data.uid == request.auth.uid
+        request.auth.token.email.lower() == resource.data.get('personalEmail', '').lower()
       ));
       allow delete: if isAdmin();
     }
 
     match /staff/{staffId} {
-      allow read: if canAccess();
-      allow create: if canAccess();
+      allow read: if canAccess() && (isAdmin() || isAgent() || isOwner(staffId));
+      allow create: if isAdmin();
       allow update: if isAdmin() || (canAccess() && isOwner(staffId));
       allow delete: if isAdmin();
     }
@@ -78,14 +78,14 @@ service cloud.firestore {
 
     match /faceDescriptors/{userId} {
       allow read: if canAccess() && (isOwner(userId) || isAdmin());
-      allow create: if canAccess();
+      allow create: if canAccess() && (isOwner(userId) || isAdmin());
       allow update: if canAccess() && (isOwner(userId) || isAdmin());
       allow delete: if isAdmin();
     }
 
     match /biometrics/{userId} {
       allow read: if canAccess() && (isOwner(userId) || isAdmin());
-      allow create: if canAccess();
+      allow create: if canAccess() && (isOwner(userId) || isAdmin());
       allow update: if canAccess() && (isOwner(userId) || isAdmin());
       allow delete: if isAdmin();
     }
@@ -96,15 +96,14 @@ service cloud.firestore {
     }
 
     match /notifications/{id} {
-      // FIXED: Was broad read/write for all users
-      allow read: if canAccess() && (resource.data.targetRole == 'both' || isAgent() || isAdmin());
+      allow read: if canAccess() && (resource.data.targetRole == 'both' || isAgent() || isAdmin() || resource.data.userId == request.auth.uid);
       allow write: if isAdmin() || (canAccess() && request.auth.uid == resource.data.userId);
     }
 
     // --- 🚛 FLEET MANAGEMENT ---
 
     match /driverLocations/{driverId} {
-      allow read: if canAccess();
+      allow read: if canAccess(); // Agents/Admins need this for LiveTracking
       allow write: if isAdmin() || (canAccess() && isOwner(driverId));
     }
 
@@ -145,4 +144,3 @@ service cloud.firestore {
     }
   }
 }
-

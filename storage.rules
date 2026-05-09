@@ -1,8 +1,51 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'admin';
+    }
+
+    function isAgent() {
+      return isAuthenticated() && request.auth.token.role == 'agent';
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // --- 👤 USER AVATARS ---
+    match /avatars/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // --- 📄 BOOKING DOCUMENTS (Receipts, Itineraries) ---
+    match /bookings/{bookingId}/{allPaths=**} {
+      allow read: if isAdmin() || isAgent();
+      allow write: if isAdmin() || isAgent();
+    }
+
+    // --- 🪪 PRIVATE PERSONNEL DOCUMENTS (Licenses, IDs) ---
+    match /documents/{userId}/{allPaths=**} {
+      allow read: if isOwner(userId) || isAdmin() || isAgent();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // --- 📁 SYSTEM ASSETS ---
+    match /system/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // --- 🔒 DEFAULT DENY ---
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAdmin();
     }
   }
 }
