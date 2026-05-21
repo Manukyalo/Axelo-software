@@ -9,6 +9,7 @@ import {
   Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
 import { doc, onSnapshot, collection, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Card, CardContent, CardHeader } from '../../components/ui/Card';
@@ -197,13 +198,14 @@ const ParkMiniCard = ({ park, weatherData, alerts }) => {
 
 // ----------- MAIN PAGE -----------
 // Emergency Toggle: Set to true to hide the interface during maintenance/billing updates
-const UNDER_CONSTRUCTION = true;
+const UNDER_CONSTRUCTION = false;
 
 export const WeatherIntelligence = () => {
   const { isDarkMode } = useTheme();
 
   const [parks, setParks] = useState([]);
   const [selectedPark, setSelectedPark] = useState(null);
+  const selectedParkObj = parks.find(p => p.id === selectedPark);
   const [weatherData, setWeatherData] = useState(null);
   const [syncStats, setSyncStats] = useState(null);
   const [alerts, setAlerts] = useState([]);

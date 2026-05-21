@@ -27,6 +27,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, onSnapshot, doc, getDoc, getDocs, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../../config/firebase';
+import { useAuth } from '../../contexts/AuthContext';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -39,6 +40,8 @@ import { validateString, validateEmail } from '../../utils/validation';
 import toast from 'react-hot-toast';
 
 const DriverCard = ({ driver, onEdit, onSchedule, onDelete }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const navigate = useNavigate();
   const licenseExpiryDate = driver.licenseExpiry ? parseISO(driver.licenseExpiry) : new Date();
   const licenseExpiry = differenceInDays(licenseExpiryDate, new Date());
@@ -167,9 +170,11 @@ const DriverCard = ({ driver, onEdit, onSchedule, onDelete }) => {
              <button onClick={() => onEdit(driver)} className="p-1.5 rounded-lg hover:bg-safari-gold/10 text-gray-400 hover:text-safari-gold transition-colors">
                <Edit2 size={12} />
              </button>
-             <button onClick={() => onDelete(driver)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
-               <Trash2 size={12} />
-             </button>
+             {isAdmin && (
+               <button onClick={() => onDelete(driver)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
+                 <Trash2 size={12} />
+               </button>
+             )}
           </div>
         </div>
       </CardContent>
@@ -606,6 +611,8 @@ const PortersView = () => {
 
 export const Drivers = () => {
   const { state, dispatch } = useData();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
@@ -669,9 +676,11 @@ export const Drivers = () => {
           <Button variant="outline" onClick={() => window.open(STAFF_PORTAL_URL, '_blank')} className="gap-2 border-emerald-500/20 text-emerald-600 hover:bg-emerald-50 bg-emerald-50/30">
             <ShieldCheck size={18} /> Open Staff Portal
           </Button>
-          <Button onClick={() => { setEditingDriver(null); setIsModalOpen(true); }} className="gap-2 shadow-lg shadow-safari-gold/20">
-            <UserPlus size={18} /> Add New Personnel
-          </Button>
+          {isAdmin && (
+            <Button onClick={() => { setEditingDriver(null); setIsModalOpen(true); }} className="gap-2 shadow-lg shadow-safari-gold/20">
+              <UserPlus size={18} /> Add New Personnel
+            </Button>
+          )}
         </div>
       }
     >
@@ -679,10 +688,10 @@ export const Drivers = () => {
         {/* Main Tabs */}
         <div className="flex gap-8">
           {[
-            { id: 'ALL', label: 'All Personnel', count: state.drivers.length },
-            { id: 'PENDING', label: 'Pending Approvals', count: pendingCount },
-            { id: 'PORTERS', label: 'Porters', count: state.porters.length }
-          ].map(tab => (
+            { id: 'ALL', label: 'All Personnel', count: state.drivers.length, visible: true },
+            { id: 'PENDING', label: 'Pending Approvals', count: pendingCount, visible: isAdmin },
+            { id: 'PORTERS', label: 'Porters', count: state.porters.length, visible: isAdmin }
+          ].filter(tab => tab.visible).map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}

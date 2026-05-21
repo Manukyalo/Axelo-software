@@ -247,6 +247,51 @@ export const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Quick Operations - Added for better UX */}
+        <Card className="border-l-4 border-l-safari-gold bg-gradient-to-br from-safari-gold/5 to-transparent">
+          <CardHeader>
+            <h3 className="font-bold text-safari-primary dark:text-dark-text flex items-center gap-2">
+              <Activity size={18} className="text-safari-gold" /> Quick Operations
+            </h3>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-[10px] font-bold uppercase h-auto py-3 flex flex-col gap-1"
+                onClick={() => navigate('/admin/bookings')}
+              >
+                <PlusCircle size={14} /> New Booking
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-[10px] font-bold uppercase h-auto py-3 flex flex-col gap-1"
+                onClick={() => navigate('/admin/bookings')}
+              >
+                <Upload size={14} /> Bulk Import
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-[10px] font-bold uppercase h-auto py-3 flex flex-col gap-1"
+                onClick={() => navigate('/admin/live-tracking')}
+              >
+                <MapPin size={14} /> Live Map
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-[10px] font-bold uppercase h-auto py-3 flex flex-col gap-1"
+                onClick={() => window.open('https://eastern-vacations-staff.vercel.app/', '_blank')}
+              >
+                <ShieldCheck size={14} /> Staff Portal
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Charts Section */}

@@ -16,6 +16,7 @@ import {
   Printer,
   Share2
 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -34,6 +35,7 @@ import toast from 'react-hot-toast';
 export const Bookings = () => {
   const { state, dispatch } = useData();
   const { user } = useAuth();
+  const location = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -77,6 +79,13 @@ export const Bookings = () => {
       setMigrationDone(true);
     }
   }, [state.bookings, migrationDone, dispatch]);
+  
+  // Handle automatic modal opening for "New Booking" route
+  useEffect(() => {
+    if (location.pathname === '/reservations/new-booking') {
+      setIsModalOpen(true);
+    }
+  }, [location.pathname]);
 
   const isAdmin = user?.role === 'admin';
 
@@ -126,6 +135,11 @@ export const Bookings = () => {
   };
 
   const filteredBookings = state.bookings.filter(b => {
+    // If on "My Bookings" page, only show bookings created by the current user
+    if (location.pathname === '/reservations/my-bookings' && b.createdById !== user?.username) {
+      return false;
+    }
+
     const nameMatch = b.clientName?.toLowerCase().includes(search.toLowerCase()) || false;
     const idMatch = b.id?.toLowerCase().includes(search.toLowerCase()) || false;
     const matchesSearch = nameMatch || idMatch;
@@ -229,7 +243,7 @@ export const Bookings = () => {
       subtitle={`Manage and track all tour reservations (${state.bookings.length})`}
       actions={
         <div className="flex gap-2 mb-4 md:mb-0">
-          {(isAdmin || user?.role === 'res_agent') && (
+          {(isAdmin || user?.role === 'agent') && (
             <>
               <Button 
                 variant="outline" 

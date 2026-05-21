@@ -223,6 +223,21 @@ function App() {
             <Layout><WeatherIntelligence /></Layout>
           </ProtectedRoute>
         } />
+        <Route path="/reservations/live-tracking" element={
+          <ProtectedRoute allowedRole="agent" title="Live Fleet Tracking">
+            <Layout><LiveTracking /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/reservations/sos-alerts" element={
+          <ProtectedRoute allowedRole="agent" title="Emergency SOS Alerts">
+            <Layout><SOSAlerts /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/reservations/messages" element={
+          <ProtectedRoute allowedRole="agent" title="Fleet Messages">
+            <Layout><Messages /></Layout>
+          </ProtectedRoute>
+        } />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" />} />
