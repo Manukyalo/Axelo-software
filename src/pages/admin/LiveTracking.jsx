@@ -273,17 +273,10 @@ export const LiveTracking = () => {
         antialias: true
       });
 
-      const initTimeout = setTimeout(() => {
-        if (!mapLoaded) {
-          setMapError('Map failed to initialize. Please check your network connection.');
-        }
-      }, 10000);
-
       map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
       map.current.addControl(new maplibregl.FullscreenControl(), 'top-right');
 
       map.current.on('load', () => {
-        clearTimeout(initTimeout);
         map.current.resize();
         
         // Premium flyover
