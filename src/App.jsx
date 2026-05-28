@@ -45,6 +45,7 @@ import { WeatherIntelligence } from './pages/shared/WeatherIntelligence';
 
 
 import { ReservationsDashboard } from './pages/reservations/Dashboard';
+import { Profile } from './pages/reservations/Profile';
 
 // Shared
 import { Bookings as BookingsView } from './pages/admin/Bookings';
@@ -54,7 +55,6 @@ const ResDashboard = ReservationsDashboard;
 const NewBooking = () => <BookingsView />; // Opens modal automatically in actual flow
 const MyBookings = () => <BookingsView />; 
 const AllBookings = () => <BookingsView />;
-const Profile = () => <div>Profile</div>;
 const ResVehicles = Vehicles;
 const ResDrivers = Drivers;
 

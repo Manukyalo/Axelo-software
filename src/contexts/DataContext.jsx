@@ -78,10 +78,10 @@ export const DataProvider = ({ children }) => {
       if (!col) return;
 
       // ---- 🛡️ IDOR Cloud Access Control ----
-      if ((isUpdate || isDelete) && user.role !== 'admin') {
+      if ((isUpdate || isDelete) && user.role !== 'admin' && col !== 'notifications') {
          const targetId = isDelete ? action.payload : action.payload.id;
          const item = state[col].find(i => i.id === targetId);
-         if (item && item.createdById !== user.role) {
+         if (item && item.createdById !== user.username) {
              logger.security(`IDOR EXCEPTION: Intercepted cross-tenant boundary mutation on ${col}`, { targetId, actingUser: user.role });
              throw new Error("SECURITY EXCEPTION: You do not have absolute permission to modify or delete this resource.");
          }

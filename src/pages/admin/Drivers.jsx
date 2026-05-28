@@ -333,22 +333,24 @@ const PendingApprovalsView = () => {
     try {
       const driver = pendingDrivers.find(a => a.id === rejectingId);
       await dispatch({ type: 'DELETE_DRIVERAUTH', payload: rejectingId });
+      await dispatch({ type: 'DELETE_DRIVER', payload: rejectingId });
+      await dispatch({ type: 'DELETE_PORTER', payload: rejectingId });
       
       await dispatch({
         type: 'ADD_NOTIFICATION',
         payload: {
-          title: `Driver Rejected — ${driver?.name ?? 'Unknown Driver'}`,
-          message: `${driver?.name ?? 'Unknown Driver'}'s application was rejected and account disabled.`,
+          title: `Personnel Rejected — ${driver?.name ?? 'Unknown'}`,
+          message: `${driver?.name ?? 'Unknown'}'s application/record was rejected and permanently deleted.`,
           type: 'INFO',
           targetRole: 'admin',
           date: new Date().toISOString()
         }
       });
       
-      toast.success('Driver application rejected');
+      toast.success('Personnel application rejected and permanently deleted');
       setRejectingId(null);
     } catch (err) {
-      toast.error('Failed to reject driver');
+      toast.error('Failed to reject personnel');
     }
   };
 
@@ -476,10 +478,11 @@ const PortersView = () => {
   };
 
   const handleReject = async (porter) => {
-    if (window.confirm(`Are you sure you want to reject and delete porter ${porter.name}?`)) {
+    if (window.confirm(`Are you sure you want to permanently reject and delete porter ${porter.name}?`)) {
       try {
         await dispatch({ type: 'DELETE_PORTER', payload: porter.id });
-        toast.success('Porter rejected');
+        await dispatch({ type: 'DELETE_DRIVERAUTH', payload: porter.id });
+        toast.success('Porter permanently deleted');
       } catch (err) {
         toast.error('Failed to reject porter');
       }
@@ -651,10 +654,15 @@ export const Drivers = () => {
     return pendingMap.size;
   }, [state.driverAuth, state.drivers, state.porters]);
 
-  const handleDelete = (driver) => {
-    if (window.confirm(`Are you sure you want to delete driver ${driver.name}?`)) {
-      dispatch({ type: 'DELETE_DRIVER', payload: driver.id });
-      toast.success(`${driver.name} has been removed.`);
+  const handleDelete = async (driver) => {
+    if (window.confirm(`Are you sure you want to permanently delete driver ${driver.name}?`)) {
+      try {
+        await dispatch({ type: 'DELETE_DRIVER', payload: driver.id });
+        await dispatch({ type: 'DELETE_DRIVERAUTH', payload: driver.id });
+        toast.success(`${driver.name} has been permanently deleted.`);
+      } catch (err) {
+        toast.error(`Failed to delete driver.`);
+      }
     }
   };
 
