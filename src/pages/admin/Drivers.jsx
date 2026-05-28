@@ -183,49 +183,68 @@ const DriverCard = ({ driver, onEdit, onSchedule, onDelete }) => {
 };
 
 const PendingApprovalsView = () => {
-  const { dispatch } = useData();
-  const [pendingDrivers, setPendingDrivers] = useState([]);
+  const { state, dispatch } = useData();
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const q = query(
-      collection(db, 'driverAuth'),
-      where('approved', '==', false)
-    );
-    
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      try {
-        const pendingList = await Promise.all(
-          snapshot.docs.map(async (authDoc) => {
-            const authData = { 
-              id: authDoc.id, 
-              ...authDoc.data() 
-            };
-            
-            // Note: Name and phone are now stored directly in driverAuth during registration
-            // Providing fallbacks for older records if they exist
-            authData.name = authData.name ?? authData.email ?? 'Unknown Driver';
-            authData.phone = authData.phone ?? 'No phone';
-            
-            return authData;
-          })
-        );
-        setPendingDrivers(pendingList);
-      } catch (err) {
-        console.error('Snapshot processing error:', err);
-      } finally {
-        setLoading(false);
+  // Unify and deduplicate pending requests from all 3 collections
+  const pendingDrivers = React.useMemo(() => {
+    const pendingMap = new Map();
+
+    // 1. From driverAuth
+    (state.driverAuth || []).forEach(item => {
+      if (!item.approved) {
+        pendingMap.set(item.id, {
+          id: item.id,
+          name: item.name || item.email || 'Unknown Driver',
+          phone: item.phone || 'No phone',
+          role: item.role || 'driver',
+          faceImageUrl: item.faceImageUrl,
+          registeredAt: item.registeredAt,
+          sourceCollection: 'driverAuth',
+          ...item
+        });
       }
-    }, (error) => {
-      console.error('Pending approvals query error:', error);
-      setPendingDrivers([]);
-      setLoading(false);
     });
-    
-    return () => unsubscribe();
-  }, []);
+
+    // 2. From drivers
+    (state.drivers || []).forEach(item => {
+      if (item.approved === false || item.status === 'Pending') {
+        const existing = pendingMap.get(item.id) || {};
+        pendingMap.set(item.id, {
+          id: item.id,
+          name: item.name || item.email || 'Unknown Driver',
+          phone: item.phone || 'No phone',
+          role: item.role || 'driver',
+          faceImageUrl: item.faceImageUrl || existing.faceImageUrl,
+          registeredAt: item.registeredAt || item.onboardedAt || existing.registeredAt,
+          sourceCollection: 'drivers',
+          ...existing,
+          ...item
+        });
+      }
+    });
+
+    // 3. From porters
+    (state.porters || []).forEach(item => {
+      if (!item.approved) {
+        const existing = pendingMap.get(item.id) || {};
+        pendingMap.set(item.id, {
+          id: item.id,
+          name: item.name || 'Unknown Porter',
+          phone: item.phone || 'No phone',
+          role: 'porter',
+          faceImageUrl: item.faceImageUrl || existing.faceImageUrl,
+          registeredAt: item.registeredAt || item.approvedAt || existing.registeredAt,
+          sourceCollection: 'porters',
+          ...existing,
+          ...item
+        });
+      }
+    });
+
+    return Array.from(pendingMap.values());
+  }, [state.driverAuth, state.drivers, state.porters]);
 
   const formatDate = (timestamp) => {
     if (!timestamp) return 'Unknown date';
@@ -240,43 +259,50 @@ const PendingApprovalsView = () => {
 
   const handleApprove = async (driverAuthId) => {
     try {
-      const driverAuthRef = doc(db, 'driverAuth', driverAuthId);
-      const driverAuthSnap = await getDoc(driverAuthRef);
-      
-      if (!driverAuthSnap.exists()) {
-        console.error('driverAuth document not found:', driverAuthId);
-        toast.error('Record not found. Please refresh.');
+      const driverData = pendingDrivers.find(d => d.id === driverAuthId);
+      if (!driverData) {
+        toast.error('Record not found.');
         return;
       }
       
-      const driverData = driverAuthSnap.data();
-      const driverName = pendingDrivers.find(d => d.id === driverAuthId)?.name || driverData.email || 'Unknown Personnel';
+      const driverName = driverData.name || driverData.email || 'Unknown Personnel';
       const role = driverData.role || 'driver';
 
-      // Update primary auth doc
-      await updateDoc(driverAuthRef, {
+      // 1. Update/Create 'driverAuth' doc
+      const driverAuthRef = doc(db, 'driverAuth', driverAuthId);
+      await setDoc(driverAuthRef, {
+        name: driverData.name || '',
+        phone: driverData.phone || '',
+        email: driverData.email || '',
+        role: role,
+        faceImageUrl: driverData.faceImageUrl || '',
         approved: true,
         approvedAt: serverTimestamp(),
         approvedBy: auth.currentUser?.uid || 'system_admin'
-      });
+      }, { merge: true });
 
-      // Update/Create primary record in 'drivers'
+      // 2. Update/Create primary record in 'drivers'
       const driverRef = doc(db, 'drivers', driverAuthId);
       await setDoc(driverRef, {
-        ...driverData,
+        name: driverData.name || '',
+        phone: driverData.phone || '',
+        email: driverData.email || '',
+        role: role,
+        faceImageUrl: driverData.faceImageUrl || '',
         status: 'Available',
         approved: true,
         approvedAt: serverTimestamp(),
         totalTrips: 0
       }, { merge: true });
 
-      // Special handling for porters
+      // 3. Special handling for porters
       if (role === 'porter') {
         const porterRef = doc(db, 'porters', driverAuthId);
         await setDoc(porterRef, {
           id: driverAuthId,
-          name: driverData.name,
-          phone: driverData.phone,
+          name: driverData.name || '',
+          phone: driverData.phone || '',
+          faceImageUrl: driverData.faceImageUrl || '',
           status: 'Active',
           totalTrips: 0,
           approved: true,
@@ -308,7 +334,6 @@ const PendingApprovalsView = () => {
       const driver = pendingDrivers.find(a => a.id === rejectingId);
       await dispatch({ type: 'DELETE_DRIVERAUTH', payload: rejectingId });
       
-      // Cloud function call mentioned in request - we simulate it with notification
       await dispatch({
         type: 'ADD_NOTIFICATION',
         payload: {
@@ -326,15 +351,6 @@ const PendingApprovalsView = () => {
       toast.error('Failed to reject driver');
     }
   };
-
-  if (loading) {
-    return (
-      <div className="py-20 text-center animate-pulse">
-        <div className="w-12 h-12 bg-gray-200 dark:bg-dark-border rounded-full mx-auto mb-4" />
-        <p className="text-gray-400 font-dm-sans">Checking for pending approvals...</p>
-      </div>
-    );
-  }
 
   if (pendingDrivers.length === 0) {
     return (
@@ -621,8 +637,19 @@ export const Drivers = () => {
   const [activeTab, setActiveTab] = useState('ALL'); // ALL, PENDING, PORTERS
   const [driverTypeFilter, setDriverTypeFilter] = useState('All');
   
-  const pendingCount = state.driverAuth.filter(a => !a.approved).length;
-  const pendingPortersCount = state.porters.filter(p => !p.approved).length;
+  const pendingCount = React.useMemo(() => {
+    const pendingMap = new Map();
+    (state.driverAuth || []).forEach(item => {
+      if (!item.approved) pendingMap.set(item.id, true);
+    });
+    (state.drivers || []).forEach(item => {
+      if (item.approved === false || item.status === 'Pending') pendingMap.set(item.id, true);
+    });
+    (state.porters || []).forEach(item => {
+      if (!item.approved) pendingMap.set(item.id, true);
+    });
+    return pendingMap.size;
+  }, [state.driverAuth, state.drivers, state.porters]);
 
   const handleDelete = (driver) => {
     if (window.confirm(`Are you sure you want to delete driver ${driver.name}?`)) {

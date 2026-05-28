@@ -75,7 +75,7 @@ export const LiveTracking = () => {
   const [selectedLodgeId, setSelectedLodgeId] = useState(null);
   const [selectedGateId, setSelectedGateId] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(6.5);
-  const [mapType, setMapType] = useState('satellite');
+  const [mapType, setMapType] = useState('dark');
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(null);
 
@@ -84,6 +84,7 @@ export const LiveTracking = () => {
     light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
     satellite: {
       version: 8,
+      glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
       sources: {
         'arcgis-satellite': {
           type: 'raster',

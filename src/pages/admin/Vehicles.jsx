@@ -25,12 +25,37 @@ import { Badge } from '../../components/ui/Badge';
 import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { useData } from '../../contexts/DataContext';
-import { format, parseISO, differenceInDays, isAfter } from 'date-fns';
+import { format, parseISO, differenceInDays } from 'date-fns';
 import { validateString, validateNumber } from '../../utils/validation';
 import toast from 'react-hot-toast';
 
+// --- Robust date parsing: handles Firestore Timestamps, ISO strings, and nulls ---
+const safeParseDate = (dateVal) => {
+  if (!dateVal) return new Date();
+  // Firestore Timestamp object
+  if (dateVal && typeof dateVal.toDate === 'function') return dateVal.toDate();
+  if (dateVal && dateVal.seconds) return new Date(dateVal.seconds * 1000);
+  // ISO string
+  try {
+    const parsed = parseISO(String(dateVal));
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
+  } catch {
+    return new Date();
+  }
+};
+
+// Formats a date value as a yyyy-MM-dd string safe for <input type="date" defaultValue>
+const formatInputDate = (dateVal) => {
+  try {
+    return format(safeParseDate(dateVal), 'yyyy-MM-dd');
+  } catch {
+    return '';
+  }
+};
+
 const VehicleCard = ({ vehicle, onEdit, onView, onDelete }) => {
-  const daysToExpiry = differenceInDays(parseISO(vehicle.insuranceExpiry), new Date());
+  const insuranceDate = safeParseDate(vehicle.insuranceExpiry);
+  const daysToExpiry = differenceInDays(insuranceDate, new Date());
   const isExpired = daysToExpiry < 0;
   const isExpiringSoon = daysToExpiry >= 0 && daysToExpiry < 30;
 
@@ -241,7 +266,7 @@ export const Vehicles = () => {
                     </td>
                     <td className="px-6 py-4 font-jetbrains font-bold text-sm text-safari-gold">{v.plate}</td>
                     <td className="px-6 py-4">
-                      <p className="text-sm font-medium">{format(parseISO(v.insuranceExpiry), 'MMM dd, yyyy')}</p>
+                      <p className="text-sm font-medium">{format(safeParseDate(v.insuranceExpiry), 'MMM dd, yyyy')}</p>
                       <p className="text-xs text-gray-500">{v.insuranceProvider}</p>
                     </td>
                     <td className="px-6 py-4">
@@ -324,7 +349,7 @@ export const Vehicles = () => {
               label="Insurance Expiry Date" 
               name="insuranceExpiry" 
               type="date" 
-              defaultValue={editingVehicle?.insuranceExpiry} 
+              defaultValue={formatInputDate(editingVehicle?.insuranceExpiry)} 
               required 
             />
             <div className="space-y-1.5">
