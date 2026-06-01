@@ -186,6 +186,7 @@ const PendingApprovalsView = () => {
   const { state, dispatch } = useData();
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
+  const [approvingId, setApprovingId] = useState(null); // tracks in-flight approve
 
   // Unify and deduplicate pending requests from all 3 collections
   const pendingDrivers = React.useMemo(() => {
@@ -258,6 +259,7 @@ const PendingApprovalsView = () => {
   };
 
   const handleApprove = async (driverAuthId) => {
+    setApprovingId(driverAuthId);
     try {
       const driverData = pendingDrivers.find(d => d.id === driverAuthId);
       if (!driverData) {
@@ -326,6 +328,8 @@ const PendingApprovalsView = () => {
     } catch (error) {
       console.error('Approve error:', error);
       toast.error('Approval failed: ' + error.message);
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -391,29 +395,50 @@ const PendingApprovalsView = () => {
               )}
             </div>
             <div className="p-5">
-              <div className="flex justify-between items-start mb-4">
+              <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className="font-bold text-safari-primary dark:text-dark-text">{driver?.name ?? 'Unknown Driver'}</h3>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Registered {formatDate(driver?.registeredAt)}
-                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">Registered {formatDate(driver?.registeredAt)}</p>
                 </div>
-                <Badge variant="gold" className="text-[10px] uppercase tracking-widest bg-safari-gold/10 text-safari-gold border-safari-gold/20">
-                  {driver?.role === 'safari_driver' ? 'Safari Driver' : driver?.role === 'porter' ? 'Porter Logistics' : 'City Tour Guide'}
+                <Badge variant="gold" className="text-[10px] uppercase tracking-widest bg-safari-gold/10 text-safari-gold border-safari-gold/20 shrink-0 ml-2">
+                  {driver?.role === 'safari_driver' ? 'Safari Driver' : driver?.role === 'porter' ? 'Porter' : driver?.role === 'city_tour' ? 'City Tour' : 'Driver'}
                 </Badge>
               </div>
-              
-              <div className="grid grid-cols-2 gap-3 mt-6">
+
+              {/* Contact Details */}
+              <div className="space-y-1.5 mb-4">
+                {driver?.phone && driver.phone !== 'No phone' && (
+                  <div className="flex items-center gap-2 text-xs text-gray-500 font-dm-sans">
+                    <Phone size={11} className="text-safari-gold shrink-0" />
+                    <span className="font-medium">{driver.phone}</span>
+                  </div>
+                )}
+                {driver?.email && (
+                  <div className="flex items-center gap-2 text-xs text-gray-500 font-dm-sans">
+                    <Mail size={11} className="text-safari-gold shrink-0" />
+                    <span className="truncate font-medium">{driver.email}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mt-4">
                 <Button 
                   onClick={() => handleApprove(driver.id)}
-                  className="bg-emerald-500 hover:bg-emerald-600 border-none text-white text-xs font-black uppercase tracking-widest gap-2"
+                  disabled={approvingId === driver.id}
+                  className="bg-emerald-500 hover:bg-emerald-600 border-none text-white text-xs font-black uppercase tracking-widest gap-2 disabled:opacity-60"
                 >
-                  <Check size={14} /> Approve
+                  {approvingId === driver.id ? (
+                    <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Check size={14} />
+                  )}
+                  {approvingId === driver.id ? 'Approving…' : 'Approve'}
                 </Button>
                 <Button 
                   variant="outline"
                   onClick={() => setRejectingId(driver.id)}
-                  className="border-red-500 text-red-500 hover:bg-red-50 text-xs font-black uppercase tracking-widest gap-2"
+                  disabled={approvingId === driver.id}
+                  className="border-red-500 text-red-500 hover:bg-red-50 text-xs font-black uppercase tracking-widest gap-2 disabled:opacity-40"
                 >
                   <X size={14} /> Reject
                 </Button>
@@ -636,6 +661,8 @@ export const Drivers = () => {
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
   const [schedulingDriver, setSchedulingDriver] = useState(null);
+  const [deleteConfirmDriver, setDeleteConfirmDriver] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('ALL'); // ALL, PENDING, PORTERS
   const [driverTypeFilter, setDriverTypeFilter] = useState('All');
@@ -654,15 +681,18 @@ export const Drivers = () => {
     return pendingMap.size;
   }, [state.driverAuth, state.drivers, state.porters]);
 
-  const handleDelete = async (driver) => {
-    if (window.confirm(`Are you sure you want to permanently delete driver ${driver.name}?`)) {
-      try {
-        await dispatch({ type: 'DELETE_DRIVER', payload: driver.id });
-        await dispatch({ type: 'DELETE_DRIVERAUTH', payload: driver.id });
-        toast.success(`${driver.name} has been permanently deleted.`);
-      } catch (err) {
-        toast.error(`Failed to delete driver.`);
-      }
+  const handleDelete = async () => {
+    if (!deleteConfirmDriver) return;
+    setIsDeleting(true);
+    try {
+      await dispatch({ type: 'DELETE_DRIVER', payload: deleteConfirmDriver.id });
+      await dispatch({ type: 'DELETE_DRIVERAUTH', payload: deleteConfirmDriver.id });
+      toast.success(`${deleteConfirmDriver.name} has been permanently deleted.`);
+      setDeleteConfirmDriver(null);
+    } catch (err) {
+      toast.error('Failed to delete driver.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -781,17 +811,24 @@ export const Drivers = () => {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredDrivers.map(d => (
-              <DriverCard 
-                key={d.id} 
-                driver={d} 
-                onEdit={(d) => { setEditingDriver(d); setIsModalOpen(true); }} 
-                onSchedule={(d) => { setSchedulingDriver(d); setIsScheduleModalOpen(true); }}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
+          {filteredDrivers.length === 0 ? (
+            <div className="py-20 text-center bg-gray-50/50 dark:bg-dark-card/50 rounded-3xl border border-dashed border-gray-200 dark:border-dark-border">
+              <Users size={48} className="mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-500 font-dm-sans">No personnel found matching your criteria</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredDrivers.map(d => (
+                <DriverCard 
+                  key={d.id} 
+                  driver={d} 
+                  onEdit={(d) => { setEditingDriver(d); setIsModalOpen(true); }} 
+                  onSchedule={(d) => { setSchedulingDriver(d); setIsScheduleModalOpen(true); }}
+                  onDelete={(d) => setDeleteConfirmDriver(d)}
+                />
+              ))}
+            </div>
+          )}
         </>
       )}
 
@@ -869,6 +906,46 @@ export const Drivers = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!deleteConfirmDriver}
+        onClose={() => !isDeleting && setDeleteConfirmDriver(null)}
+        title="Confirm Permanent Deletion"
+      >
+        <div className="space-y-6 py-4">
+          <div className="p-4 bg-red-50 dark:bg-red-900/10 rounded-2xl flex gap-3 text-red-600">
+            <AlertCircle className="shrink-0 mt-0.5" size={20} />
+            <div>
+              <p className="text-sm font-bold mb-1">This action cannot be undone.</p>
+              <p className="text-sm font-medium text-red-500">
+                Permanently deleting <span className="font-black">{deleteConfirmDriver?.name}</span> will remove their driver profile and staff portal access immediately.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => setDeleteConfirmDriver(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600 border-none text-white gap-2 disabled:opacity-60"
+            >
+              {isDeleting ? (
+                <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Trash2 size={14} />
+              )}
+              {isDeleting ? 'Deleting…' : 'Delete Permanently'}
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       {/* Schedule Safari Modal */}
