@@ -78,7 +78,7 @@ export const DataProvider = ({ children }) => {
       if (!col) return;
 
       // ---- 🛡️ IDOR Cloud Access Control ----
-      if ((isUpdate || isDelete) && user.role !== 'admin' && col !== 'notifications') {
+      if ((isUpdate || isDelete) && user && user.role !== 'admin' && col !== 'notifications') {
          const targetId = isDelete ? action.payload : action.payload.id;
          const item = state[col].find(i => i.id === targetId);
          if (item && item.createdById !== user.username) {
@@ -90,7 +90,7 @@ export const DataProvider = ({ children }) => {
       // ---- Cloud Execution Engine ----
       if (isAdd) {
          const payload = { ...action.payload };
-         if (!payload.createdById) payload.createdById = user.username;
+         if (!payload.createdById) payload.createdById = user?.username || 'system';
          delete payload.id; // Allow Google Firestore to strictly auto-generate UUIDs natively
          
          await addDoc(collection(db, col), payload);
@@ -100,7 +100,7 @@ export const DataProvider = ({ children }) => {
          const batch = writeBatch(db);
          action.payload.forEach(item => {
            const payload = { ...item };
-           if (!payload.createdById) payload.createdById = user.username;
+           if (!payload.createdById) payload.createdById = user?.username || 'system';
            delete payload.id;
            const newDocRef = doc(collection(db, col));
            batch.set(newDocRef, payload);

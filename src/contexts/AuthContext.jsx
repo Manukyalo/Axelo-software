@@ -13,29 +13,35 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // 🔗 Permanent Server Synchronization Webhook
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // Fetch custom claims to get the role assigned by the backend
-        const tokenResult = await firebaseUser.getIdTokenResult(true);
-        let role = tokenResult.claims.role;
-        if (!role) {
-          if (firebaseUser.email === 'admin@easternvacations.com') {
-            role = 'admin';
-          } else {
-            role = 'agent';
+      try {
+        if (firebaseUser) {
+          // Fetch custom claims to get the role assigned by the backend
+          const tokenResult = await firebaseUser.getIdTokenResult(true);
+          let role = tokenResult.claims.role;
+          if (!role) {
+            if (firebaseUser.email === 'admin@easternvacations.com') {
+              role = 'admin';
+            } else {
+              role = 'agent';
+            }
           }
-        }
 
-        setUser({
-          uid: firebaseUser.uid, // Using uid consistently
-          id: firebaseUser.uid,
-          username: firebaseUser.email,
-          role: role,
-          emailVerified: firebaseUser.emailVerified
-        });
-      } else {
+          setUser({
+            uid: firebaseUser.uid, // Using uid consistently
+            id: firebaseUser.uid,
+            username: firebaseUser.email,
+            role: role,
+            emailVerified: firebaseUser.emailVerified
+          });
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error('Error resolving custom claims:', err);
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
     
     // 🛡️ Token Auto-Refresh Logic: Prevent 400 status on Identity Toolkit
