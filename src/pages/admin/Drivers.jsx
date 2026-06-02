@@ -164,15 +164,23 @@ const DriverCard = ({ driver, onEdit, onSchedule, onDelete }) => {
           </Button>
         </div>
 
-        <div className="mt-4 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="mt-4 flex justify-between items-center border-t border-gray-100 dark:border-dark-border pt-3">
           <p className="text-[10px] text-gray-400 font-medium italic">License: {driver.license}</p>
-          <div className="flex gap-1">
-             <button onClick={() => onEdit(driver)} className="p-1.5 rounded-lg hover:bg-safari-gold/10 text-gray-400 hover:text-safari-gold transition-colors">
-               <Edit2 size={12} />
+          <div className="flex gap-1.5">
+             <button 
+               onClick={() => onEdit(driver)} 
+               className="p-1.5 rounded-lg hover:bg-safari-gold/10 text-gray-400 hover:text-safari-gold transition-all"
+               title="Edit Profile"
+             >
+               <Edit2 size={14} />
              </button>
              {isAdmin && (
-               <button onClick={() => onDelete(driver)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
-                 <Trash2 size={12} />
+               <button 
+                 onClick={() => onDelete(driver)} 
+                 className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all"
+                 title="Delete Driver Completely"
+               >
+                 <Trash2 size={14} />
                </button>
              )}
           </div>
@@ -687,6 +695,7 @@ export const Drivers = () => {
     try {
       await dispatch({ type: 'DELETE_DRIVER', payload: deleteConfirmDriver.id });
       await dispatch({ type: 'DELETE_DRIVERAUTH', payload: deleteConfirmDriver.id });
+      await dispatch({ type: 'DELETE_PORTER', payload: deleteConfirmDriver.id });
       toast.success(`${deleteConfirmDriver.name} has been permanently deleted.`);
       setDeleteConfirmDriver(null);
     } catch (err) {

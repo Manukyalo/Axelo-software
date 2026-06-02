@@ -65,15 +65,15 @@ export const DataProvider = ({ children }) => {
       let col = '';
       if (type.includes('BOOKING')) col = 'bookings';
       else if (type.includes('VEHICLE')) col = 'vehicles';
+      else if (type.includes('DRIVERAUTH')) col = 'driverAuth';
+      else if (type.includes('DRIVERLOCATION')) col = 'driverLocations';
+      else if (type.includes('CHAT') || type.includes('DRIVERMESSAGE') || type.includes('DRIVER_MESSAGE')) col = 'driverMessages';
       else if (type.includes('DRIVER')) col = 'drivers';
       else if (type.includes('PACKAGE')) col = 'packages';
       else if (type.includes('NOTIFICATION')) col = 'notifications';
-      else if (type.includes('DRIVERAUTH')) col = 'driverAuth';
       else if (type.includes('PORTER')) col = 'porters';
-      else if (type.includes('DRIVERLOCATION')) col = 'driverLocations';
       else if (type.includes('SOSALERT')) col = 'sosAlerts';
       else if (type.includes('TRIPUPDATE')) col = 'tripUpdates';
-      else if (type.includes('CHAT') || type.includes('DRIVERMESSAGE') || type.includes('DRIVER_MESSAGE')) col = 'driverMessages';
 
       if (!col) return;
 

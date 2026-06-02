@@ -16,7 +16,14 @@ export const AuthProvider = ({ children }) => {
       if (firebaseUser) {
         // Fetch custom claims to get the role assigned by the backend
         const tokenResult = await firebaseUser.getIdTokenResult(true);
-        const role = tokenResult.claims.role || 'agent'; // Default to agent if no role set
+        let role = tokenResult.claims.role;
+        if (!role) {
+          if (firebaseUser.email === 'admin@easternvacations.com') {
+            role = 'admin';
+          } else {
+            role = 'agent';
+          }
+        }
 
         setUser({
           uid: firebaseUser.uid, // Using uid consistently
