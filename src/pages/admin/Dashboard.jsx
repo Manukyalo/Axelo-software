@@ -11,7 +11,9 @@ import {
   MapPin,
   ShieldCheck,
   Zap,
-  BellRing
+  BellRing,
+  PlusCircle,
+  Upload
 } from 'lucide-react';
 import { sendTestNotification } from '../../utils/fcmUtils';
 import { 
@@ -46,10 +48,15 @@ export const AdminDashboard = () => {
   const activePorters = (state.porters || []).filter(p => p.status === 'Active').length;
   const totalPorterTrips = (state.porters || []).reduce((acc, curr) => acc + (curr.totalTrips || 0), 0);
 
-  // Insurance Alerts
+  // Insurance Alerts — guard against missing/malformed insuranceExpiry
   const insuranceAlerts = state.vehicles.filter(v => {
-    const daysLeft = differenceInDays(parseISO(v.insuranceExpiry), new Date());
-    return daysLeft < 30;
+    if (!v.insuranceExpiry) return false;
+    try {
+      const daysLeft = differenceInDays(parseISO(v.insuranceExpiry), new Date());
+      return daysLeft < 30;
+    } catch {
+      return false;
+    }
   });
 
   // Maintenance Alerts
@@ -422,8 +429,8 @@ export const AdminDashboard = () => {
                   <td className="py-4">
                     <p className="text-sm">{state.packages.find(p => p.id === booking.packageId)?.name}</p>
                   </td>
-                  <td className="py-4 text-sm">{format(parseISO(booking.date), 'MMM dd, yyyy')}</td>
-                  <td className="py-4 text-sm">{booking.pax.adults + booking.pax.children} Pax</td>
+                  <td className="py-4 text-sm">{booking.date ? format(parseISO(booking.date), 'MMM dd, yyyy') : '—'}</td>
+                  <td className="py-4 text-sm">{((booking.pax?.adults ?? 0) + (booking.pax?.children ?? 0))} Pax</td>
                   <td className="py-4">
                     <Badge variant={booking.status === 'Confirmed' ? 'info' : booking.status === 'On Trip' ? 'success' : 'gold'}>
                       {booking.status}
