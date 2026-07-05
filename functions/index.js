@@ -1,7 +1,7 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
-const { Anthropic } = require("@anthropic-ai/sdk");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const axios = require("axios");
 const { format, differenceInDays, parseISO, startOfDay, addDays } = require("date-fns");
 
@@ -48,9 +48,7 @@ exports.setRole = onCall(
   }
 );
 
-const anthropic = new Anthropic({
-  apiKey: process.env.CLAUDE_API_KEY || "dummy",
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy");
 
 // Helper for mapping WMO weather codes (Open-Meteo)
 function getWeatherLabel(code) {
@@ -74,7 +72,7 @@ function getSeasonBadge(month) {
 }
 
 /**
- * AI Manager: Generates professional Safari Advisories using Claude 3.5 Sonnet
+ * AI Manager: Generates professional Safari Advisories using Google Gemini 1.5 Flash
  */
 async function generateSafariIntelligence(weatherData, parkName) {
   try {
@@ -100,15 +98,17 @@ async function generateSafariIntelligence(weatherData, parkName) {
       "alerts": ["Specific alert if any, else empty"]
     }`;
 
-    const response = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 200,
-      messages: [{ role: "user", content: prompt }],
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+      }
     });
 
-    return JSON.parse(response.content[0].text);
+    const result = await model.generateContent(prompt);
+    return JSON.parse(result.response.text());
   } catch (error) {
-    console.error("AI Advisory Generation Failed:", error);
+    console.error("AI Advisory Generation Failed (Gemini):", error);
     return {
       advisory: `Current conditions in ${parkName} are ${weatherData.condition.toLowerCase()}. Standard safari precautions apply.`,
       status: weatherData.temp_c > 30 ? "Fair" : "Ideal",
@@ -197,7 +197,7 @@ async function performWeatherSync(parkList) {
   await db.collection("weather_sync_stats").doc("latest").set({
     lastSync: admin.firestore.Timestamp.now(),
     status: "success",
-    engine: "Open-Meteo + Claude AI"
+    engine: "Open-Meteo + Google Gemini"
   });
 
   console.log("--- 🌥️ Weather Intelligence Sync Completed ---");

@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { useData } from '../../contexts/DataContext';
@@ -124,17 +124,9 @@ export const ImportModal = ({ isOpen, onClose }) => {
   const handleSmartExtract = async (text) => {
     setIsProcessing(true);
     try {
-      const anthropic = new Anthropic({
-        apiKey: import.meta.env.VITE_CLAUDE_API_KEY,
-        dangerouslyAllowBrowser: true
-      });
+      const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
-      const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-latest",
-        max_tokens: 4000,
-        messages: [{
-          role: "user",
-          content: `You are a Safari Operations Data Assistant. Extract safari bookings from the following text and return them as a valid JSON array of objects.
+      const prompt = `You are a Safari Operations Data Assistant. Extract safari bookings from the following text and return them as a valid JSON array of objects.
           
           Guidelines:
           1. Only return the JSON array. No preamble or explanation.
@@ -153,11 +145,17 @@ export const ImportModal = ({ isOpen, onClose }) => {
           4. Clean the names and emails.
           
           TEXT TO PARSE:
-          ${text}`
-        }]
+          ${text}`;
+
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          responseMimeType: "application/json",
+        }
       });
 
-      const content = response.content[0].text;
+      const result = await model.generateContent(prompt);
+      const content = result.response.text();
       
       // Safer JSON extraction
       let results = [];
