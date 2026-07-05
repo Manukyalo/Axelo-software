@@ -84,9 +84,11 @@ const ProtectedRoute = ({ children, allowedRole, title }) => {
 };
 
 import { KillSwitchGuard } from './components/shared/KillSwitchGuard';
+import { useSafariNotifier } from './hooks/useSafariNotifier';
 
 function App() {
   const { user } = useAuth();
+  useSafariNotifier();
 
   useEffect(() => {
     if (user && user.uid) {
