@@ -383,7 +383,7 @@ export const Bookings = () => {
                       >
                         <Eye size={16} />
                       </Button>
-                      {isAdmin && (
+                      {(isAdmin || booking.createdById === user?.username) && (
                         <Button 
                           variant="ghost" 
                           size="icon" 

@@ -42,7 +42,7 @@ export const BookingDetailModal = ({ isOpen, onClose, booking }) => {
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [paymentRef, setPaymentRef] = useState('');
 
-  const canEdit = user?.role === 'admin' || user?.role === 'res_agent';
+  const canEdit = user?.role === 'admin' || booking?.createdById === user?.username;
 
   useEffect(() => {
     if (booking) {

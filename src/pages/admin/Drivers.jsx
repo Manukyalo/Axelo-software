@@ -42,6 +42,7 @@ import toast from 'react-hot-toast';
 const DriverCard = ({ driver, onEdit, onSchedule, onDelete }) => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const canModify = isAdmin || driver.createdById === user?.username;
   const navigate = useNavigate();
   const licenseExpiryDate = driver.licenseExpiry ? parseISO(driver.licenseExpiry) : new Date();
   const licenseExpiry = differenceInDays(licenseExpiryDate, new Date());
@@ -167,14 +168,16 @@ const DriverCard = ({ driver, onEdit, onSchedule, onDelete }) => {
         <div className="mt-4 flex justify-between items-center border-t border-gray-100 dark:border-dark-border pt-3">
           <p className="text-[10px] text-gray-400 font-medium italic">License: {driver.license}</p>
           <div className="flex gap-1.5">
-             <button 
-               onClick={() => onEdit(driver)} 
-               className="p-1.5 rounded-lg hover:bg-safari-gold/10 text-gray-400 hover:text-safari-gold transition-all"
-               title="Edit Profile"
-             >
-               <Edit2 size={14} />
-             </button>
-             {isAdmin && (
+             {canModify && (
+               <button 
+                 onClick={() => onEdit(driver)} 
+                 className="p-1.5 rounded-lg hover:bg-safari-gold/10 text-gray-400 hover:text-safari-gold transition-all"
+                 title="Edit Profile"
+               >
+                 <Edit2 size={14} />
+               </button>
+             )}
+             {canModify && (
                <button 
                  onClick={() => onDelete(driver)} 
                  className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all"

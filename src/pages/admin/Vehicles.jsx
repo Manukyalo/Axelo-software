@@ -27,6 +27,7 @@ import { Modal } from '../../components/ui/Modal';
 import { useData } from '../../contexts/DataContext';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { validateString, validateNumber } from '../../utils/validation';
+import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 // --- Robust date parsing: handles Firestore Timestamps, ISO strings, and nulls ---
@@ -54,6 +55,9 @@ const formatInputDate = (dateVal) => {
 };
 
 const VehicleCard = ({ vehicle, onEdit, onView, onDelete }) => {
+  const { user } = useAuth();
+  const canModify = user?.role === 'admin' || vehicle.createdById === user?.username;
+
   const insuranceDate = safeParseDate(vehicle.insuranceExpiry);
   const daysToExpiry = differenceInDays(insuranceDate, new Date());
   const isExpired = daysToExpiry < 0;
@@ -94,15 +98,19 @@ const VehicleCard = ({ vehicle, onEdit, onView, onDelete }) => {
             <p className="text-xs font-jetbrains font-bold text-safari-gold mt-1">{vehicle.plate}</p>
           </div>
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" onClick={() => onEdit(vehicle)} className="h-8 w-8">
-              <Edit2 size={14} />
-            </Button>
+            {canModify && (
+              <Button variant="ghost" size="icon" onClick={() => onEdit(vehicle)} className="h-8 w-8">
+                <Edit2 size={14} />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" onClick={() => onView(vehicle)} className="h-8 w-8 hover:text-safari-gold">
               <Eye size={14} />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => onDelete(vehicle)} className="h-8 w-8 text-red-500 hover:bg-red-50">
-              <Trash2 size={14} />
-            </Button>
+            {canModify && (
+              <Button variant="ghost" size="icon" onClick={() => onDelete(vehicle)} className="h-8 w-8 text-red-500 hover:bg-red-50">
+                <Trash2 size={14} />
+              </Button>
+            )}
           </div>
         </div>
         
@@ -140,6 +148,7 @@ const VehicleCard = ({ vehicle, onEdit, onView, onDelete }) => {
 
 export const Vehicles = () => {
   const { state, dispatch } = useData();
+  const { user } = useAuth();
   const [viewMode, setViewMode] = useState('grid');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
@@ -274,12 +283,16 @@ export const Vehicles = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => { setEditingVehicle(v); setIsModalOpen(true); }}>
-                          <Edit2 size={16} />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(v)}>
-                          <Trash2 size={16} />
-                        </Button>
+                        {(user?.role === 'admin' || v.createdById === user?.username) && (
+                          <>
+                            <Button variant="ghost" size="icon" onClick={() => { setEditingVehicle(v); setIsModalOpen(true); }}>
+                              <Edit2 size={16} />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(v)}>
+                              <Trash2 size={16} />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
