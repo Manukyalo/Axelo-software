@@ -17,10 +17,8 @@ export const useAutoPrune = () => {
       try {
         const bookingsRef = collection(db, 'bookings');
         
-        // Define cutoff date (30 days ago) to maintain a rolling window of active data
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - 30);
-        const cutoffString = cutoffDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+        // Define cutoff date: explicitly retain only bookings from July 1, 2026 onwards
+        const cutoffString = '2026-07-01'; // Format: YYYY-MM-DD
         
         const q = query(bookingsRef, where('date', '<', cutoffString));
         const snapshot = await getDocs(q);
