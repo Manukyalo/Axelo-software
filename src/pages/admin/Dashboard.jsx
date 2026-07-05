@@ -27,6 +27,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAutoPrune } from '../../hooks/useAutoPrune';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -34,6 +35,7 @@ import toast from 'react-hot-toast';
 export const AdminDashboard = () => {
   const { state } = useData();
   const { isDarkMode } = useTheme();
+  useAutoPrune();
   const navigate = useNavigate();
 
   // Stats Calculations
