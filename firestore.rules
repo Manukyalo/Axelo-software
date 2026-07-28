@@ -32,8 +32,8 @@ service cloud.firestore {
     }
 
     // --- ⚙️ SYSTEM CONFIG ---
-    match /system_config/emergency {
-      allow read: if isAuthenticated();
+    match /system_config/{doc} {
+      allow read: if true; // Publicly readable so guards work before login
       allow write: if isAdmin();
     }
 

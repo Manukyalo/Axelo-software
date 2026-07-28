@@ -28,7 +28,16 @@ export const MaintenanceGuard = ({ children }) => {
     return () => unsub();
   }, []);
 
-  if (loading || checking) return children;
+  if (loading || checking) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-safari-bg dark:bg-dark-bg">
+        <div className="w-16 h-16 border-4 border-safari-gold/20 border-t-safari-gold rounded-full animate-spin mb-4" />
+        <p className="font-playfair font-bold text-safari-primary dark:text-white animate-pulse tracking-widest uppercase text-sm">
+          Verifying System Status...
+        </p>
+      </div>
+    );
+  }
 
   // Optional: Allow admins to bypass maintenance to test the system
   const canBypass = user?.role === 'admin';
