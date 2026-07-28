@@ -1,10 +1,39 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Wrench, Clock, Mail, Info } from 'lucide-react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../config/firebase';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const MaintenanceGuard = ({ children }) => {
-  const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
+  const { user, loading } = useAuth();
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+  const [checking, setChecking] = useState(true);
 
-  if (isMaintenanceMode) {
+  useEffect(() => {
+    // Listen to the maintenance mode document in Firestore for real-time toggling
+    const unsub = onSnapshot(doc(db, 'system_config', 'maintenance'), (docSnap) => {
+      if (docSnap.exists()) {
+        setIsMaintenanceMode(docSnap.data().active === true);
+      } else {
+        // Fallback to env var if document doesn't exist
+        setIsMaintenanceMode(import.meta.env.VITE_MAINTENANCE_MODE === 'true');
+      }
+      setChecking(false);
+    }, (err) => {
+      console.error('Maintenance Status Error:', err);
+      setIsMaintenanceMode(import.meta.env.VITE_MAINTENANCE_MODE === 'true');
+      setChecking(false);
+    });
+
+    return () => unsub();
+  }, []);
+
+  if (loading || checking) return children;
+
+  // Optional: Allow admins to bypass maintenance to test the system
+  const canBypass = user?.role === 'admin';
+
+  if (isMaintenanceMode && !canBypass) {
     return (
       <div className="fixed inset-0 z-[9999] bg-safari-bg dark:bg-dark-bg flex flex-col items-center justify-center p-6 text-center">
         <div className="relative mb-8">
