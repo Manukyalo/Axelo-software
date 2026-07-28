@@ -84,6 +84,7 @@ const ProtectedRoute = ({ children, allowedRole, title }) => {
 };
 
 import { KillSwitchGuard } from './components/shared/KillSwitchGuard';
+import { MaintenanceGuard } from './components/shared/MaintenanceGuard';
 import { useSafariNotifier } from './hooks/useSafariNotifier';
 
 function App() {
@@ -100,8 +101,9 @@ function App() {
 
   return (
     <BrowserRouter>
-      <KillSwitchGuard>
-        <Routes>
+      <MaintenanceGuard>
+        <KillSwitchGuard>
+          <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Navigate to="/admin/login" />} />
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -243,8 +245,9 @@ function App() {
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-      </KillSwitchGuard>
+        </Routes>
+        </KillSwitchGuard>
+      </MaintenanceGuard>
     </BrowserRouter>
   );
 }

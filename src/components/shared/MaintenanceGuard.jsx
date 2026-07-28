@@ -1,0 +1,79 @@
+import React from 'react';
+import { Settings, Wrench, Clock, Mail, Info } from 'lucide-react';
+
+export const MaintenanceGuard = ({ children }) => {
+  const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
+
+  if (isMaintenanceMode) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-safari-bg dark:bg-dark-bg flex flex-col items-center justify-center p-6 text-center">
+        <div className="relative mb-8">
+          <div className="absolute inset-0 bg-safari-gold/20 rounded-full animate-ping"></div>
+          <div className="w-24 h-24 bg-safari-gold/10 rounded-full flex items-center justify-center relative z-10 border border-safari-gold/30">
+            <Settings size={48} className="text-safari-gold animate-[spin_4s_linear_infinite]" />
+          </div>
+          <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-white dark:bg-dark-surface rounded-full flex items-center justify-center shadow-lg border border-safari-gold/20">
+            <Wrench size={20} className="text-safari-primary dark:text-gray-300" />
+          </div>
+        </div>
+        
+        <h1 className="text-4xl font-playfair font-bold text-safari-primary dark:text-white mb-4 tracking-wide">
+          Scheduled Maintenance
+        </h1>
+        
+        <div className="max-w-md w-full bg-white dark:bg-dark-surface shadow-xl rounded-2xl p-8 mb-8 border border-gray-100 dark:border-gray-800">
+          <div className="space-y-6 text-left">
+            <div className="flex items-start gap-4">
+              <div className="mt-1 p-2 bg-safari-gold/10 rounded-lg">
+                <Info size={20} className="text-safari-gold" />
+              </div>
+              <div>
+                <h3 className="font-bold text-safari-primary dark:text-white mb-1">System Upgrade</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                  We are currently performing scheduled maintenance to upgrade our systems and improve your experience. 
+                  The ToursPro platform is temporarily unavailable.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="mt-1 p-2 bg-safari-gold/10 rounded-lg">
+                <Clock size={20} className="text-safari-gold" />
+              </div>
+              <div>
+                <h3 className="font-bold text-safari-primary dark:text-white mb-1">Estimated Completion</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                  Our engineering team is working diligently. We expect all services to be restored shortly.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-4">
+              <div className="mt-1 p-2 bg-safari-gold/10 rounded-lg">
+                <Mail size={20} className="text-safari-gold" />
+              </div>
+              <div>
+                <h3 className="font-bold text-safari-primary dark:text-white mb-1">Urgent Support</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                  For urgent reservations or SOS alerts, please contact our 24/7 duty manager at <a href="mailto:support@easternvacations.com" className="text-safari-gold hover:underline">support@easternvacations.com</a>.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Subtle branding */}
+        <div className="absolute bottom-8 flex flex-col items-center">
+          <div className="text-gray-400 dark:text-gray-600 font-playfair italic mb-1 text-lg">
+            Eastern Vacations & Safaris
+          </div>
+          <div className="text-gray-400/50 dark:text-gray-600/50 text-xs uppercase tracking-widest">
+            ToursPro Operating System
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return children;
+};
