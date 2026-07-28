@@ -15,13 +15,14 @@ export const MaintenanceGuard = ({ children }) => {
       if (docSnap.exists()) {
         setIsMaintenanceMode(docSnap.data().active === true);
       } else {
-        // Fallback to env var if document doesn't exist
-        setIsMaintenanceMode(import.meta.env.VITE_MAINTENANCE_MODE === 'true');
+        // Fallback to locked if document doesn't exist
+        setIsMaintenanceMode(true);
       }
       setChecking(false);
     }, (err) => {
       console.error('Maintenance Status Error:', err);
-      setIsMaintenanceMode(import.meta.env.VITE_MAINTENANCE_MODE === 'true');
+      // Fail-safe: if network is down or Firebase is blocked, lock the system
+      setIsMaintenanceMode(true);
       setChecking(false);
     });
 
