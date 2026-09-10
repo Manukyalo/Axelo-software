@@ -14,9 +14,9 @@ import { PageWrapper } from '../components/layout/PageWrapper';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { functions } from '../config/firebase';
+import { functions, db } from '../config/firebase';
+import { syncAllParksWeather } from '../services/weatherService';
 import { httpsCallable } from 'firebase/functions';
-import { db } from '../config/firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -38,13 +38,12 @@ export const AIManager = () => {
 
   const handleWeatherSync = async () => {
     setSyncingWeather(true);
-    const manualWeatherSync = httpsCallable(functions, 'manualWeatherSync');
     try {
-      const result = await manualWeatherSync();
-      toast.success(result.data.message || 'Weather synchronized successfully');
+      const results = await syncAllParksWeather();
+      toast.success(`Weather synchronized for ${results.length} national parks via OpenWeatherMap`);
     } catch (err) {
       console.error('Weather sync failed:', err);
-      toast.error(err.message || 'Failed to sync weather. Check if functions are deployed.');
+      toast.error('Failed to sync weather.');
     } finally {
       setSyncingWeather(false);
     }
@@ -81,13 +80,13 @@ export const AIManager = () => {
                   </div>
                   <div>
                     <h3 className="font-bold text-safari-primary dark:text-dark-text">Weather Intelligence</h3>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black">Open-Meteo + Claude 3.5</p>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black">OpenWeatherMap + Safari Decision Engine</p>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-gray-500 leading-relaxed">
-                  Triggers a fresh sync of weather data for all 10 national parks. Generates AI-driven safari advisories based on current conditions.
+                  Fetches live conditions and 5-day forecasts via OpenWeatherMap API and calculates domain-specific safari advisories.
                 </p>
                 <Button 
                   className="w-full gap-2 py-6 text-sm font-bold shadow-lg shadow-safari-gold/20"
@@ -95,7 +94,7 @@ export const AIManager = () => {
                   disabled={syncingWeather}
                 >
                   {syncingWeather ? <RefreshCw size={18} className="animate-spin" /> : <RefreshCw size={18} />}
-                  {syncingWeather ? 'SYNCING INTELLIGENCE...' : 'FORCE WEATHER SYNC'}
+                  {syncingWeather ? 'SYNCING OPENWEATHER...' : 'FORCE WEATHER SYNC'}
                 </Button>
               </CardContent>
             </Card>
@@ -225,9 +224,9 @@ export const AIManager = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-3 rounded-xl bg-gray-50 dark:bg-dark-surface border border-gray-100 dark:border-dark-border">
-                <p className="text-[10px] font-black text-gray-400 uppercase mb-2">Primary Model</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase mb-2">Weather & Advisory Engine</p>
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-safari-primary dark:text-dark-text">Claude 3.5 Sonnet</p>
+                  <p className="text-sm font-bold text-safari-primary dark:text-dark-text">OpenWeatherMap + Safari Rules</p>
                   <Badge variant="info">Active</Badge>
                 </div>
               </div>

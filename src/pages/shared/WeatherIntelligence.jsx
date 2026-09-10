@@ -17,6 +17,7 @@ import { Badge } from '../../components/ui/Badge';
 import { useTheme } from '../../contexts/ThemeContext';
 import { format } from 'date-fns';
 import { getWeatherLabel, getSeasonBadge } from '../../utils/weatherUtils';
+import { PARKS, syncAllParksWeather } from '../../services/weatherService';
 
 // ----------- HELPER: Weather Icon by Code -----------
 const WeatherIcon = ({ icon, code, size = 24, className = '' }) => {
@@ -230,8 +231,16 @@ export const WeatherIntelligence = () => {
     getDocs(collection(db, 'parks')).then(snap => {
       const list = [];
       snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-      setParks(list);
-      if (list.length > 0) setSelectedPark(list[0].id);
+      if (list.length > 0) {
+        setParks(list);
+        setSelectedPark(list[0].id);
+      } else {
+        setParks(PARKS);
+        setSelectedPark(PARKS[0].id);
+      }
+    }).catch(() => {
+      setParks(PARKS);
+      setSelectedPark(PARKS[0].id);
     });
   }, []);
 
@@ -296,16 +305,14 @@ export const WeatherIntelligence = () => {
           {isSyncing ? (
             <div className="flex items-center text-[10px] text-amber-500 font-bold uppercase tracking-wider animate-pulse border border-amber-500/20 bg-amber-500/5 px-3 py-1 rounded-full">
               <RefreshCw size={10} className="mr-1.5 animate-spin" />
-              Syncing Live Data...
+              Syncing OpenWeather Data...
             </div>
           ) : (
             <button
               onClick={async () => {
                 setIsSyncing(true);
                 try {
-                  const functions = getFunctions();
-                  const manualSync = httpsCallable(functions, 'manualWeatherSync');
-                  await manualSync();
+                  await syncAllParksWeather();
                 } catch (err) {
                   console.error("Sync failed:", err);
                 } finally {
@@ -319,7 +326,7 @@ export const WeatherIntelligence = () => {
             </button>
           )}
           {syncStats && (
-            <span className="text-[10px] text-gray-400 opacity-60">Engine: {syncStats.engine}</span>
+            <span className="text-[10px] text-gray-400 opacity-60">Engine: {syncStats.engine || 'OpenWeatherMap + Safari Decision Engine'}</span>
           )}
         </div>
       }

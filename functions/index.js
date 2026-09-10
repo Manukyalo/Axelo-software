@@ -1,7 +1,6 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 const axios = require("axios");
 const { format, differenceInDays, parseISO, startOfDay, addDays } = require("date-fns");
 
@@ -54,8 +53,6 @@ exports.setRole = onCall(
   }
 );
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy");
-
 // Helper for mapping WMO weather codes (Open-Meteo)
 function getWeatherLabel(code) {
   if (code === 0) return "Clear Sky";
@@ -77,50 +74,78 @@ function getSeasonBadge(month) {
   return { label: "Dry Season", type: "warning" };
 }
 
+const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY || "f266e63527763880bfb95129a9e48bcd";
+
 /**
- * AI Manager: Generates professional Safari Advisories using Google Gemini 1.5 Flash
+ * Deterministic Safari Advisory Decision Engine
+ * Replaces Claude/LLM calls with fast, reliable domain-specific heuristics.
  */
-async function generateSafariIntelligence(weatherData, parkName) {
-  try {
-    const prompt = `You are a professional Safari Intelligence Officer for Eastern Vacations. 
-    Analyze the following weather data for ${parkName} and provide a concise, high-end safari advisory (max 2 sentences).
-    
-    Data:
-    - Temp: ${weatherData.temp_c}°C
-    - Condition: ${weatherData.condition}
-    - Wind: ${weatherData.wind_kph} km/h
-    - Humidity: ${weatherData.humidity}%
-    
-    Consider:
-    1. Wildlife tracking opportunities (e.g. animals near water holes in heat).
-    2. Photography conditions (lighting).
-    3. Vehicle recommendations (4x4, open-roof).
-    4. Essential gear (sunscreen, rain poncho, dust masks).
-    
-    Return ONLY a JSON object with:
-    {
-      "advisory": "Your 1-2 sentence professional advisory",
-      "status": "Ideal" | "Fair" | "Caution",
-      "alerts": ["Specific alert if any, else empty"]
-    }`;
+function generateSafariIntelligence(weatherData, parkName) {
+  const { temp_c, wind_kph, humidity, precipitation_mm, weather_code, condition } = weatherData;
+  const alerts = [];
+  let status = "Ideal";
+  let advisory = "";
 
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        responseMimeType: "application/json",
-      }
-    });
+  const isThunderstorm = weather_code >= 200 && weather_code < 300;
+  const isDrizzle = weather_code >= 300 && weather_code < 400;
+  const isRain = weather_code >= 500 && weather_code < 600;
+  const isFog = weather_code >= 700 && weather_code < 800;
+  const isClear = weather_code === 800;
+  const isCloudy = weather_code > 800;
 
-    const result = await model.generateContent(prompt);
-    return JSON.parse(result.response.text());
-  } catch (error) {
-    console.error("AI Advisory Generation Failed (Gemini):", error);
-    return {
-      advisory: `Current conditions in ${parkName} are ${weatherData.condition.toLowerCase()}. Standard safari precautions apply.`,
-      status: weatherData.temp_c > 30 ? "Fair" : "Ideal",
-      alerts: []
-    };
+  if (isThunderstorm || precipitation_mm > 15 || wind_kph > 45 || temp_c > 37) {
+    status = "Caution";
+    if (isThunderstorm) {
+      alerts.push("Thunderstorm activity detected. Avoid open plains and river crossings; keep pop-up roofs lowered.");
+    }
+    if (precipitation_mm > 15 || isRain) {
+      alerts.push("Heavy rains make black-cotton soil tracks slick. 4x4 vehicles with diff-lock and recovery gear mandatory.");
+    }
+    if (wind_kph > 45) {
+      alerts.push(`High wind gusts (${Math.round(wind_kph)} km/h). Animal sightings in high canopy will be scarce.`);
+    }
+    if (temp_c > 37) {
+      alerts.push(`Extreme ambient heat (${Math.round(temp_c)}°C). Ensure guest hydration and avoid midday transfers.`);
+    }
+  } else if (isRain || isDrizzle || isFog || wind_kph > 28 || temp_c > 32 || temp_c < 12) {
+    status = "Fair";
+    if (isRain || isDrizzle) {
+      alerts.push("Intermittent showers in park sectors. Enclosed 4x4 cruisers with covered pop-up roofs recommended.");
+    }
+    if (isFog) {
+      alerts.push("Low morning visibility across valleys. Maintain safe convoy distance and engage fog lamps.");
+    }
+    if (temp_c > 32) {
+      alerts.push("Warm afternoon temperatures. Wildlife concentrating near rivers, marshes, and shady acacia thickets.");
+    }
+    if (temp_c < 12) {
+      alerts.push("Chilly highland morning conditions. Advise warm layered clothing for early sunrise game drives.");
+    }
+  } else {
+    status = "Ideal";
   }
+
+  if (status === "Caution") {
+    advisory = `Adverse conditions in ${parkName} with ${condition.toLowerCase()}. Restrict game drives to graded main circuits and coordinate with park rangers.`;
+  } else if (status === "Fair") {
+    if (isRain || isDrizzle) {
+      advisory = `Overcast skies and light rain in ${parkName}. Soft diffused lighting favors predator portraiture; focus on riverbanks and permanent waterholes.`;
+    } else if (temp_c > 32) {
+      advisory = `Warm conditions in ${parkName}. Prime game activity during early morning and late afternoon; animals resting in thickets during peak sun.`;
+    } else {
+      advisory = `Moderate weather in ${parkName}. Standard game-drive operations underway with favorable sightings across grassland corridors.`;
+    }
+  } else {
+    if (isClear) {
+      advisory = `Exceptional safari conditions in ${parkName} with clear skies and excellent visibility. Prime lighting for high-speed photography across open savannahs.`;
+    } else if (isCloudy) {
+      advisory = `Optimal safari weather in ${parkName}. Gentle cloud cover provides pleasant temperatures for extended big-cat tracking and birding excursions.`;
+    } else {
+      advisory = `Prime conditions across ${parkName}. Wildlife dispersed across active grazing routes; pop-up roof viewing recommended throughout all sectors.`;
+    }
+  }
+
+  return { status, advisory, alerts };
 }
 
 /**
@@ -140,7 +165,7 @@ const PARKS = [
 ];
 
 /**
- * Core Weather Sync Logic (Unified for Background & Manual)
+ * Core Weather Sync Logic using OpenWeatherMap API & Safari Decision Engine
  */
 async function performWeatherSync(parkList) {
   console.log(`--- 🌦️ Weather Intelligence Sync Started (${parkList.length} parks) ---`);
@@ -148,46 +173,89 @@ async function performWeatherSync(parkList) {
   for (const park of parkList) {
     try {
       console.log(`Syncing ${park.name}...`);
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${park.lat}&longitude=${park.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Africa%2FNairobi&forecast_days=7`;
-      
-      const response = await axios.get(url);
-      const data = response.data;
-      const current = data.current;
+      let weatherData = null;
+      let dailyForecast = [];
 
-      const weatherData = {
-        temp_c: current.temperature_2m,
-        feels_like_c: current.apparent_temperature,
-        humidity: current.relative_humidity_2m,
-        condition: getWeatherLabel(current.weather_code),
-        wind_kph: current.wind_speed_10m,
-        precipitation_mm: current.precipitation,
-        weather_code: current.weather_code
-      };
+      // 1. Try OpenWeatherMap
+      try {
+        const owmUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${park.lat}&lon=${park.lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
+        const owmRes = await axios.get(owmUrl);
+        const cur = owmRes.data;
 
-      // Generate AI Intelligence
-      const intel = await generateSafariIntelligence(weatherData, park.name);
+        weatherData = {
+          temp_c: cur.main.temp,
+          feels_like_c: cur.main.feels_like,
+          humidity: cur.main.humidity,
+          condition: cur.weather?.[0]?.description 
+            ? cur.weather[0].description.replace(/\b\w/g, c => c.toUpperCase())
+            : (cur.weather?.[0]?.main || "Clear Sky"),
+          wind_kph: (cur.wind?.speed || 0) * 3.6,
+          precipitation_mm: cur.rain ? (cur.rain["1h"] || cur.rain["3h"] || 0) : 0,
+          weather_code: cur.weather?.[0]?.id || 800
+        };
+
+        const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${park.lat}&lon=${park.lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
+        const forecastRes = await axios.get(forecastUrl);
+        const daysMap = {};
+        for (const item of (forecastRes.data?.list || [])) {
+          const dateStr = item.dt_txt.split(" ")[0];
+          if (!daysMap[dateStr]) daysMap[dateStr] = { temps: [], conditions: [] };
+          daysMap[dateStr].temps.push(item.main.temp);
+          daysMap[dateStr].conditions.push(item.weather?.[0]?.main || "Clear");
+        }
+        dailyForecast = Object.keys(daysMap).slice(0, 5).map(date => ({
+          date,
+          max: Math.round(Math.max(...daysMap[date].temps)),
+          min: Math.round(Math.min(...daysMap[date].temps)),
+          condition: daysMap[date].conditions[0] || "Clear",
+          pop: 0
+        }));
+      } catch (owmErr) {
+        console.warn(`OWM fetch failed for ${park.name}, falling back to Open-Meteo:`, owmErr.message);
+      }
+
+      // Fallback if OpenWeatherMap is unavailable or activating
+      if (!weatherData) {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${park.lat}&longitude=${park.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Africa%2FNairobi&forecast_days=7`;
+        const response = await axios.get(url);
+        const current = response.data.current;
+
+        weatherData = {
+          temp_c: current.temperature_2m,
+          feels_like_c: current.apparent_temperature,
+          humidity: current.relative_humidity_2m,
+          condition: getWeatherLabel(current.weather_code),
+          wind_kph: current.wind_speed_10m,
+          precipitation_mm: current.precipitation,
+          weather_code: current.weather_code
+        };
+
+        dailyForecast = (response.data.daily?.time || []).map((date, i) => ({
+          date,
+          max: Math.round(response.data.daily.temperature_2m_max[i]),
+          min: Math.round(response.data.daily.temperature_2m_min[i]),
+          condition: getWeatherLabel(response.data.daily.weather_code[i]),
+          pop: response.data.daily.precipitation_probability_max[i] || 0
+        }));
+      }
+
+      // Evaluate heuristic safari advisory (No Claude API)
+      const intel = generateSafariIntelligence(weatherData, park.name);
 
       const weatherIntelligenceDoc = {
         parkId: park.id,
         parkName: park.name,
-        ...weatherData, // Flattened schema
+        ...weatherData,
         advisory: intel.advisory,
         status: intel.status,
         alerts: intel.alerts || [],
-        forecast: data.daily.time.map((date, i) => ({
-          date,
-          max: data.daily.temperature_2m_max[i],
-          min: data.daily.temperature_2m_min[i],
-          condition: getWeatherLabel(data.daily.weather_code[i]),
-          pop: data.daily.precipitation_probability_max[i]
-        })),
+        forecast: dailyForecast,
         lastUpdated: admin.firestore.Timestamp.now(),
         season: getSeasonBadge(new Date().getMonth())
       };
 
       await db.collection("weather_intelligence").doc(park.id).set(weatherIntelligenceDoc);
 
-      // Legacy support for older components
       await db.collection("weatherData").doc(park.id).set({
         parkName: park.name,
         temp: weatherData.temp_c,
@@ -203,7 +271,7 @@ async function performWeatherSync(parkList) {
   await db.collection("weather_sync_stats").doc("latest").set({
     lastSync: admin.firestore.Timestamp.now(),
     status: "success",
-    engine: "Open-Meteo + Google Gemini"
+    engine: "OpenWeatherMap + Safari Decision Engine"
   });
 
   console.log("--- 🌥️ Weather Intelligence Sync Completed ---");
