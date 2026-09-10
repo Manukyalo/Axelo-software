@@ -21,7 +21,13 @@ exports.setRole = onCall(
     // Only existing admins can set roles
     if (!request.auth || request.auth.token.role !== 'admin') {
       // Emergency bootstrap: allow first admin to be set if email matches hardcoded list
-      const allowedAdmins = ['admin@easternvacations.com', 'manu@easternvacations.com', 'reservations@easternvacations.com'];
+      const allowedAdmins = [
+        'admin@easternvacations.com',
+        'manu@easternvacations.com',
+        'reservations@easternvacations.com',
+        'emmanuelkyalo91@gmail.com',
+        'manukyalo341@gmail.com'
+      ];
       const userEmail = (request.auth.token.email || '').toLowerCase();
       if (!request.auth || !allowedAdmins.includes(userEmail)) {
         throw new HttpsError("permission-denied", "Only administrators can assign roles.");

@@ -19,7 +19,13 @@ export const AuthProvider = ({ children }) => {
           const tokenResult = await firebaseUser.getIdTokenResult(true);
           let role = tokenResult.claims.role;
           if (!role) {
-            if (firebaseUser.email === 'admin@easternvacations.com') {
+            const adminEmails = [
+              'admin@easternvacations.com',
+              'manu@easternvacations.com',
+              'emmanuelkyalo91@gmail.com',
+              'manukyalo341@gmail.com'
+            ];
+            if (adminEmails.includes(firebaseUser.email?.toLowerCase())) {
               role = 'admin';
             } else {
               role = 'agent';
