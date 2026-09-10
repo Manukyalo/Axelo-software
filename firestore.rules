@@ -58,12 +58,26 @@ service cloud.firestore {
     match /drivers/{driverId} {
       // Prevent drivers from listing all other drivers. Agents and Admins can see all.
       allow read: if canAccess() && (isAdmin() || isAgent() || isOwner(driverId)); 
-      allow create: if canAccess() && (isAdmin() || isAgent());
+      allow create: if canAccess() && (isAdmin() || isAgent() || isOwner(driverId));
       allow update: if isAdmin() || (canAccess() && (
         isOwner(driverId) ||
         request.auth.token.email.lower() == resource.data.get('email', '').lower() ||
         request.auth.token.email.lower() == resource.data.get('personalEmail', '').lower()
       ));
+      allow delete: if isAdmin();
+    }
+
+    match /driverAuth/{userId} {
+      allow read: if canAccess() && (isOwner(userId) || isAdmin() || isAgent());
+      allow create: if canAccess() && (isOwner(userId) || isAdmin());
+      allow update: if canAccess() && (isOwner(userId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /porters/{porterId} {
+      allow read: if canAccess() && (isOwner(porterId) || isAdmin() || isAgent());
+      allow create: if canAccess() && (isOwner(porterId) || isAdmin());
+      allow update: if canAccess() && (isOwner(porterId) || isAdmin());
       allow delete: if isAdmin();
     }
 
@@ -96,8 +110,9 @@ service cloud.firestore {
     }
 
     match /notifications/{id} {
-      allow read: if canAccess() && (resource.data.targetRole == 'both' || isAgent() || isAdmin() || resource.data.userId == request.auth.uid);
-      allow write: if isAdmin() || (canAccess() && request.auth.uid == resource.data.userId);
+      allow read: if canAccess() && (resource.data.targetRole == 'both' || resource.data.targetRole == 'admin' || isAgent() || isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if canAccess();
+      allow update, delete: if isAdmin();
     }
 
     // --- 🚛 FLEET MANAGEMENT ---
