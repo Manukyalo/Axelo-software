@@ -86,6 +86,7 @@ const ProtectedRoute = ({ children, allowedRole, title }) => {
 import { KillSwitchGuard } from './components/shared/KillSwitchGuard';
 import { MaintenanceGuard } from './components/shared/MaintenanceGuard';
 import { useSafariNotifier } from './hooks/useSafariNotifier';
+import { Analytics } from '@vercel/analytics/react';
 
 function App() {
   const { user } = useAuth();
@@ -248,6 +249,7 @@ function App() {
         </Routes>
         </KillSwitchGuard>
       </MaintenanceGuard>
+      <Analytics />
     </BrowserRouter>
   );
 }

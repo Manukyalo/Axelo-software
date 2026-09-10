@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Wrench, Clock, Mail, Info } from 'lucide-react';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const MaintenanceGuard = ({ children }) => {
   const { user, loading } = useAuth();
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
-  const [checking, setChecking] = useState(true);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     // Listen to the maintenance mode document in Firestore for real-time toggling
@@ -15,19 +15,47 @@ export const MaintenanceGuard = ({ children }) => {
       if (docSnap.exists()) {
         setIsMaintenanceMode(docSnap.data().active === true);
       } else {
-        // Fallback to locked if document doesn't exist
-        setIsMaintenanceMode(true);
+        // Fallback to operational when document doesn't exist
+        setIsMaintenanceMode(false);
       }
       setChecking(false);
     }, (err) => {
-      console.error('Maintenance Status Error:', err);
-      // Fail-safe: if network is down or Firebase is blocked, lock the system
-      setIsMaintenanceMode(true);
+      console.warn('Maintenance Status Check:', err.message);
+      // Fail-safe: maintain operational access if network is interrupted
+      setIsMaintenanceMode(false);
       setChecking(false);
     });
 
     return () => unsub();
   }, []);
+
+  // When an admin is authenticated, auto-reconcile and ensure Firestore reflects operational status
+  useEffect(() => {
+    if (user?.role === 'admin' && isMaintenanceMode) {
+      const syncOperationalStatus = async () => {
+        try {
+          await setDoc(doc(db, 'system_config', 'maintenance'), {
+            active: false,
+            updatedAt: serverTimestamp(),
+            updatedBy: user.email || 'Admin',
+            status: 'Operational'
+          }, { merge: true });
+          setIsMaintenanceMode(false);
+        } catch (err) {
+          console.warn('Could not update maintenance status in Firestore:', err.message);
+        }
+      };
+      syncOperationalStatus();
+    }
+  }, [user, isMaintenanceMode]);
+
+  // Public/login routes are never blocked, ensuring admins and agents can always log in
+  const isAuthRoute = window.location.pathname.startsWith('/admin/login') ||
+                      window.location.pathname.startsWith('/reservations/login');
+
+  if (isAuthRoute) {
+    return children;
+  }
 
   if (loading || checking) {
     return (
@@ -40,7 +68,7 @@ export const MaintenanceGuard = ({ children }) => {
     );
   }
 
-  // Optional: Allow admins to bypass maintenance to test the system
+  // Admins can bypass maintenance screen
   const canBypass = user?.role === 'admin';
 
   if (isMaintenanceMode && !canBypass) {

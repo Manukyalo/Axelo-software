@@ -15,7 +15,8 @@ import {
   Download,
   AlertTriangle,
   Zap,
-  ShieldAlert
+  ShieldAlert,
+  Wrench
 } from 'lucide-react';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Card, CardContent, CardHeader } from '../../components/ui/Card';
@@ -32,10 +33,12 @@ export const Settings = () => {
   const { accentColor, setAccentColor, isDarkMode, toggleDarkMode } = useTheme();
   const [isSystemLocked, setIsSystemLocked] = useState(false);
   const [loadingLock, setLoadingLock] = useState(true);
+  const [isMaintenanceActive, setIsMaintenanceActive] = useState(false);
+  const [loadingMaintenance, setLoadingMaintenance] = useState(true);
 
-  // Sync with Firestore for Kill Switch status
+  // Sync with Firestore for Kill Switch and Maintenance status
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'system_config', 'emergency'), (snap) => {
+    const unsubLock = onSnapshot(doc(db, 'system_config', 'emergency'), (snap) => {
       if (snap.exists()) {
         setIsSystemLocked(snap.data().locked === true);
       }
@@ -44,8 +47,48 @@ export const Settings = () => {
       console.error('Failed to sync lock status:', err);
       setLoadingLock(false);
     });
-    return () => unsub();
+
+    const unsubMaint = onSnapshot(doc(db, 'system_config', 'maintenance'), (snap) => {
+      if (snap.exists()) {
+        setIsMaintenanceActive(snap.data().active === true);
+      } else {
+        setIsMaintenanceActive(false);
+      }
+      setLoadingMaintenance(false);
+    }, (err) => {
+      console.error('Failed to sync maintenance status:', err);
+      setLoadingMaintenance(false);
+    });
+
+    return () => {
+      unsubLock();
+      unsubMaint();
+    };
   }, []);
+
+  const toggleMaintenanceMode = async () => {
+    const targetState = !isMaintenanceActive;
+    const confirmMsg = isMaintenanceActive
+      ? "Take system OFF maintenance? All users will immediately regain access."
+      : "Activate SCHEDULED MAINTENANCE? Non-admin users will be routed to the maintenance page.";
+
+    if (window.confirm(confirmMsg)) {
+      try {
+        const maintRef = doc(db, 'system_config', 'maintenance');
+        await setDoc(maintRef, {
+          active: targetState,
+          updatedAt: serverTimestamp(),
+          updatedBy: 'Admin (Settings UI)',
+          status: targetState ? 'Scheduled Maintenance' : 'Operational'
+        }, { merge: true });
+
+        toast.success(targetState ? 'Maintenance mode ACTIVATED' : 'System restored to OPERATIONAL');
+      } catch (err) {
+        console.error('Maintenance toggle failed:', err);
+        toast.error('Failed to update maintenance mode. Check admin permissions.');
+      }
+    }
+  };
 
   const toggleSystemLock = async () => {
     const action = isSystemLocked ? 'RECOVERY' : 'LOCKDOWN';
@@ -206,6 +249,41 @@ export const Settings = () => {
                      >
                        {isSystemLocked ? <RefreshCw size={20} /> : <Zap size={20} />}
                        {isSystemLocked ? 'RESTORE SYSTEM ACCESS' : 'TRIGGER EMERGENCY LOCKDOWN'}
+                     </Button>
+                   </div>
+                </CardContent>
+              </Card>
+
+              <Card className={`border-2 transition-all ${isMaintenanceActive ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20' : 'border-transparent'}`}>
+                <CardContent className="pt-8 space-y-4">
+                   <div className="flex items-center justify-between">
+                     <div className="flex items-center gap-3">
+                       <div className={`p-2 rounded-lg ${isMaintenanceActive ? 'bg-amber-500 text-white' : 'bg-safari-gold/10 text-safari-gold'}`}>
+                         <Wrench size={24} />
+                       </div>
+                       <div>
+                         <h3 className="font-bold text-safari-primary dark:text-dark-text">Scheduled Maintenance</h3>
+                         <p className="text-xs text-gray-500 italic">Toggle public maintenance mode screen across the entire platform</p>
+                       </div>
+                     </div>
+                     <Badge variant={isMaintenanceActive ? 'warning' : 'success'} className="animate-pulse">
+                       {isMaintenanceActive ? 'MAINTENANCE ACTIVE' : 'SYSTEM OPERATIONAL'}
+                     </Badge>
+                   </div>
+                   
+                   <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                     When active, regular agents, drivers, and visitors will see the Scheduled Maintenance notice. Admin access remains open for testing and system updates.
+                   </p>
+
+                   <div className="pt-2">
+                     <Button 
+                       variant={isMaintenanceActive ? 'primary' : 'outline'} 
+                       className="w-full gap-2 py-4 font-bold shadow-md"
+                       onClick={toggleMaintenanceMode}
+                       disabled={loadingMaintenance}
+                     >
+                       <Wrench size={18} />
+                       {isMaintenanceActive ? 'TAKE SYSTEM OFF MAINTENANCE' : 'ACTIVATE SCHEDULED MAINTENANCE'}
                      </Button>
                    </div>
                 </CardContent>
