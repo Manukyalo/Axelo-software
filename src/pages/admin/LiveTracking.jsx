@@ -80,8 +80,10 @@ export const LiveTracking = () => {
   const [mapError, setMapError] = useState(null);
 
   const STYLES = {
-    dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-    light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    dark: 'https://tiles.openfreemap.org/styles/dark',
+    liberty: 'https://tiles.openfreemap.org/styles/liberty',
+    bright: 'https://tiles.openfreemap.org/styles/bright',
+    positron: 'https://tiles.openfreemap.org/styles/positron',
     satellite: {
       version: 8,
       glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
@@ -90,14 +92,23 @@ export const LiveTracking = () => {
           type: 'raster',
           tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
           tileSize: 256,
-          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+          attribution: 'Tiles &copy; Esri &mdash; OpenFreeMap'
         }
       },
       layers: [{ id: 'satellite', type: 'raster', source: 'arcgis-satellite', minzoom: 0, maxzoom: 22 }]
     }
   };
 
-  const getStyleURL = (type) => STYLES[type];
+  const getStyleURL = (type) => STYLES[type] || STYLES.dark;
+
+  const handleStyleChange = (newType) => {
+    if (!map.current || mapType === newType) return;
+    setMapType(newType);
+    map.current.setStyle(getStyleURL(newType));
+    map.current.once('style.load', () => {
+      addParkBoundaries(map.current);
+    });
+  };
   
   // Layer Toggles
   const [showParks, setShowParks] = useState(true);
@@ -660,6 +671,33 @@ export const LiveTracking = () => {
 
         {/* MAP & COMMAND LAYERS */}
         <div className="flex-1 relative rounded-3xl overflow-hidden shadow-2xl bg-[#0D1612]">
+          {/* OPENFREEMAP STYLE SELECTOR */}
+          <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 p-1.5 bg-[#111B15]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+            <span className="text-[8px] font-black uppercase tracking-widest text-safari-gold px-2 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              OpenFreeMap
+            </span>
+            {[
+              { id: 'dark', label: 'Dark', icon: '🌙' },
+              { id: 'liberty', label: 'Liberty', icon: '🧭' },
+              { id: 'bright', label: 'Bright', icon: '☀️' },
+              { id: 'satellite', label: 'Satellite', icon: '🛰️' },
+            ].map(s => (
+              <button
+                key={s.id}
+                onClick={() => handleStyleChange(s.id)}
+                className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                  mapType === s.id 
+                    ? 'bg-safari-gold text-black shadow-md' 
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span>{s.icon}</span>
+                <span>{s.label}</span>
+              </button>
+            ))}
+          </div>
+
           <div ref={mapContainer} className={`w-full h-full zoom-state-${Math.floor(currentZoom)} ${selectedParkId ? 'park-focus-mode' : ''}`} style={{ minHeight: '500px' }} />
 
           {/* OPS STATS STRIP & QUICK FOCUS */}
