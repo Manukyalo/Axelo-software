@@ -19,8 +19,10 @@ service cloud.firestore {
     }
 
     // --- 🚨 KILL SWITCH LOGIC ---
+    // Safe: returns false (unlocked) when the document doesn't exist yet
     function isSystemLocked() {
-      return get(/databases/$(database)/documents/system_config/emergency).data.locked == true;
+      return exists(/databases/$(database)/documents/system_config/emergency)
+        && get(/databases/$(database)/documents/system_config/emergency).data.get('locked', false) == true;
     }
 
     function canAccess() {
@@ -43,10 +45,14 @@ service cloud.firestore {
       allow read: if canAccess();
       // Only Admins and Agents can create bookings
       allow create: if canAccess() && (isAdmin() || isAgent());
-      allow update: if isAdmin() || (canAccess() && (isAgent() && (
-        resource.data.createdById == request.auth.token.email || 
-        resource.data.createdById == request.auth.uid
-      )));
+      allow update: if isAdmin() || (canAccess() && (
+        (isAgent() && (
+          resource.data.createdById == request.auth.token.email || 
+          resource.data.createdById == request.auth.uid
+        )) ||
+        resource.data.driverId == request.auth.uid ||
+        resource.data.porterId == request.auth.uid
+      ));
       allow delete: if isAdmin();
     }
 
@@ -110,8 +116,22 @@ service cloud.firestore {
     }
 
     match /notifications/{id} {
-      allow read: if canAccess() && (resource.data.targetRole == 'both' || resource.data.targetRole == 'admin' || isAgent() || isAdmin() || resource.data.userId == request.auth.uid);
-      allow create: if canAccess();
+      allow read: if canAccess() && (
+        resource.data.targetRole == 'both' ||
+        resource.data.targetRole == 'admin' ||
+        isAgent() ||
+        isAdmin() ||
+        resource.data.userId == request.auth.uid
+      );
+      // Any authenticated user can create notifications (needed for driver registration alerts to admin)
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // Driver trip status updates subcollection
+    match /tripUpdates/{tripId}/updates/{updateId} {
+      allow read: if canAccess();
+      allow create: if isAuthenticated();
       allow update, delete: if isAdmin();
     }
 
