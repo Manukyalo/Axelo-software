@@ -332,19 +332,12 @@ export const WeatherIntelligence = () => {
               disabled={isSyncing}
               onClick={async () => {
                 setIsSyncing(true);
-                const toastId = toast.loading('Synchronizing weather data across all parks via Open-Meteo...');
+                const toastId = toast.loading('Connecting to Open-Meteo API...');
                 try {
-                  // 1. Try Firebase Cloud Function first (has admin server privileges)
-                  try {
-                    const manualWeatherSyncFn = httpsCallable(functions, 'manualWeatherSync');
-                    await manualWeatherSyncFn();
-                    toast.success('Weather synchronized successfully via Cloud Engine!', { id: toastId });
-                  } catch (fnErr) {
-                    console.warn('Cloud Function sync unavailable, falling back to direct client sync:', fnErr.message);
-                    // 2. Fallback to client-side sync
-                    await syncAllParksWeather();
-                    toast.success('Weather synchronized for all national parks!', { id: toastId });
-                  }
+                  const results = await syncAllParksWeather((parkName, current, total) => {
+                    toast.loading(`Syncing ${parkName} (${current}/${total})...`, { id: toastId });
+                  });
+                  toast.success(`Synchronized live weather for ${results.length} national parks!`, { id: toastId });
                 } catch (err) {
                   console.error("Sync failed:", err);
                   toast.error(`Sync failed: ${err.message || 'Please check connection'}`, { id: toastId });
