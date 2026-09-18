@@ -9,8 +9,9 @@ import {
   Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
 import { doc, onSnapshot, collection, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../config/firebase';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { db, functions } from '../../config/firebase';
+import { httpsCallable } from 'firebase/functions';
+import toast from 'react-hot-toast';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Card, CardContent, CardHeader } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -109,7 +110,8 @@ const LiveDot = ({ updatedAt }) => {
   if (!tsMillis) return null;
 
   const diffMinutes = (Date.now() - tsMillis) / 60000;
-  const isLive = diffMinutes < 25;
+  // Background cron runs every 3 hours (180 mins). Status is Live during active window.
+  const isLive = diffMinutes <= 180;
   const dateObj = safeDate(updatedAt);
 
   return (
@@ -118,9 +120,9 @@ const LiveDot = ({ updatedAt }) => {
         {isLive && (
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
         )}
-        <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isLive ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+        <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isLive ? 'bg-emerald-500' : 'bg-amber-400'}`} />
       </span>
-      <span className={`text-xs font-bold uppercase tracking-widest ${isLive ? 'text-emerald-500' : 'text-gray-400'}`}>
+      <span className={`text-xs font-bold uppercase tracking-widest ${isLive ? 'text-emerald-500' : 'text-amber-500'}`}>
         {isLive ? 'Live' : 'Delayed'}
       </span>
       <span className="text-[10px] text-gray-400">
@@ -167,6 +169,13 @@ const ParkMiniCard = ({ park, weatherData, alerts }) => {
   const parkAlerts = alerts.filter(a => a.parkId === park.id);
   const hasAlert = parkAlerts.length > 0;
 
+  const temp = data?.current?.temp ?? data?.temp_c ?? data?.temp;
+  const description = data?.current?.description ?? data?.condition ?? 'No conditions';
+  const icon = data?.current?.icon;
+  const code = data?.current?.code ?? data?.weather_code;
+  const season = data?.season || getSeasonBadge(new Date().getMonth());
+  const hasData = temp !== undefined && temp !== null;
+
   return (
     <div className={`p-4 rounded-2xl border bg-white dark:bg-dark-surface transition-all hover:shadow-md
       ${hasAlert ? 'border-amber-400/40 dark:border-amber-500/30' : 'border-gray-100 dark:border-dark-border'}`}
@@ -174,20 +183,20 @@ const ParkMiniCard = ({ park, weatherData, alerts }) => {
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="font-bold text-sm text-safari-primary dark:text-dark-text">{park.name}</p>
-          {data?.season && (
-            <span className={`inline-block mt-1 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${seasonStyles[data.season.type || 'info']}`}>
-              {data.season.label}
+          {season && (
+            <span className={`inline-block mt-1 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${seasonStyles[season.type || 'info']}`}>
+              {season.label}
             </span>
           )}
         </div>
         {hasAlert && <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />}
       </div>
-      {data?.current ? (
+      {hasData ? (
         <div className="flex items-center gap-3">
-          <WeatherIcon icon={data.current.icon} code={data.current.code} size={32} className="text-safari-gold" />
+          <WeatherIcon icon={icon} code={code} size={32} className="text-safari-gold" />
           <div>
-            <p className="text-2xl font-bold text-safari-primary dark:text-dark-text">{Math.round(data.current.temp || 0)}°C</p>
-            <p className="text-xs text-gray-500 capitalize">{data.current.description || 'No conditions'}</p>
+            <p className="text-2xl font-bold text-safari-primary dark:text-dark-text">{Math.round(temp)}°C</p>
+            <p className="text-xs text-gray-500 capitalize">{description}</p>
           </div>
         </div>
       ) : (
@@ -296,12 +305,23 @@ export const WeatherIntelligence = () => {
 
   const visibleAlerts = alerts.filter(a => !dismissedAlerts.has(`${a.parkId}-${a.alertType}`));
 
+  // Normalized weather attributes (handles both flat and nested schemas)
+  const curTemp = weatherData?.current?.temp ?? weatherData?.temp_c ?? weatherData?.temp;
+  const curDesc = weatherData?.current?.description ?? weatherData?.condition ?? 'No conditions';
+  const curHumidity = weatherData?.current?.humidity ?? weatherData?.humidity ?? 0;
+  const curWind = weatherData?.current?.windSpeed ?? weatherData?.wind_kph ?? 0;
+  const curUV = weatherData?.current?.uvIndex ?? weatherData?.uv_index ?? '—';
+  const curIcon = weatherData?.current?.icon;
+  const curCode = weatherData?.current?.code ?? weatherData?.weather_code;
+  const activeSeason = weatherData?.season || getSeasonBadge(new Date().getMonth());
+  const hasCurrentData = curTemp !== undefined && curTemp !== null;
+
   return (
     <PageWrapper
       title="Weather Intelligence"
       subtitle={
         <div className="flex items-center gap-4">
-          <LiveDot updatedAt={weatherData?.lastUpdated} />
+          <LiveDot updatedAt={weatherData?.lastUpdated || syncStats?.lastSync} />
           {isSyncing ? (
             <div className="flex items-center text-[10px] text-amber-500 font-bold uppercase tracking-wider animate-pulse border border-amber-500/20 bg-amber-500/5 px-3 py-1 rounded-full">
               <RefreshCw size={10} className="mr-1.5 animate-spin" />
@@ -309,17 +329,30 @@ export const WeatherIntelligence = () => {
             </div>
           ) : (
             <button
+              disabled={isSyncing}
               onClick={async () => {
                 setIsSyncing(true);
+                const toastId = toast.loading('Synchronizing weather data across all parks...');
                 try {
-                  await syncAllParksWeather();
+                  // 1. Try Firebase Cloud Function first (has admin server privileges)
+                  try {
+                    const manualWeatherSyncFn = httpsCallable(functions, 'manualWeatherSync');
+                    await manualWeatherSyncFn();
+                    toast.success('Weather synchronized successfully via Cloud Engine!', { id: toastId });
+                  } catch (fnErr) {
+                    console.warn('Cloud Function sync unavailable, falling back to direct client sync:', fnErr.message);
+                    // 2. Fallback to client-side sync
+                    await syncAllParksWeather();
+                    toast.success('Weather synchronized for all national parks!', { id: toastId });
+                  }
                 } catch (err) {
                   console.error("Sync failed:", err);
+                  toast.error(`Sync failed: ${err.message || 'Please check connection'}`, { id: toastId });
                 } finally {
                   setIsSyncing(false);
                 }
               }}
-              className="group flex items-center text-[10px] text-safari-gold font-bold uppercase tracking-wider border border-safari-gold/20 hover:border-safari-gold/50 bg-safari-gold/5 px-3 py-1 rounded-full transition-all active:scale-95"
+              className="group flex items-center text-[10px] text-safari-gold font-bold uppercase tracking-wider border border-safari-gold/20 hover:border-safari-gold/50 bg-safari-gold/5 px-3 py-1 rounded-full transition-all active:scale-95 cursor-pointer disabled:opacity-50"
             >
               <RefreshCw size={10} className="mr-1.5 group-hover:rotate-180 transition-transform duration-500" />
               Sync Now
@@ -397,38 +430,38 @@ export const WeatherIntelligence = () => {
                 <div className="space-y-3">
                   {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-6 bg-white/10" />)}
                 </div>
-              ) : weatherData ? (
+              ) : hasCurrentData ? (
                 <>
                   <p className="text-[10px] uppercase tracking-[3px] font-bold text-safari-gold mb-4">
                     {selectedParkObj?.name || 'Current Conditions'}
                   </p>
                   <div className="flex items-center gap-4 mb-6">
                     <WeatherIcon
-                      icon={weatherData.current?.icon}
-                      code={weatherData.current?.code}
+                      icon={curIcon}
+                      code={curCode}
                       size={64}
                       className="text-safari-gold drop-shadow-lg"
                     />
                     <div>
-                      <p className="text-5xl font-bold font-playfair">{Math.round(weatherData.current?.temp || 0)}°C</p>
-                      <p className="text-sm text-white/70 mt-1">{weatherData.current?.description || 'N/A'}</p>
+                      <p className="text-5xl font-bold font-playfair">{Math.round(curTemp)}°C</p>
+                      <p className="text-sm text-white/70 mt-1">{curDesc}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="bg-white/10 backdrop-blur rounded-xl p-3 text-center">
                       <Droplets size={16} className="mx-auto mb-1 text-blue-300" />
                       <p className="text-xs text-white/60">Humidity</p>
-                      <p className="text-sm font-bold">{weatherData.current?.humidity || 0}%</p>
+                      <p className="text-sm font-bold">{curHumidity}%</p>
                     </div>
                     <div className="bg-white/10 backdrop-blur rounded-xl p-3 text-center">
                       <Wind size={16} className="mx-auto mb-1 text-teal-300" />
                       <p className="text-xs text-white/60">Wind</p>
-                      <p className="text-sm font-bold">{Math.round(weatherData.current?.windSpeed || 0)} km/h</p>
+                      <p className="text-sm font-bold">{Math.round(curWind)} km/h</p>
                     </div>
                     <div className="bg-white/10 backdrop-blur rounded-xl p-3 text-center">
                       <Gauge size={16} className="mx-auto mb-1 text-sky-300" />
                       <p className="text-xs text-white/60">UV Index</p>
-                      <p className="text-sm font-bold">{weatherData.current?.uvIndex || '—'}</p>
+                      <p className="text-sm font-bold">{curUV}</p>
                     </div>
                   </div>
                 </>
@@ -451,10 +484,10 @@ export const WeatherIntelligence = () => {
             <CardContent className="flex flex-col gap-4 flex-1">
               {loadingWeather ? (
                 <Skeleton className="h-24" />
-              ) : weatherData?.season ? (
+              ) : activeSeason ? (
                 <>
-                  <div className={`p-5 rounded-2xl border ${seasonStyles[weatherData.season.type || 'info']} text-center`}>
-                    <p className="text-2xl font-bold font-playfair mb-1">{weatherData.season.label}</p>
+                  <div className={`p-5 rounded-2xl border ${seasonStyles[activeSeason.type || 'info']} text-center`}>
+                    <p className="text-2xl font-bold font-playfair mb-1">{activeSeason.label}</p>
                     <p className="text-xs opacity-70">Currently Active Season</p>
                   </div>
                   <div className="text-[11px] text-gray-500 dark:text-gray-400 space-y-1 px-1">

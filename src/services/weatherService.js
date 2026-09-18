@@ -123,7 +123,17 @@ export async function fetchParkWeather(park, apiKey = OPENWEATHER_API_KEY) {
         condition,
         wind_kph: (current.wind?.speed || 0) * 3.6,
         precipitation_mm: current.rain ? (current.rain['1h'] || current.rain['3h'] || 0) : 0,
-        weather_code
+        weather_code,
+        current: {
+          temp: current.main.temp,
+          feels_like: current.main.feels_like,
+          humidity: current.main.humidity,
+          description: condition,
+          windSpeed: (current.wind?.speed || 0) * 3.6,
+          icon: current.weather?.[0]?.icon || '01d',
+          code: weather_code,
+          uvIndex: '—'
+        }
       };
 
       // Apply Safari Decision Engine (No Claude API)
@@ -208,7 +218,17 @@ async function fetchOpenMeteoFallback(park) {
     condition: mapWmoToCondition(current.weather_code),
     wind_kph: current.wind_speed_10m,
     precipitation_mm: current.precipitation,
-    weather_code: current.weather_code === 0 ? 800 : current.weather_code > 50 ? 500 : 802
+    weather_code: current.weather_code === 0 ? 800 : current.weather_code > 50 ? 500 : 802,
+    current: {
+      temp: current.temperature_2m,
+      feels_like: current.apparent_temperature,
+      humidity: current.relative_humidity_2m,
+      description: mapWmoToCondition(current.weather_code),
+      windSpeed: current.wind_speed_10m,
+      icon: '02d',
+      code: current.weather_code === 0 ? 800 : current.weather_code > 50 ? 500 : 802,
+      uvIndex: '—'
+    }
   };
 
   // Rule-based safari advisory (No Claude API)
@@ -239,6 +259,7 @@ async function fetchOpenMeteoFallback(park) {
 export async function syncAllParksWeather(onProgress) {
   const results = [];
   const allAlerts = [];
+  const errors = [];
 
   for (let i = 0; i < PARKS.length; i++) {
     const park = PARKS[i];
@@ -277,7 +298,12 @@ export async function syncAllParksWeather(onProgress) {
 
     } catch (err) {
       console.error(`Error syncing ${park.name}:`, err);
+      errors.push({ park: park.name, error: err.message });
     }
+  }
+
+  if (results.length === 0 && errors.length > 0) {
+    throw new Error(errors[0].error || 'Failed to sync parks weather.');
   }
 
   // Update global sync stats and alert collection

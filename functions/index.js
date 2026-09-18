@@ -191,7 +191,19 @@ async function performWeatherSync(parkList) {
             : (cur.weather?.[0]?.main || "Clear Sky"),
           wind_kph: (cur.wind?.speed || 0) * 3.6,
           precipitation_mm: cur.rain ? (cur.rain["1h"] || cur.rain["3h"] || 0) : 0,
-          weather_code: cur.weather?.[0]?.id || 800
+          weather_code: cur.weather?.[0]?.id || 800,
+          current: {
+            temp: cur.main.temp,
+            feels_like: cur.main.feels_like,
+            humidity: cur.main.humidity,
+            description: cur.weather?.[0]?.description 
+              ? cur.weather[0].description.replace(/\b\w/g, c => c.toUpperCase())
+              : (cur.weather?.[0]?.main || "Clear Sky"),
+            windSpeed: (cur.wind?.speed || 0) * 3.6,
+            icon: cur.weather?.[0]?.icon || "01d",
+            code: cur.weather?.[0]?.id || 800,
+            uvIndex: "—"
+          }
         };
 
         const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${park.lat}&lon=${park.lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
@@ -227,7 +239,17 @@ async function performWeatherSync(parkList) {
           condition: getWeatherLabel(current.weather_code),
           wind_kph: current.wind_speed_10m,
           precipitation_mm: current.precipitation,
-          weather_code: current.weather_code
+          weather_code: current.weather_code,
+          current: {
+            temp: current.temperature_2m,
+            feels_like: current.apparent_temperature,
+            humidity: current.relative_humidity_2m,
+            description: getWeatherLabel(current.weather_code),
+            windSpeed: current.wind_speed_10m,
+            icon: "02d",
+            code: current.weather_code,
+            uvIndex: "—"
+          }
         };
 
         dailyForecast = (response.data.daily?.time || []).map((date, i) => ({

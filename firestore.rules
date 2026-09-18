@@ -7,7 +7,16 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() && request.auth.token.role == 'admin';
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' ||
+        (request.auth.token.email != null && request.auth.token.email.lower() in [
+          'admin@easternvacations.com',
+          'manu@easternvacations.com',
+          'emmanuelkyalo91@gmail.com',
+          'manukyalo341@gmail.com',
+          'reservations@easternvacations.com'
+        ])
+      );
     }
 
     function isAgent() {
@@ -164,6 +173,16 @@ service cloud.firestore {
     // --- ☁️ WEATHER ---
 
     match /weather_intelligence/{parkId} {
+      allow read: if canAccess();
+      allow write: if isAdmin();
+    }
+
+    match /weatherData/{parkId} {
+      allow read: if canAccess();
+      allow write: if isAdmin();
+    }
+
+    match /weather_sync_stats/{doc} {
       allow read: if canAccess();
       allow write: if isAdmin();
     }
