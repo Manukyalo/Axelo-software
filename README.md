@@ -1,189 +1,130 @@
+<p align="center">
+  <img src="axelo-banner.jpg" alt="Axelo Safari Operations Suite" width="100%" />
+</p>
+
 # Axelo Safari Suite — Operations & Fleet Intelligence System
 
-[![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/Vite-6.0-purple.svg)](https://vitejs.dev/)
-[![Firebase](https://img.shields.io/badge/Firebase-Auth%20%7C%20Firestore%20%7C%20Functions-orange.svg)](https://firebase.google.com/)
-[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v3-cyan.svg)](https://tailwindcss.com/)
-[![PWA](https://img.shields.io/badge/PWA-Ready-green.svg)](https://web.dev/progressive-web-apps/)
+**Axelo Safari Suite** is a unified tour operations, fleet telematics, and field safety intelligence platform engineered specifically for safari operators, destination management companies (DMCs), and expedition providers across East Africa.
 
-**Axelo Safari Suite** is an enterprise-grade tour operations, fleet telematics, and field safety intelligence platform built specifically for safari operators, destination management companies (DMCs), and wilderness excursion providers across East Africa.
-
-Developed in collaboration with premier safari operators including Eastern Vacations, the platform replaces fragmented spreadsheets, manual radio dispatch, and disconnected paper manifests with a real-time, mission-critical operations dashboard.
+Built in close alignment with premier safari operators including Eastern Vacations, Axelo replaces fragmented spreadsheets, informal messaging chats, and lost paper manifests with a real-time, mission-critical operations command center connected directly to drivers in the field.
 
 ---
 
 ## 🌍 The Problem Tour Operators Face
 
-Safari and expedition operators manage complex, high-stakes logistics across harsh and remote terrains. Traditional operations suffer from severe operational friction:
+Safari logistics are unlike standard transport operations. Safari companies coordinate high-value itineraries across expansive wilderness parks, unpredictable weather patterns, and harsh terrains with limited infrastructure:
 
 1. **Logistics & Dispatch Blind Spots:**
-   Fleet controllers rely on manual calls or WhatsApp to locate safari cruisers and guides across vast national reserves with patchy cellular coverage.
+   Operations controllers rely on phone calls or WhatsApp to track safari cruisers deep in vast national reserves, leaving dispatch blind to breakdowns, road closures, or guide delays.
 2. **Pre-Departure Vulnerabilities:**
-   Safaris depart with unassigned 4x4 vehicles, unverified driver schedules, or uncollected client balances because reservations and dispatch live in separate silos.
+   Cruisers depart with unassigned 4x4 vehicles, unverified driver rosters, or uncollected client balances because reservations and garage dispatch operate in isolated silos.
 3. **Severe Weather & Terrain Hazards:**
-   Flash floods, muddy black-cotton soil, and sudden storms can trap vehicles and jeopardize guest safety without localized, park-specific environmental forecasting.
+   Flash floods, river swell, and slick black-cotton soil can trap vehicles and disrupt game drives without localized, park-by-park environmental intelligence.
 4. **Emergency Telemetry Vacuum:**
-   When mechanical breakdowns, wildlife encounters, or medical emergencies occur in the bush, drivers lack a one-touch emergency channel that broadcasts precise GPS coordinates to the operations base.
+   When mechanical failures, wildlife hazards, or guest medical emergencies occur in remote conservancies, drivers lack an instant emergency channel that broadcasts precise GPS coordinates to the operations team.
 5. **Vehicle Compliance & Maintenance Risks:**
-   Lapses in PSV insurance, commercial inspection certificates, or routine servicing lead to impounded cruisers and stranded high-value itineraries.
+   Lapses in PSV insurance, commercial inspection certificates, or routine 4x4 servicing lead to impounded cruisers, safety risks, and disrupted guest experiences.
 
 ---
 
-## ⚡ How Axelo Software Solves It
+## ⚡ How Axelo Solves It
 
-Axelo Safari Suite bridges reservation management, field fleet telematics, and autonomous operational safeguards into a single, cohesive command center.
+Axelo Safari Suite bridges the central operations office with field vehicles and lodge crews, creating an end-to-end operational loop from booking creation to post-safari debrief.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                          AXELO COMMAND CENTER                          │
-├───────────────────┬────────────────────┬───────────────────────────────┤
-│  RESERVATIONS     │  FLEET TELEMETRY   │     AI WATCHDOG & WEATHER     │
-│  • Booking Engine │  • Live GPS Map    │  • 10-Park Weather Intel      │
-│  • Guest Manifest │  • Status Ticker   │  • Terrain Safari Advisories  │
-│  • Vouchers & Invs│  • Driver Roster   │  • Automated 7/3/1 Day Sweeps │
-│  • Payment Ledger │  • Maintenance Log │  • Real-time SOS Dispatch     │
-└───────────────────┴────────────────────┴───────────────────────────────┘
+│                        AXELO ECOSYSTEM OVERVIEW                        │
+├───────────────────────────────────┬────────────────────────────────────┤
+│      CENTRAL COMMAND CENTER       │   AXELO DRIVERS COMPANION APP      │
+│  (Head Office & Dispatch Team)    │     (Guides, Drivers & Porters)    │
+│                                   │                                    │
+│  • Reservation & Itinerary Engine │  • Biometric Facial Scan Check-In  │
+│  • Live GPS Fleet Telemetry Map   │  • Live Guest Manifests & Rooming  │
+│  • 10-Park Weather Intel & AI     │  • Digital Park & KWS Fee Logging  │
+│  • Autonomous 7/3/1 Day Sweeps    │  • One-Touch Wilderness SOS Alert  │
+│  • Insurance & Compliance Guard   │  • Porter & Airstrip Baggage Flow  │
+└───────────────────────────────────┴────────────────────────────────────┘
 ```
 
 ---
 
-## 🚀 Key Features
+## 📱 Includes Dedicated Companion App: "Axelo Drivers"
+
+Axelo is not just a desktop dispatch dashboard—it ships with a dedicated mobile-first companion application (**Axelo Drivers**) designed specifically for safari driver-guides, expedition leaders, and field logistics crews.
+
+### 1. 👤 Biometric Facial Scan Check-In
+* **Driver Identity & Sobriety Verification:** Before initiating a tour or morning game drive, drivers perform a secure biometric face scan directly from the mobile app.
+* **Pre-Trip Compliance Check:** Prevents unverified vehicle handovers and records exact driver check-in timestamps before guests board the cruiser.
+
+### 2. 📋 Live Safari Manifests & Route Briefings
+* **Real-time Guest Profiles:** Guides access interactive manifests displaying passenger names, passport numbers, rooming allocations, emergency contacts, and language preferences.
+* **Special Needs & Dietary Tracking:** Highlights critical guest requirements (allergies, vegan/halal meal plans, mobility assistance) directly on the driver's device.
+* **Turn-by-Turn Safari Stages:** Tracks safari legs from Nairobi or Mombasa transfers through lodge check-ins, game drive loops, and bush flight airstrip pickups.
+
+### 3. 🎟️ Park Fees & Gate Clearance Tracking
+* **KWS & Conservancy Receipts:** Drivers log Kenya Wildlife Service (KWS) smart cards, conservancy fee authorizations, and vehicle gate entry/exit receipts directly from the field.
+* **Discrepancy Prevention:** Eliminates lost paper gate tickets and enables real-time reconciliation with head-office accounts.
+
+### 4. 🚨 Instant Bush SOS & Emergency Protocol
+* **One-Touch Field Distress Signal:** Dedicated emergency interface enabling drivers to instantly notify the central operations command center with high-precision GPS coordinates.
+* **Categorized Incident Dispatch:** Classifies emergencies into *Mechanical Breakdown*, *Mud/River Recovery*, *Medical Emergency*, or *Security/Wildlife Encounter*.
+* **Status Telemetry:** Drivers receive real-time confirmation when dispatch has acknowledged the alert and dispatched a recovery vehicle or ranger support.
+
+### 5. 🧳 Porter & Lodge Logistics Management
+* **Baggage Loaders & Camp Porters:** Dedicated portal for lodge porters and airport transfer teams to track luggage counts, tag allocations, and vehicle loading verification.
+
+---
+
+## 🖥️ Central Command Suite Features
 
 ### 1. 🌦️ Park-Specific Weather Intelligence & Safari Advisories
-* **Real-time Monitoring across 10 National Parks:**
-  Dedicated tracking for *Aberdare, Amboseli, Lake Nakuru, Maasai Mara, Meru, Mount Kenya, Nairobi National Park, Samburu, Tsavo East, and Tsavo West*.
+* **Live Environmental Tracking across 10 National Parks:**
+  Dedicated real-time weather and 7-day forecasts for *Aberdare, Amboseli, Lake Nakuru, Maasai Mara, Meru, Mount Kenya, Nairobi National Park, Samburu, Tsavo East, and Tsavo West*.
 * **Rule-Based Safari Advisory Engine:**
-  Translates ambient heat, precipitation, wind gusts, and cloud cover into actionable safari guidance:
-  * 4x4 diff-lock and recovery gear advisories on slick black-cotton tracks.
-  * Pop-up roof management and predator photography diffuse lighting recommendations.
-  * Early sunrise cold weather notices in high-altitude zones (Mount Kenya, Aberdares).
-* **Automated & Scheduled Sync:**
-  Dual-engine ingestion (OpenWeatherMap API with automated Open-Meteo fallback) powered by Firebase Cloud Functions.
+  Translates precipitation, ambient heat, wind gusts, and cloud cover into operational guidance:
+  * Recommends 4x4 diff-lock engagement and recovery straps when black-cotton soil turns slick.
+  * Advises pop-up roof management during rain showers or high wind conditions.
+  * Guides sunrise warm-attire advisories for chilly highland descents in Aberdare and Mount Kenya.
+  * Suggests predator portraiture opportunities during soft diffused cloud cover.
 
-### 2. 🗺️ Live Fleet Tracking & Dispatch Control
-* **Real-Time Vehicle Coordinates:** Interactive map displaying cruiser locations, current heading, driver assignments, and vehicle health statuses.
-* **Driver Roster & Shift Management:** Driver certification records, language proficiencies, current trip assignments, and shift availability.
-* **Vehicle Maintenance & Compliance Watchdog:** Real-time auditing of vehicle mileage, routine service milestones, and PSV insurance validity.
+### 2. 🗺️ Real-Time Fleet Tracking & Telematics
+* **Interactive Live Cruiser Map:** Instant visibility of vehicle locations, route histories, heading, speed, and driver allocations across Kenya circuits.
+* **Fleet Readiness Indicators:** Visual telemetry displaying vehicle statuses (*On Safari, Available in Yard, Under Scheduled Service, or Maintenance Standby*).
 
-### 3. 🚨 Instant SOS & Crisis Management Command
-* **One-Touch Emergency Protocol:** Field drivers can trigger instant SOS alerts directly from the mobile interface.
-* **Geotagged Crisis Feeds:** Captures vehicle coordinates, emergency severity (`CRITICAL`, `HIGH`, `INFO`), and emergency category (Mechanical, Medical, Security, Weather).
-* **Command Center Resolution Workflow:** Operations team can assign recovery teams, track incident resolution, and archive audit logs.
+### 3. 🤖 Autonomous Operations Watchdog (AI Engine)
+* **Automated Departure Audits:** Continuous background sweeps monitor upcoming itineraries to prevent operational failure:
+  * **7 Days to Departure:** Early equipment and logistics check.
+  * **3 Days to Departure:** Automatically flags unassigned drivers, unallocated vehicles, or pending client payments.
+  * **24 Hours to Departure:** Dispatches high-priority departure alerts with pickup timings, driver contacts, and gate manifests.
+* **Vehicle Insurance & Inspection Watchdog:** Warns management 7 days prior to commercial PSV insurance expiry and triggers safety lockdowns upon expiration.
 
-### 4. 🤖 Autonomous Operations Watchdog (AI Engine)
-* **Pre-Departure Readiness Sweeps:** Scheduled background sweeps audit all upcoming trips:
-  * **7 Days Before Departure:** Early verification of logistics requirements.
-  * **3 Days Before Departure:** Flags unassigned drivers, unallocated vehicles, or incomplete payments.
-  * **24 Hours Before Departure:** Generates high-priority alerts with departure times and pickup manifests.
-* **Insurance Expiry Watchdog:** Alerts management 7 days before PSV insurance expires and triggers lockdown alerts on day of expiry.
+### 4. 📋 Comprehensive Booking & Voucher Engine
+* **Full Safari Lifecycle Tracking:** From inquiry and quotation to confirmed booking, active safari, and post-trip invoicing.
+* **Automated Client Vouchers:** Instant generation of professional safari vouchers, hotel rooming confirmations, and itinerary printouts.
+* **Multi-Currency Payment Ledger:** Integrated tracking of deposits, balance dues, and payment methods.
 
-### 5. 📋 End-to-End Booking & Manifest Engine
-* **Complete Safari Lifecycle:** Draft $\rightarrow$ Confirmed $\rightarrow$ In Progress $\rightarrow$ Completed $\rightarrow$ Cancelled.
-* **Guest Manifests & Rooming Lists:** Group allocations, dietary restrictions, passport tracking, and emergency contacts.
-* **Financial Ledger:** Track deposits, balances, and multi-channel payment statuses.
-
-### 6. 🔐 Enterprise Security & Granular RBAC
-* **Role-Based Access Control:** Strict authorization boundaries enforced at the database level:
-  * **Administrators:** Full system configuration, fleet management, and overrides.
-  * **Reservation Agents:** Booking creation, guest communications, and itinerary scheduling.
-  * **Field Personnel / Drivers:** Mobile dashboard, manifest access, and SOS signaling.
-* **Multi-Tier Firebase Security Rules:** Fine-grained document security preventing cross-role data leaks.
-
----
-
-## 🛠️ Tech Stack & Architecture
-
-| Layer | Technology | Purpose |
-| :--- | :--- | :--- |
-| **Frontend Core** | React 18, Vite 6 | Lightning-fast reactive interface with hot module replacement |
-| **Styling & Design** | TailwindCSS, Lucide Icons | Safari luxury palette (Gold, Deep Emerald, Rich Dark Surface) |
-| **State & Navigation** | React Router v6, React Context | Uncluttered state management with route guards |
-| **Backend & Database** | Firebase Cloud Firestore | Low-latency real-time synchronization across devices |
-| **Authentication** | Firebase Auth | Secure identity with custom claims and token refresh guards |
-| **Serverless Engine** | Firebase Cloud Functions (v2) | Automated cron jobs, operations sweeps, and callable endpoints |
-| **Offline & PWA** | Vite PWA Plugin, Workbox | Offline manifest support for low-connectivity safari camps |
-| **Mapping & Analytics** | Leaflet, Recharts | Geo-spatial fleet tracking and 12-month historical climate trends |
-
----
-
-## 📂 Project Structure
-
-```
-axelo-software/
-├── functions/                  # Firebase Cloud Functions (Node.js)
-│   └── index.js                # Scheduled syncs, Operations Watchdog & manual sweeps
-├── public/                     # PWA assets, icons, and audio telemetry alerts
-├── src/
-│   ├── components/             # Reusable UI cards, badges, modals, and navbars
-│   ├── config/                 # Firebase SDK singletons (db, auth, functions)
-│   ├── contexts/               # Auth, Data, Theme, and AI Manager contexts
-│   ├── pages/
-│   │   ├── admin/              # Fleet, Drivers, Bookings, SOS Alerts, Settings
-│   │   ├── auth/               # Secure Login & Password Recovery
-│   │   ├── reservations/       # Booking intake and agent portal
-│   │   └── shared/             # Weather Intelligence & upcoming itineraries
-│   ├── services/               # Weather and telematics integration services
-│   └── utils/                  # Safe date parsers, rate limiters, logging tools
-├── firestore.rules             # Production Firestore security and RBAC logic
-└── vite.config.js              # Vite bundler, PWA setup, and build configuration
-```
+### 5. 🔐 Enterprise Role-Based Access Control (RBAC)
+* **Multi-Tier Authorization:** Strictly separates Administrator control, Reservation Agent intake, and Driver field permissions.
+* **Secure Cloud Data Rules:** Real-time database protection ensuring confidential operational, financial, and client data remains strictly guarded.
 
 ---
 
 ## 🏁 Getting Started
 
 ### Prerequisites
-* **Node.js**: v18.x or v20.x
-* **npm**: v9.x or higher
-* **Firebase CLI**: `npm install -g firebase-tools`
+* Modern web browser (Chrome, Edge, Safari, Firefox)
+* Access credentials provided by your safari company administrator
 
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Manukyalo/Axelo-software.git
-   cd Axelo-software
-   ```
-
-2. **Install frontend dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Install Cloud Functions dependencies:**
-   ```bash
-   cd functions && npm install && cd ..
-   ```
-
-4. **Configure Environment Variables:**
-   Create a `.env` file in the root directory:
-   ```env
-   VITE_FIREBASE_API_KEY=your_api_key
-   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-   VITE_FIREBASE_PROJECT_ID=your_project_id
-   VITE_FIREBASE_STORAGE_BUCKET=your_project.firebasestorage.app
-   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   VITE_FIREBASE_APP_ID=your_app_id
-   VITE_OPENWEATHER_API_KEY=your_openweather_api_key
-   ```
-
-5. **Start Local Development Server:**
-   ```bash
-   npm run dev
-   ```
-
-6. **Build for Production:**
-   ```bash
-   npm run build
-   ```
+### Accessing the Suite
+1. **Office Operations Portal:** Log in with your corporate credentials to access the central booking, fleet tracking, and weather intelligence dashboards.
+2. **Driver Companion App:** Open the Axelo Drivers app on your mobile device, perform your biometric face check-in, and review your assigned trip manifest.
 
 ---
 
-## 🛡️ Security & Compliance
+## 🛡️ Operational Reliability & Security
 
-* **Database Rules:** Strict Firestore rules enforce role checks on every read and write operation.
-* **Audit Trail:** Immutable append-only operational event logs for compliance and incident tracking.
-* **Environment Protection:** No sensitive secrets or private API keys committed to version control.
+* **Built for Remote Africa:** Offline-ready progressive application architecture ensures drivers and lodge teams retain access to passenger manifests even in low-connectivity bush zones.
+* **Audit Trail:** Append-only operational event logs record vehicle movements, SOS incidents, and manifest updates for full transparency and guest safety compliance.
 
 ---
 
