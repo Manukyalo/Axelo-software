@@ -80,6 +80,8 @@ Axelo is not just a desktop dispatch dashboard—it ships with a dedicated mobil
 ### 1. 🌦️ Park-Specific Weather Intelligence & Safari Advisories
 * **Live Environmental Tracking across 10 National Parks:**
   Dedicated real-time weather and 7-day forecasts for *Aberdare, Amboseli, Lake Nakuru, Maasai Mara, Meru, Mount Kenya, Nairobi National Park, Samburu, Tsavo East, and Tsavo West*.
+* **Powered by [Open-Meteo](https://github.com/open-meteo/open-meteo):**
+  High-accuracy, open-source weather and meteorological engine delivering hyper-local current conditions and 7-day forecasts with zero rate-limit key dependencies.
 * **Rule-Based Safari Advisory Engine:**
   Translates precipitation, ambient heat, wind gusts, and cloud cover into operational guidance:
   * Recommends 4x4 diff-lock engagement and recovery straps when black-cotton soil turns slick.

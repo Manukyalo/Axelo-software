@@ -40,7 +40,7 @@ export const AIManager = () => {
     setSyncingWeather(true);
     try {
       const results = await syncAllParksWeather();
-      toast.success(`Weather synchronized for ${results.length} national parks via OpenWeatherMap`);
+      toast.success(`Weather synchronized for ${results.length} national parks via Open-Meteo`);
     } catch (err) {
       console.error('Weather sync failed:', err);
       toast.error('Failed to sync weather.');
@@ -80,13 +80,13 @@ export const AIManager = () => {
                   </div>
                   <div>
                     <h3 className="font-bold text-safari-primary dark:text-dark-text">Weather Intelligence</h3>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black">OpenWeatherMap + Safari Decision Engine</p>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black">Open-Meteo API + Safari Decision Engine</p>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-gray-500 leading-relaxed">
-                  Fetches live conditions and 5-day forecasts via OpenWeatherMap API and calculates domain-specific safari advisories.
+                  Fetches live conditions and 7-day forecasts via Open-Meteo API and calculates domain-specific safari advisories.
                 </p>
                 <Button 
                   className="w-full gap-2 py-6 text-sm font-bold shadow-lg shadow-safari-gold/20"
@@ -94,7 +94,7 @@ export const AIManager = () => {
                   disabled={syncingWeather}
                 >
                   {syncingWeather ? <RefreshCw size={18} className="animate-spin" /> : <RefreshCw size={18} />}
-                  {syncingWeather ? 'SYNCING OPENWEATHER...' : 'FORCE WEATHER SYNC'}
+                  {syncingWeather ? 'SYNCING OPEN-METEO...' : 'FORCE WEATHER SYNC'}
                 </Button>
               </CardContent>
             </Card>
@@ -226,7 +226,7 @@ export const AIManager = () => {
               <div className="p-3 rounded-xl bg-gray-50 dark:bg-dark-surface border border-gray-100 dark:border-dark-border">
                 <p className="text-[10px] font-black text-gray-400 uppercase mb-2">Weather & Advisory Engine</p>
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-safari-primary dark:text-dark-text">OpenWeatherMap + Safari Rules</p>
+                  <p className="text-sm font-bold text-safari-primary dark:text-dark-text">Open-Meteo API + Safari Rules</p>
                   <Badge variant="info">Active</Badge>
                 </div>
               </div>

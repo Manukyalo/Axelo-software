@@ -16,3 +16,16 @@ export function getSeasonBadge(month) { // month = 0-11
   if ([9, 10].includes(month)) return { label: 'Short Rains', type: 'info' };
   return { label: 'Dry Season', type: 'warning' };
 }
+
+export function wmoToIcon(code) {
+  const c = Number(code);
+  if (c === 0) return '01d';
+  if ([1, 2, 3].includes(c)) return '02d';
+  if ([45, 48].includes(c)) return '50d';
+  if ([51, 53, 55].includes(c)) return '09d';
+  if ([61, 63, 65, 80, 81, 82].includes(c)) return '10d';
+  if ([71, 73, 75, 77, 85, 86].includes(c)) return '13d';
+  if (c >= 95) return '11d';
+  return '02d';
+}
+

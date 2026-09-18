@@ -1,8 +1,6 @@
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase.js';
-import { getSeasonBadge } from '../utils/weatherUtils.js';
-
-export const OPENWEATHER_API_KEY = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OPENWEATHER_API_KEY) || 'f266e63527763880bfb95129a9e48bcd';
+import { getWeatherLabel, getSeasonBadge, wmoToIcon } from '../utils/weatherUtils.js';
 
 export const PARKS = [
   { name: 'Aberdare', id: 'aberdare', lat: -0.3167, lon: 36.6333 },
@@ -19,7 +17,7 @@ export const PARKS = [
 
 /**
  * Deterministic Safari Advisory Decision Engine
- * Replaces Claude/LLM calls with fast, reliable domain-specific heuristics.
+ * Evaluates real-time weather metrics into actionable safari advisories.
  */
 export function generateSafariAdvisory(weatherData, parkName) {
   const { temp_c, wind_kph, humidity, precipitation_mm, weather_code, condition } = weatherData;
@@ -27,12 +25,13 @@ export function generateSafariAdvisory(weatherData, parkName) {
   let status = 'Ideal';
   let advisory = '';
 
-  const isThunderstorm = weather_code >= 200 && weather_code < 300;
-  const isDrizzle = weather_code >= 300 && weather_code < 400;
-  const isRain = weather_code >= 500 && weather_code < 600;
-  const isFog = weather_code >= 700 && weather_code < 800;
-  const isClear = weather_code === 800;
-  const isCloudy = weather_code > 800;
+  const c = Number(weather_code);
+  const isThunderstorm = (c >= 95 && c <= 99) || (c >= 200 && c < 300);
+  const isDrizzle = [51, 53, 55].includes(c) || (c >= 300 && c < 400);
+  const isRain = [61, 63, 65, 80, 81, 82].includes(c) || (c >= 500 && c < 600);
+  const isFog = [45, 48].includes(c) || (c >= 700 && c < 800);
+  const isClear = c === 0 || c === 800;
+  const isCloudy = [1, 2, 3].includes(c) || c > 800;
 
   // 1. Determine Status & Alerts based on safety and game-viewing quality
   if (isThunderstorm || precipitation_mm > 15 || wind_kph > 45 || temp_c > 37) {
@@ -93,146 +92,61 @@ export function generateSafariAdvisory(weatherData, parkName) {
 }
 
 /**
- * Fetch weather from OpenWeatherMap API with automatic fallback
+ * Fetch weather from Open-Meteo API (https://github.com/open-meteo/open-meteo)
+ * High-accuracy, free, open-source weather and climate API with zero API keys required.
  */
-export async function fetchParkWeather(park, apiKey = OPENWEATHER_API_KEY) {
-  try {
-    // 1. Try OpenWeatherMap Current Weather
-    const currentRes = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${park.lat}&lon=${park.lon}&appid=${apiKey}&units=metric`
-    );
+export async function fetchParkWeather(park) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${park.lat}&longitude=${park.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max&timezone=Africa%2FNairobi&forecast_days=7`;
 
-    if (currentRes.ok) {
-      const current = await currentRes.json();
-
-      // 2. Fetch 5-Day / 3-Hour Forecast
-      const forecastRes = await fetch(
-        `https://api.openweathermap.org/data/2.5/forecast?lat=${park.lat}&lon=${park.lon}&appid=${apiKey}&units=metric`
-      );
-      const forecastJson = forecastRes.ok ? await forecastRes.json() : null;
-
-      const weather_code = current.weather?.[0]?.id || 800;
-      const condition = current.weather?.[0]?.description 
-        ? current.weather[0].description.replace(/\b\w/g, c => c.toUpperCase())
-        : (current.weather?.[0]?.main || 'Clear Sky');
-
-      const weatherData = {
-        temp_c: current.main.temp,
-        feels_like_c: current.main.feels_like,
-        humidity: current.main.humidity,
-        condition,
-        wind_kph: (current.wind?.speed || 0) * 3.6,
-        precipitation_mm: current.rain ? (current.rain['1h'] || current.rain['3h'] || 0) : 0,
-        weather_code,
-        current: {
-          temp: current.main.temp,
-          feels_like: current.main.feels_like,
-          humidity: current.main.humidity,
-          description: condition,
-          windSpeed: (current.wind?.speed || 0) * 3.6,
-          icon: current.weather?.[0]?.icon || '01d',
-          code: weather_code,
-          uvIndex: '—'
-        }
-      };
-
-      // Apply Safari Decision Engine (No Claude API)
-      const intel = generateSafariAdvisory(weatherData, park.name);
-
-      // Aggregate 5-day daily forecast
-      const dailyForecast = [];
-      if (forecastJson?.list) {
-        const daysMap = {};
-        for (const item of forecastJson.list) {
-          const dateStr = item.dt_txt.split(' ')[0];
-          if (!daysMap[dateStr]) {
-            daysMap[dateStr] = {
-              date: dateStr,
-              temps: [],
-              conditions: [],
-              weatherCodes: []
-            };
-          }
-          daysMap[dateStr].temps.push(item.main.temp);
-          daysMap[dateStr].conditions.push(item.weather?.[0]?.main || 'Clear');
-          daysMap[dateStr].weatherCodes.push(item.weather?.[0]?.id || 800);
-        }
-
-        const sortedDates = Object.keys(daysMap).slice(0, 5);
-        for (const d of sortedDates) {
-          const entry = daysMap[d];
-          dailyForecast.push({
-            date: entry.date,
-            max: Math.round(Math.max(...entry.temps)),
-            min: Math.round(Math.min(...entry.temps)),
-            condition: entry.conditions[0] || 'Clear',
-            pop: 0
-          });
-        }
-      }
-
-      return {
-        parkId: park.id,
-        parkName: park.name,
-        ...weatherData,
-        advisory: intel.advisory,
-        status: intel.status,
-        alerts: intel.alerts,
-        forecast: dailyForecast,
-        season: getSeasonBadge(new Date().getMonth()),
-        source: 'OpenWeatherMap'
-      };
-    }
-  } catch (err) {
-    console.warn(`OpenWeatherMap fetch failed for ${park.name}, falling back to Open-Meteo:`, err.message);
-  }
-
-  // Graceful Fallback to Open-Meteo if OpenWeatherMap key is activating or network drops
-  return fetchOpenMeteoFallback(park);
-}
-
-/**
- * Fallback to Open-Meteo with same Safari Advisory Decision Engine
- */
-async function fetchOpenMeteoFallback(park) {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${park.lat}&longitude=${park.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Africa%2FNairobi&forecast_days=7`;
   const res = await fetch(url);
-  const data = await res.json();
-  const current = data.current;
-
-  function mapWmoToCondition(code) {
-    if (code === 0) return 'Clear Sky';
-    if ([1, 2, 3].includes(code)) return 'Partly Cloudy';
-    if ([45, 48].includes(code)) return 'Foggy';
-    if ([51, 53, 55].includes(code)) return 'Drizzling';
-    if ([61, 63, 65].includes(code)) return 'Raining';
-    if ([80, 81, 82].includes(code)) return 'Rain Showers';
-    if (code === 95 || [96, 99].includes(code)) return 'Thunderstorm';
-    return 'Cloudy';
+  if (!res.ok) {
+    throw new Error(`Open-Meteo request failed with status: ${res.status}`);
   }
+
+  const data = await res.json();
+  const current = data.current || {};
+  const weather_code = current.weather_code ?? 0;
+  const condition = getWeatherLabel(weather_code);
+  const icon = wmoToIcon(weather_code);
+  const uvVal = current.uv_index !== undefined && current.uv_index !== null ? Math.round(current.uv_index) : '—';
 
   const weatherData = {
-    temp_c: current.temperature_2m,
-    feels_like_c: current.apparent_temperature,
-    humidity: current.relative_humidity_2m,
-    condition: mapWmoToCondition(current.weather_code),
-    wind_kph: current.wind_speed_10m,
-    precipitation_mm: current.precipitation,
-    weather_code: current.weather_code === 0 ? 800 : current.weather_code > 50 ? 500 : 802,
+    temp_c: current.temperature_2m ?? 0,
+    feels_like_c: current.apparent_temperature ?? current.temperature_2m ?? 0,
+    humidity: current.relative_humidity_2m ?? 0,
+    condition,
+    wind_kph: current.wind_speed_10m ?? 0,
+    precipitation_mm: current.precipitation ?? 0,
+    weather_code,
+    uv_index: uvVal,
     current: {
-      temp: current.temperature_2m,
-      feels_like: current.apparent_temperature,
-      humidity: current.relative_humidity_2m,
-      description: mapWmoToCondition(current.weather_code),
-      windSpeed: current.wind_speed_10m,
-      icon: '02d',
-      code: current.weather_code === 0 ? 800 : current.weather_code > 50 ? 500 : 802,
-      uvIndex: '—'
+      temp: current.temperature_2m ?? 0,
+      feels_like: current.apparent_temperature ?? current.temperature_2m ?? 0,
+      humidity: current.relative_humidity_2m ?? 0,
+      description: condition,
+      windSpeed: current.wind_speed_10m ?? 0,
+      icon,
+      code: weather_code,
+      uvIndex: uvVal
     }
   };
 
-  // Rule-based safari advisory (No Claude API)
+  // Evaluate heuristic safari advisory
   const intel = generateSafariAdvisory(weatherData, park.name);
+
+  // 7-day daily forecast
+  const dailyForecast = (data.daily?.time || []).map((date, i) => {
+    const code = data.daily?.weather_code?.[i] ?? 0;
+    return {
+      date,
+      max: Math.round(data.daily?.temperature_2m_max?.[i] ?? 0),
+      min: Math.round(data.daily?.temperature_2m_min?.[i] ?? 0),
+      condition: getWeatherLabel(code),
+      icon: wmoToIcon(code),
+      code,
+      pop: data.daily?.precipitation_probability_max?.[i] || 0
+    };
+  });
 
   return {
     parkId: park.id,
@@ -241,15 +155,9 @@ async function fetchOpenMeteoFallback(park) {
     advisory: intel.advisory,
     status: intel.status,
     alerts: intel.alerts,
-    forecast: (data.daily?.time || []).map((date, i) => ({
-      date,
-      max: Math.round(data.daily.temperature_2m_max[i]),
-      min: Math.round(data.daily.temperature_2m_min[i]),
-      condition: mapWmoToCondition(data.daily.weather_code[i]),
-      pop: data.daily.precipitation_probability_max[i] || 0
-    })),
+    forecast: dailyForecast,
     season: getSeasonBadge(new Date().getMonth()),
-    source: 'OpenWeatherMap (via Fallback Engine)'
+    source: 'Open-Meteo'
   };
 }
 
@@ -311,7 +219,7 @@ export async function syncAllParksWeather(onProgress) {
     await setDoc(doc(db, 'weather_sync_stats', 'latest'), {
       lastSync: serverTimestamp(),
       status: 'success',
-      engine: 'OpenWeatherMap + Safari Decision Engine',
+      engine: 'Open-Meteo API + Safari Decision Engine',
       parksCount: results.length
     });
 

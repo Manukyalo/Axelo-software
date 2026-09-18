@@ -325,14 +325,14 @@ export const WeatherIntelligence = () => {
           {isSyncing ? (
             <div className="flex items-center text-[10px] text-amber-500 font-bold uppercase tracking-wider animate-pulse border border-amber-500/20 bg-amber-500/5 px-3 py-1 rounded-full">
               <RefreshCw size={10} className="mr-1.5 animate-spin" />
-              Syncing OpenWeather Data...
+              Syncing Open-Meteo Data...
             </div>
           ) : (
             <button
               disabled={isSyncing}
               onClick={async () => {
                 setIsSyncing(true);
-                const toastId = toast.loading('Synchronizing weather data across all parks...');
+                const toastId = toast.loading('Synchronizing weather data across all parks via Open-Meteo...');
                 try {
                   // 1. Try Firebase Cloud Function first (has admin server privileges)
                   try {
@@ -359,7 +359,7 @@ export const WeatherIntelligence = () => {
             </button>
           )}
           {syncStats && (
-            <span className="text-[10px] text-gray-400 opacity-60">Engine: {syncStats.engine || 'OpenWeatherMap + Safari Decision Engine'}</span>
+            <span className="text-[10px] text-gray-400 opacity-60">Engine: {syncStats.engine || 'Open-Meteo API + Safari Decision Engine'}</span>
           )}
         </div>
       }
