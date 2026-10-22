@@ -150,9 +150,19 @@ Axelo is not just a desktop dispatch dashboard—it ships with a dedicated mobil
 
 ---
 
-### 6. 🗺️ Real-Time Fleet Tracking & Telematics
-* **Interactive Live Cruiser Map:** Instant visibility of vehicle locations, route histories, heading, speed, and driver allocations across Kenya circuits.
-* **Fleet Readiness Indicators:** Visual telemetry displaying vehicle statuses (*On Safari, Available in Yard, Under Scheduled Service, or Maintenance Standby*).
+### 6. 🗺️ Real-Time Fleet Tracking & Telematics (Operations Command Center)
+<p align="center">
+  <img src="screenshots/live-fleet-tracking.png" alt="Axelo Safari Suite — Operations Command Center Live Fleet Tracking" width="100%" />
+</p>
+
+* **Interactive Expedition & Cruiser GIS Map:** Real-time GIS telematics interface powered by customizable map engines (*OpenFreeMap, Satellite, Dark, Liberty, and Bright*).
+* **Multi-Layer Wilderness Infrastructure:** Granular layer toggles for operations controllers:
+  * **187 Lodges & Camps Mapped:** Instant geographic reference for bush properties, tented camps, and airstrips across East Africa.
+  * **54 Protected Wilderness Areas:** Explicit boundary tracking across National Parks, Game Reserves, and Community Conservancies.
+  * **29 Park Entry & Transit Gates:** Monitored checkpoints ensuring timely gate clearance and accurate KWS fee logging.
+* **Live Driver Telemetry & Battery Telemetry:** Real-time cruiser tracking displaying driver name, vehicle speed (`0 km/h`, transit speeds), mobile battery percentage (`96%`), and connection health.
+* **Regional Sector Hubs:** Rapid focal switching between primary operating theaters: *Mombasa Unit, Kilifi / Watamu, Malindi, Kwale / Diani, and Nairobi HQ*.
+* **Emergency Triage Integration:** Instant red-alert visual banner overlay whenever an active wilderness SOS is triggered in the field.
 
 ---
 
