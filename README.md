@@ -77,35 +77,93 @@ Axelo is not just a desktop dispatch dashboard—it ships with a dedicated mobil
 
 ## 🖥️ Central Command Suite Features
 
-### 1. 🌦️ Park-Specific Weather Intelligence & Safari Advisories
+### 1. 📅 Upcoming Safaris & Expedition Horizon
+<p align="center">
+  <img src="screenshots/upcoming-safaris.png" alt="Axelo Safari Suite — Upcoming Safaris Horizon and Dispatch Telemetry" width="100%" />
+</p>
+
+* **Real-Time Departure Telemetry:** Live operations dashboard monitoring all confirmed upcoming safaris with high-visibility countdown indicators (`In -88 Days`, `In -84 Days`, etc.).
+* **Pre-Trip Guardrails & Readiness Counters:** Instantly surfaces operational bottlenecks before departure:
+  * **This Week Expeditions:** Immediate focus on cruisers departing in the next 7 days.
+  * **Unassigned Driver Warnings:** Flags departures lacking certified driver-guide allocations.
+  * **Pending Payment Guard:** Identifies uncollected client balances before vehicles leave the depot.
+  * **Ready to Go Status:** Clear visual clearance for fully assigned, fully paid itineraries.
+* **Flexible Dispatch Views:** Quickly toggle between Grid Card View, Compact Table List, and Itinerary Calendar views, with quick-filters for *This Week*, *This Month*, and *Next 3 Months*.
+
+---
+
+### 2. 🌦️ Park-Specific Weather Intelligence & Safari Advisories
+<p align="center">
+  <img src="screenshots/weather-intelligence.png" alt="Axelo Safari Suite — Weather Intelligence and Safari Decision Engine" width="100%" />
+</p>
+
 * **Live Environmental Tracking across 10 National Parks:**
   Dedicated real-time weather and 7-day forecasts for *Aberdare, Amboseli, Lake Nakuru, Maasai Mara, Meru, Mount Kenya, Nairobi National Park, Samburu, Tsavo East, and Tsavo West*.
 * **Powered by [Open-Meteo](https://github.com/open-meteo/open-meteo):**
-  High-accuracy, open-source weather and meteorological engine delivering hyper-local current conditions and 7-day forecasts with zero rate-limit key dependencies.
+  High-accuracy, open-source meteorological engine delivering hyper-local temperature, relative humidity, wind speed, UV index, and precipitation forecasts with zero rate-limit key dependencies.
 * **Rule-Based Safari Advisory Engine:**
-  Translates precipitation, ambient heat, wind gusts, and cloud cover into operational guidance:
-  * Recommends 4x4 diff-lock engagement and recovery straps when black-cotton soil turns slick.
-  * Advises pop-up roof management during rain showers or high wind conditions.
-  * Guides sunrise warm-attire advisories for chilly highland descents in Aberdare and Mount Kenya.
-  * Suggests predator portraiture opportunities during soft diffused cloud cover.
+  Translates live environmental telemetry into actionable operational recommendations:
+  * *Trail & Terrain Intelligence:* Advises 4x4 diff-lock engagement and mud recovery gear when black-cotton soils turn slick.
+  * *Vehicle Management:* Alerts drivers on pop-up roof management during sudden rain squalls or high dust gusts.
+  * *Highland Comfort Alerts:* Recommends warm-attire guest advisories for chilly highland descents in Aberdare and Mount Kenya.
+  * *Wildlife Photography Forecasts:* Identifies optimal predator portraiture windows during soft, diffused overcast light.
 
-### 2. 🗺️ Real-Time Fleet Tracking & Telematics
+---
+
+### 3. 🤖 Autonomous Operations Watchdog (AI Engine)
+<p align="center">
+  <img src="screenshots/ai-manager-hub.png" alt="Axelo Safari Suite — AI Manager Hub & Neural Engine Status" width="100%" />
+</p>
+
+* **Mission-Critical Watchdog Control Center:** Dedicated AI operations console managing autonomous audit routines, policy enforcement, and synchronization tasks.
+* **Automated Departure Audits:** Continuous background sweeps monitor upcoming itineraries to prevent operational failure:
+  * **7 Days to Departure:** Early equipment, vehicle readiness, and logistics audit.
+  * **3 Days to Departure:** High-priority escalation flagging unassigned drivers, unallocated 4x4 cruisers, or outstanding client payments.
+  * **24 Hours to Departure:** Final dispatch lock, preparing gate manifests and emergency contacts.
+* **Real-Time Neural Engine Telemetry:**
+  * Displays live health status of Firebase Cloud Functions connectivity.
+  * Scheduled automatic weather synchronization every 3 hours with on-demand manual force sync.
+  * 15-minute background sweeps auditing vehicle documentation and tour readiness.
+* **Commercial Compliance Guard:** Automatically checks commercial PSV insurance and vehicle inspection validity, locking vehicles approaching compliance lapse.
+
+---
+
+### 4. 🚨 Central Emergency SOS Management
+<p align="center">
+  <img src="screenshots/emergency-sos-management.png" alt="Axelo Safari Suite — Emergency SOS Management Console" width="100%" />
+</p>
+
+* **Real-Time Incident Command:** Instant reception of distress signals triggered from the field by the Axelo Drivers companion app.
+* **Active vs. Resolved Incident Triage:** Segregates high-urgency active incidents from historical recovery archives with detailed post-incident logs.
+* **Field Coordinate Telemetry:** Pinpoints driver GPS coordinates in remote wilderness zones for rapid dispatch of backup cruisers, mechanic teams, or emergency ranger recovery.
+
+---
+
+### 5. 💬 Fleet Communications Hub
+<p align="center">
+  <img src="screenshots/fleet-communications-hub.png" alt="Axelo Safari Suite — Fleet Communications Hub" width="100%" />
+</p>
+
+* **Dedicated Dispatch-to-Driver Messaging:** Direct operational communications channel connecting head-office controllers with driver-guides in the field.
+* **Centralized Fleet Inbox:** Organized conversation threads per driver and safari expedition, eliminating fragmented personal chat channels.
+* **Audit-Proof Operational History:** Preserves official dispatch orders, route deviations, and road advisories in a centralized, searchable log.
+
+---
+
+### 6. 🗺️ Real-Time Fleet Tracking & Telematics
 * **Interactive Live Cruiser Map:** Instant visibility of vehicle locations, route histories, heading, speed, and driver allocations across Kenya circuits.
 * **Fleet Readiness Indicators:** Visual telemetry displaying vehicle statuses (*On Safari, Available in Yard, Under Scheduled Service, or Maintenance Standby*).
 
-### 3. 🤖 Autonomous Operations Watchdog (AI Engine)
-* **Automated Departure Audits:** Continuous background sweeps monitor upcoming itineraries to prevent operational failure:
-  * **7 Days to Departure:** Early equipment and logistics check.
-  * **3 Days to Departure:** Automatically flags unassigned drivers, unallocated vehicles, or pending client payments.
-  * **24 Hours to Departure:** Dispatches high-priority departure alerts with pickup timings, driver contacts, and gate manifests.
-* **Vehicle Insurance & Inspection Watchdog:** Warns management 7 days prior to commercial PSV insurance expiry and triggers safety lockdowns upon expiration.
+---
 
-### 4. 📋 Comprehensive Booking & Voucher Engine
+### 7. 📋 Comprehensive Booking & Voucher Engine
 * **Full Safari Lifecycle Tracking:** From inquiry and quotation to confirmed booking, active safari, and post-trip invoicing.
 * **Automated Client Vouchers:** Instant generation of professional safari vouchers, hotel rooming confirmations, and itinerary printouts.
 * **Multi-Currency Payment Ledger:** Integrated tracking of deposits, balance dues, and payment methods.
 
-### 5. 🔐 Enterprise Role-Based Access Control (RBAC)
+---
+
+### 8. 🔐 Enterprise Role-Based Access Control (RBAC)
 * **Multi-Tier Authorization:** Strictly separates Administrator control, Reservation Agent intake, and Driver field permissions.
 * **Secure Cloud Data Rules:** Real-time database protection ensuring confidential operational, financial, and client data remains strictly guarded.
 
